@@ -11,3 +11,10 @@ npm-debug.*
 web-build/
 .env
 .env.local
+postman/
+backend/.env
+backend/ARCHITECTURE.md
+backend/DEVIATIONS.md
+backend/RESEARCH.md
+backend/TRADEOFFS.md
+backend/TEST_REPORT.md
