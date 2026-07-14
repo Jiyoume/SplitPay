@@ -30,33 +30,52 @@ export default function ActivityScreen() {
 
   const getActivityIcon = (type: string): { name: keyof typeof Ionicons.glyphMap; color: string } => {
     switch (type) {
-      case 'expense_added': return { name: 'receipt', color: Colors.primary };
-      case 'payment_made': return { name: 'card', color: Colors.accent };
-      case 'group_created': return { name: 'people', color: Colors.secondary };
-      case 'member_added': return { name: 'person-add', color: Colors.secondary };
-      default: return { name: 'ellipse', color: Colors.textSecondary };
+      case 'expense_added': return { name: 'receipt-outline', color: Colors.primary };
+      case 'payment_made': return { name: 'card-outline', color: Colors.accent };
+      case 'group_created': return { name: 'people-outline', color: Colors.secondary };
+      case 'member_added': return { name: 'person-add-outline', color: Colors.secondary };
+      default: return { name: 'ellipse-outline', color: Colors.textSecondary };
     }
   };
 
-  const renderActivity = ({ item }: { item: ActivityItem }) => {
+  const renderActivity = ({ item, index }: { item: ActivityItem; index: number }) => {
     const icon = getActivityIcon(item.type);
 
     return (
-      <View style={styles.activityItem}>
-        <View style={[styles.iconContainer, { backgroundColor: `${icon.color}20` }]}>
-          <Ionicons name={icon.name} size={20} color={icon.color} />
+      <View style={styles.timelineRow}>
+        {/* Left Timeline Column */}
+        <View style={styles.timelineColumn}>
+          {/* Vertical line connecting nodes */}
+          <View 
+            style={[
+              styles.timelineLine,
+              index === 0 && { top: 20 },
+              index === activities.length - 1 && { height: 20 }
+            ]} 
+          />
+          {/* Timeline node icon */}
+          <View style={[
+            styles.iconNode, 
+            { backgroundColor: `${icon.color}15`, borderColor: '#FFFFFF' }
+          ]}>
+            <Ionicons name={icon.name} size={16} color={icon.color} />
+          </View>
         </View>
-        <View style={styles.activityContent}>
-          <Text style={styles.activityText}>
-            <Text style={styles.userName}>{item.userName}</Text> {item.description}
-          </Text>
-          <Text style={styles.activityMeta}>
-            {item.groupName} • {item.date}
-          </Text>
+
+        {/* Right Content Card */}
+        <View style={styles.activityCard}>
+          <View style={styles.activityContent}>
+            <Text style={styles.activityText}>
+              <Text style={styles.userName}>{item.userName}</Text> {item.description}
+            </Text>
+            <Text style={styles.activityMeta}>
+              {item.groupName} • {item.date}
+            </Text>
+          </View>
+          {item.amount && (
+            <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+          )}
         </View>
-        {item.amount && (
-          <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
-        )}
       </View>
     );
   };
@@ -65,12 +84,13 @@ export default function ActivityScreen() {
     <View style={styles.container}>
       <FlatList
         data={activities}
-        renderItem={renderActivity}
+        renderItem={({ item, index }) => renderActivity({ item, index })}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color={Colors.textLight} />
+            <Ionicons name="document-text-outline" size={56} color={Colors.textSecondary} />
             <Text style={styles.emptyText}>No activity yet</Text>
             <Text style={styles.emptySubtext}>
               Your expense history will appear here
@@ -89,22 +109,58 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: 16,
+    paddingBottom: 40,
   },
-  activityItem: {
+  timelineRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    position: 'relative',
+    minHeight: 80,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  timelineColumn: {
+    width: 46,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'relative',
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 22,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: Colors.border,
+  },
+  iconNode: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 3,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    zIndex: 10,
+    marginTop: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  activityCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.01,
+    shadowRadius: 6,
+    elevation: 1,
+    marginLeft: 4,
   },
   activityContent: {
     flex: 1,
@@ -112,18 +168,22 @@ const styles = StyleSheet.create({
   activityText: {
     fontSize: 14,
     color: Colors.text,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   userName: {
-    fontWeight: '600',
+    fontWeight: '800',
+    color: Colors.text,
   },
   activityMeta: {
     fontSize: 12,
     color: Colors.textSecondary,
-    marginTop: 3,
+    marginTop: 4,
+    fontWeight: '500',
   },
   amount: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '800',
     color: Colors.text,
   },
   emptyState: {
@@ -132,7 +192,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     color: Colors.text,
     marginTop: 16,
   },
@@ -140,5 +200,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 8,
+    fontWeight: '500',
   },
 });
+

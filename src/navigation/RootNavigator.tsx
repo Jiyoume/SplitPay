@@ -21,9 +21,11 @@ export default function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: Colors.primary },
-        headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '600' },
+        headerStyle: { backgroundColor: Colors.background },
+        headerTintColor: Colors.text,
+        headerTitleStyle: { fontWeight: '800', fontSize: 18 },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: Colors.background },
       }}
     >
       <Stack.Screen
