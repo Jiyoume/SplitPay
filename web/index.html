@@ -2125,9 +2125,12 @@ const SUPABASE_KEY = 'sb_publishable_4327cOgn2trcl5CVw7pXiQ_6JifiU3q';
 let currentUser = null;
 
 async function handleLogin() {
-  const email = document.getElementById('loginEmail').value;
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPassword').value;
   if (!email || !pass) { shakeElement(document.querySelector('#loginScreen .btn-primary')); return; }
+
+  // Validate email format
+  if (!isValidEmail(email)) { alert('Please enter a valid email address.'); return; }
 
   // Try to sign in with Supabase
   const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
@@ -2138,10 +2141,26 @@ async function handleLogin() {
   const data = await res.json();
 
   if (data.error || !data.access_token) {
-    // Account doesn't exist — redirect to signup
-    alert('Account not found. Please sign up first.');
-    showSignup();
-    document.getElementById('signupEmail').value = email;
+    // Check if it's wrong password vs no account
+    if (data.error_description === 'Invalid login credentials' || data.msg === 'Invalid login credentials') {
+      // Could be wrong password OR account doesn't exist — check users table
+      const checkRes = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email) + '&select=id,email', {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      const existing = await checkRes.json();
+
+      if (existing && existing.length > 0) {
+        // Account exists — wrong password
+        alert('Incorrect password. Please try again.');
+      } else {
+        // Account doesn't exist — redirect to signup
+        alert('No account found with this email. Please sign up first.');
+        showSignup();
+        document.getElementById('signupEmail').value = email;
+      }
+    } else {
+      alert('Login failed: ' + (data.error_description || data.msg || 'Please try again.'));
+    }
     return;
   }
 
@@ -2153,22 +2172,39 @@ async function handleLogin() {
   const kycLevel = data.user?.user_metadata?.kyc_level || 'none';
   if (kycLevel === 'none') {
     showMainApp(data.user.user_metadata?.full_name || email.split('@')[0]);
-    setTimeout(() => openKYCModal(), 500); // Prompt KYC after login
+    setTimeout(() => openKYCModal(), 500);
   } else {
     showMainApp(data.user.user_metadata?.full_name || email.split('@')[0]);
   }
 }
 
 async function handleSignup() {
-  const name = document.getElementById('signupName').value;
-  const email = document.getElementById('signupEmail').value;
+  const name = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim().toLowerCase();
   const pass = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
-  if (!name || !email || !pass || !confirm) { shakeElement(document.querySelector('#signupScreen .btn-primary')); return; }
-  if (pass !== confirm) { alert('Passwords do not match'); return; }
-  if (pass.length < 6) { alert('Password must be at least 6 characters'); return; }
 
-  // Sign up with Supabase
+  // Validate all fields
+  if (!name || !email || !pass || !confirm) { shakeElement(document.querySelector('#signupScreen .btn-primary')); return; }
+  if (name.length < 2) { alert('Please enter your full name.'); return; }
+  if (!isValidEmail(email)) { alert('Please enter a valid email or Gmail address.'); return; }
+  if (pass.length < 6) { alert('Password must be at least 6 characters.'); return; }
+  if (pass !== confirm) { alert('Passwords do not match.'); return; }
+
+  // Check if account already exists in users table
+  const checkRes = await fetch(SUPABASE_URL + '/rest/v1/users?email=eq.' + encodeURIComponent(email) + '&select=id,email,full_name', {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  const existing = await checkRes.json();
+
+  if (existing && existing.length > 0) {
+    alert('An account with this email already exists. Redirecting to login...');
+    showLogin();
+    document.getElementById('loginEmail').value = email;
+    return;
+  }
+
+  // Sign up with Supabase Auth
   const res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
@@ -2177,26 +2213,39 @@ async function handleSignup() {
   const data = await res.json();
 
   if (data.error) {
-    if (data.error.message?.includes('already registered')) {
-      alert('Account already exists. Please sign in.');
+    if (data.error.message?.includes('already registered') || data.msg?.includes('already registered')) {
+      alert('This email is already registered. Please sign in instead.');
       showLogin();
       document.getElementById('loginEmail').value = email;
     } else {
-      alert('Signup failed: ' + (data.error.message || data.msg || 'Unknown error'));
+      alert('Signup failed: ' + (data.error.message || data.msg || 'Unknown error. Please try again.'));
     }
     return;
   }
+
+  // Write to users table
+  await fetch(SUPABASE_URL + '/rest/v1/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ id: data.user?.id, email: email, full_name: name, kyc_level: 'none' })
+  });
 
   currentUser = data.user;
   localStorage.setItem('myshare_token', data.access_token || '');
   localStorage.setItem('myshare_user', JSON.stringify(data.user));
 
-  // New user — go to app then immediately open KYC
+  // New user — show app then KYC
   showMainApp(name);
   setTimeout(() => {
     openKYCModal();
-    alert('Welcome to MyShare! Please complete identity verification to unlock all features.');
+    alert('Welcome to MyShare, ' + name + '! Please complete identity verification to unlock all features.');
   }, 600);
+}
+
+// Email validation (accepts gmail, yahoo, outlook, custom domains)
+function isValidEmail(email) {
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return re.test(email);
 }
 
 function signInWithGoogle() {
