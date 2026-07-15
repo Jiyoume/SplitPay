@@ -3,14 +3,16 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import GroupsScreen from '../screens/GroupsScreen';
-import ActivityScreen from '../screens/ActivityScreen';
+import WalletScreen from '../screens/WalletScreen';
+import ReportsScreen from '../screens/ReportsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { Colors } from '../constants/colors';
 
 export type TabParamList = {
   Home: undefined;
   Groups: undefined;
-  Activity: undefined;
+  Wallet: undefined;
+  Reports: undefined;
   Profile: undefined;
 };
 
@@ -22,37 +24,29 @@ export default function TabNavigator() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
-
           switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Groups':
-              iconName = focused ? 'people' : 'people-outline';
-              break;
-            case 'Activity':
-              iconName = focused ? 'list' : 'list-outline';
-              break;
-            case 'Profile':
-              iconName = focused ? 'person' : 'person-outline';
-              break;
-            default:
-              iconName = 'ellipse';
+            case 'Home': iconName = focused ? 'home' : 'home-outline'; break;
+            case 'Groups': iconName = focused ? 'people' : 'people-outline'; break;
+            case 'Wallet': iconName = focused ? 'wallet' : 'wallet-outline'; break;
+            case 'Reports': iconName = focused ? 'bar-chart' : 'bar-chart-outline'; break;
+            case 'Profile': iconName = focused ? 'person' : 'person-outline'; break;
+            default: iconName = 'ellipse';
           }
-
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
-        headerStyle: { backgroundColor: Colors.primary },
-        headerTintColor: Colors.white,
-        headerTitleStyle: { fontWeight: '600' },
+        tabBarStyle: { backgroundColor: '#000', borderTopColor: '#1C1C1E', paddingBottom: 4, height: 56 },
+        headerStyle: { backgroundColor: '#000' },
+        headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: '700' },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
-      <Tab.Screen name="Groups" component={GroupsScreen} options={{ title: 'Groups' }} />
-      <Tab.Screen name="Activity" component={ActivityScreen} options={{ title: 'Activity' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Groups" component={GroupsScreen} />
+      <Tab.Screen name="Wallet" component={WalletScreen} />
+      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
