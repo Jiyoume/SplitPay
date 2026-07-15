@@ -31,12 +31,12 @@ import { AmbagKoKYCProfile } from '../models/kyc';
 // ===== FIREBASE CONFIG =====
 // Replace with your Firebase project config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "ambagko-app.firebaseapp.com",
-  projectId: "ambagko-app",
-  storageBucket: "ambagko-app.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:000000000000",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyCB7jPw0VsHFcdG3rcU4OJaSLjsiz9hJXY",
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "doitnow-c1221.firebaseapp.com",
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "doitnow-c1221",
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "doitnow-c1221.firebasestorage.app",
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "5188276679",
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:5188276679:android:71b9be71141f8efca049e2",
 };
 
 // ===== INITIALIZATION =====

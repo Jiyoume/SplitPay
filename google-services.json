@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "5188276679",
+    "project_id": "doitnow-c1221",
+    "storage_bucket": "doitnow-c1221.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:5188276679:android:71b9be71141f8efca049e2",
+        "android_client_info": {
+          "package_name": "MyShare.v00"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "5188276679-mtanvg88j1fi6e02q3bcmk2u0rn7h06k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCB7jPw0VsHFcdG3rcU4OJaSLjsiz9hJXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "5188276679-mtanvg88j1fi6e02q3bcmk2u0rn7h06k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
