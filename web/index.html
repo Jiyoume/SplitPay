@@ -678,6 +678,170 @@ button, .btn, .tab-item, .chip, .quick-action, .menu-item, .fab, .tab-bar, .moda
 .split-option.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 .split-option:active { animation: tapFeedback 0.15s ease; }
 
+/* ===== WALLET SECTION ===== */
+.wallet-card {
+  margin: 20px 20px 0; padding: 20px; border-radius: var(--radius);
+  background: var(--bg-elevated); box-shadow: var(--card-shadow);
+  transition: all var(--transition);
+}
+.wallet-balances { display: flex; gap: 12px; margin-bottom: 16px; }
+.wallet-bal-item {
+  flex: 1; padding: 14px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); text-align: center;
+  transition: background-color var(--transition);
+}
+.wallet-bal-item .bal-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+.wallet-bal-item .bal-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+.wallet-address {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: var(--bg-tertiary); border-radius: var(--radius-xs);
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;
+  transition: background-color var(--transition);
+}
+.wallet-address code { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'SF Mono', monospace; }
+.wallet-address .copy-btn {
+  padding: 4px 10px; border-radius: 6px; background: var(--accent-light);
+  color: var(--accent); font-size: 11px; font-weight: 600; cursor: pointer;
+  border: none; font-family: var(--font);
+}
+.wallet-address .copy-btn:active { animation: tapFeedback 0.15s ease; }
+.topup-methods { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.topup-method {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 4px; border-radius: var(--radius-xs); cursor: pointer;
+  border: 1.5px solid var(--separator); transition: all var(--transition);
+  font-size: 20px; min-height: 44px;
+}
+.topup-method:active { animation: tapFeedback 0.15s ease; }
+.topup-method.selected { border-color: var(--accent); background: var(--accent-light); }
+.topup-method span { font-size: 9px; font-weight: 600; color: var(--text-secondary); }
+.wallet-txns { margin-top: 16px; }
+.wallet-txn-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--separator); transition: border-color var(--transition);
+}
+.wallet-txn-item:last-child { border-bottom: none; }
+.wallet-txn-icon { font-size: 16px; width: 32px; height: 32px; border-radius: 8px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; }
+.wallet-txn-info { flex: 1; }
+.wallet-txn-info .txn-desc { font-size: 13px; font-weight: 600; }
+.wallet-txn-info .txn-time { font-size: 11px; color: var(--text-secondary); }
+.wallet-txn-amt { font-size: 13px; font-weight: 700; }
+
+/* ===== KYC SECTION ===== */
+.kyc-card {
+  margin: 16px 20px; padding: 16px; border-radius: var(--radius);
+  background: var(--bg-elevated); box-shadow: var(--card-shadow);
+  transition: all var(--transition);
+}
+.kyc-status-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.kyc-badge {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+}
+.kyc-badge.not-started { background: var(--bg-tertiary); color: var(--text-secondary); }
+.kyc-badge.basic { background: rgba(255,149,0,0.15); color: var(--warning); }
+.kyc-badge.verified { background: var(--accent-light); color: var(--accent); }
+.kyc-badge.enhanced { background: rgba(0,122,255,0.15); color: var(--blue); }
+.kyc-steps { display: flex; gap: 4px; margin-bottom: 14px; }
+.kyc-step {
+  flex: 1; height: 4px; border-radius: 2px; background: var(--bg-tertiary);
+  transition: background-color var(--transition);
+}
+.kyc-step.done { background: var(--accent); }
+.kyc-step.active { background: var(--warning); }
+.kyc-verify-btn {
+  width: 100%; padding: 12px; border-radius: var(--radius-sm); border: none;
+  background: var(--accent); color: #fff; font-size: 14px; font-weight: 700;
+  font-family: var(--font); cursor: pointer; transition: all var(--transition);
+}
+.kyc-verify-btn:active { animation: tapFeedback 0.15s ease; }
+.kyc-field-status { display: inline-flex; align-items: center; font-size: 12px; margin-left: 8px; }
+.kyc-upload-btns { display: flex; gap: 10px; margin-top: 12px; }
+.kyc-upload-btn {
+  flex: 1; padding: 14px; border-radius: var(--radius-sm); text-align: center;
+  border: 2px dashed var(--separator); cursor: pointer; font-size: 13px;
+  font-weight: 600; color: var(--text-secondary); background: transparent;
+  font-family: var(--font); transition: all var(--transition);
+}
+.kyc-upload-btn:active { animation: tapFeedback 0.15s ease; }
+
+/* ===== ENHANCED REPORTS ===== */
+.month-selector {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  padding: 12px 20px; margin-bottom: 4px;
+}
+.month-selector .month-nav {
+  width: 36px; height: 36px; border-radius: 50%; border: none;
+  background: var(--bg-tertiary); color: var(--text-primary);
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font); transition: all var(--transition);
+}
+.month-selector .month-nav:active { animation: tapFeedback 0.15s ease; }
+.month-selector .month-current { font-size: 16px; font-weight: 700; min-width: 120px; text-align: center; }
+.statement-card {
+  margin: 0 20px 16px; padding: 16px; border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-tertiary));
+  box-shadow: var(--card-shadow); transition: all var(--transition);
+}
+.statement-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.statement-row .st-label { font-size: 13px; color: var(--text-secondary); }
+.statement-row .st-value { font-size: 14px; font-weight: 700; }
+.statement-row .st-value.inflow { color: var(--accent); }
+.statement-row .st-value.outflow { color: var(--danger); }
+.statement-divider { height: 1px; background: var(--separator); margin: 4px 0; }
+.budget-item { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.budget-icon { font-size: 18px; width: 36px; height: 36px; border-radius: 10px; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; }
+.budget-info { flex: 1; }
+.budget-info .budget-label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.budget-bar { height: 6px; border-radius: 3px; background: var(--bg-tertiary); overflow: hidden; }
+.budget-bar .budget-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.budget-meta { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-align: right; min-width: 70px; }
+.export-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 0 20px 20px; padding: 14px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--accent); background: var(--accent-light);
+  color: var(--accent); font-size: 14px; font-weight: 700;
+  font-family: var(--font); cursor: pointer; transition: all var(--transition);
+}
+.export-btn:active { animation: tapFeedback 0.15s ease; }
+
+/* ===== SECURITY INDICATORS ===== */
+.verified-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: 700;
+  background: var(--accent-light); color: var(--accent);
+}
+.security-notice {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  background: var(--accent-light); border-radius: var(--radius-xs);
+  font-size: 12px; font-weight: 600; color: var(--accent); margin: 12px 0;
+}
+.security-popup {
+  text-align: center; padding: 24px;
+}
+.security-popup .sec-icon { font-size: 48px; margin-bottom: 12px; }
+.security-popup .sec-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.security-popup .sec-desc { font-size: 14px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.4; }
+.security-popup .sec-details {
+  padding: 14px; background: var(--bg-tertiary); border-radius: var(--radius-sm);
+  margin-bottom: 20px; text-align: left;
+}
+.security-popup .sec-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+.security-popup .sec-row .sec-lbl { color: var(--text-secondary); }
+.security-popup .sec-row .sec-val { font-weight: 600; }
+
+/* ===== SYNC STATUS ===== */
+.sync-indicator {
+  display: flex; align-items: center; gap: 5px; font-size: 11px;
+  color: var(--text-secondary); font-weight: 500;
+}
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.sync-dot.online { background: var(--accent); }
+.sync-dot.offline { background: var(--danger); }
+.sync-dot.syncing { background: var(--warning); animation: float 1.5s ease infinite; }
+
 /* ===== SCROLLBAR & MISC ===== */
 ::-webkit-scrollbar { width: 0; height: 0; }
 /* Prevent double-tap zoom on interactive elements */
@@ -750,6 +914,9 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 <div class="status-bar">
   <span class="time" id="statusTime">9:41</span>
   <span class="status-icons">
+    <span class="sync-indicator" id="syncIndicator">
+      <span class="sync-dot online" id="syncDot"></span>
+    </span>
     <span>●●●●</span>
     <span>WiFi</span>
     <span>100%</span>
@@ -787,19 +954,67 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
         <div class="icon blue">👥</div>
         <span>Group</span>
       </div>
-      <div class="quick-action" onclick="switchTab(2)">
+      <div class="quick-action" onclick="switchTab(3)">
         <div class="icon orange">📊</div>
         <span>Reports</span>
       </div>
-      <div class="quick-action" onclick="switchTab(1)">
-        <div class="icon purple">🏷️</div>
-        <span>Settle</span>
+      <div class="quick-action" onclick="switchTab(2)">
+        <div class="icon purple">💎</div>
+        <span>Wallet</span>
       </div>
     </div>
 
     <!-- Alert -->
     <div class="alert-banner">
       ⚠️ <span>Maria owes you ₱350 — overdue by 3 days</span>
+    </div>
+
+    <!-- Stellar Wallet Section -->
+    <div class="section-header">
+      <h3>💎 Stellar Wallet</h3>
+      <a onclick="openTopUpModal()">Top Up</a>
+    </div>
+    <div class="wallet-card" id="walletSection">
+      <div class="wallet-balances">
+        <div class="wallet-bal-item">
+          <div class="bal-label">XLM</div>
+          <div class="bal-value" id="xlmBalance">124.50</div>
+        </div>
+        <div class="wallet-bal-item">
+          <div class="bal-label">SRT</div>
+          <div class="bal-value" id="srtBalance">2,500.00</div>
+        </div>
+      </div>
+      <div class="wallet-address">
+        <code id="stellarAddress">GBKX...Q4F7...STELLAR...TESTNET</code>
+        <button class="copy-btn" onclick="copyStellarAddress()">Copy</button>
+      </div>
+      <div class="wallet-txns">
+        <div class="wallet-txn-item">
+          <div class="wallet-txn-icon">↓</div>
+          <div class="wallet-txn-info">
+            <div class="txn-desc">Received from Maria</div>
+            <div class="txn-time">Today, 2:30 PM</div>
+          </div>
+          <div class="wallet-txn-amt" style="color:var(--accent);">+350 SRT</div>
+        </div>
+        <div class="wallet-txn-item">
+          <div class="wallet-txn-icon">↑</div>
+          <div class="wallet-txn-info">
+            <div class="txn-desc">Sent to Carlos</div>
+            <div class="txn-time">Yesterday, 8:15 PM</div>
+          </div>
+          <div class="wallet-txn-amt" style="color:var(--danger);">-180 SRT</div>
+        </div>
+        <div class="wallet-txn-item">
+          <div class="wallet-txn-icon">💳</div>
+          <div class="wallet-txn-info">
+            <div class="txn-desc">Top-up via GCash</div>
+            <div class="txn-time">Jul 13, 10:00 AM</div>
+          </div>
+          <div class="wallet-txn-amt" style="color:var(--accent);">+1,000 SRT</div>
+        </div>
+      </div>
     </div>
 
     <!-- Recent Expenses -->
@@ -886,6 +1101,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">MA</div>
           <div class="member-avatar">CL</div>
           <div class="member-avatar">+2</div>
+          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 2 hours ago</div>
       </div>
@@ -899,6 +1115,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">JD</div>
           <div class="member-avatar">RK</div>
           <div class="member-avatar">AL</div>
+          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 1 day ago</div>
       </div>
@@ -914,6 +1131,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">CL</div>
           <div class="member-avatar">RK</div>
           <div class="member-avatar">+3</div>
+          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 3 days ago</div>
       </div>
@@ -935,12 +1153,146 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 </div>
 
 
+<!-- ===== WALLET SCREEN ===== -->
+<div class="screen" id="walletScreen">
+  <div class="screen-content">
+    <div style="height:44px;"></div>
+    <div class="home-header">
+      <h2>Wallet</h2>
+      <div class="notification-bell" onclick="openTopUpModal()">💰</div>
+    </div>
+
+    <!-- Wallet Balance Card -->
+    <div style="margin:20px 20px 0;padding:24px;border-radius:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-30%;right:-20%;width:60%;height:160%;border-radius:50%;background:rgba(52,199,89,0.08);"></div>
+      <div style="font-size:13px;opacity:0.7;font-weight:500;margin-bottom:4px;">Stellar Wallet Balance</div>
+      <div style="font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:16px;">₱<span id="walletTotalPHP">4,250.50</span></div>
+      <div class="wallet-balances" style="margin-bottom:0;">
+        <div class="wallet-bal-item" style="background:rgba(255,255,255,0.1);">
+          <div class="bal-label" style="color:rgba(255,255,255,0.7);">XLM</div>
+          <div class="bal-value" style="color:#fff;font-size:18px;" id="walletXLM">124.50</div>
+        </div>
+        <div class="wallet-bal-item" style="background:rgba(255,255,255,0.1);">
+          <div class="bal-label" style="color:rgba(255,255,255,0.7);">SRT</div>
+          <div class="bal-value" style="color:#fff;font-size:18px;" id="walletSRT">2,500.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stellar Address -->
+    <div style="margin:16px 20px 0;">
+      <div class="wallet-address">
+        <code id="walletStellarAddr">GBKXJ4YR7Q4F7STELLAR2026TESTNET</code>
+        <button class="copy-btn" onclick="copyStellarAddress()">Copy</button>
+      </div>
+    </div>
+
+    <!-- Top-Up Button -->
+    <div style="margin:16px 20px 0;">
+      <button class="btn btn-primary btn-full" onclick="openTopUpModal()" style="font-size:15px;">
+        💰 Top Up Wallet
+      </button>
+    </div>
+
+    <!-- Quick Send/Receive -->
+    <div style="display:flex;gap:10px;margin:16px 20px 0;">
+      <button class="btn btn-secondary" style="flex:1;font-size:14px;" onclick="openSecurityConfirmModal()">↑ Send</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:14px;">↓ Receive</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:14px;" onclick="openStellarDeposit()">⭐ Anchor</button>
+    </div>
+
+    <!-- Security Notice -->
+    <div class="security-notice" style="margin:16px 20px 0;">
+      🔒 Only verified accounts can send/receive payments
+    </div>
+
+    <!-- Recent Wallet Transactions -->
+    <div class="section-header">
+      <h3>Recent Transactions</h3>
+      <a>View All</a>
+    </div>
+    <div style="padding:0 20px;">
+      <div class="wallet-txn-item">
+        <div class="wallet-txn-icon">↓</div>
+        <div class="wallet-txn-info">
+          <div class="txn-desc">Received from Maria <span class="verified-badge">✓ Verified</span></div>
+          <div class="txn-time">Today, 2:30 PM • Settled group expense</div>
+        </div>
+        <div class="wallet-txn-amt" style="color:var(--accent);">+350 SRT</div>
+      </div>
+      <div class="wallet-txn-item">
+        <div class="wallet-txn-icon">↑</div>
+        <div class="wallet-txn-info">
+          <div class="txn-desc">Sent to Carlos <span class="verified-badge">✓ Verified</span></div>
+          <div class="txn-time">Yesterday, 8:15 PM • Grab ride split</div>
+        </div>
+        <div class="wallet-txn-amt" style="color:var(--danger);">-180 SRT</div>
+      </div>
+      <div class="wallet-txn-item">
+        <div class="wallet-txn-icon">💳</div>
+        <div class="wallet-txn-info">
+          <div class="txn-desc">Top-up via GCash</div>
+          <div class="txn-time">Jul 13, 10:00 AM</div>
+        </div>
+        <div class="wallet-txn-amt" style="color:var(--accent);">+1,000 SRT</div>
+      </div>
+      <div class="wallet-txn-item">
+        <div class="wallet-txn-icon">↑</div>
+        <div class="wallet-txn-info">
+          <div class="txn-desc">Sent to Ana</div>
+          <div class="txn-time">Jul 12, 3:45 PM • Coffee payment</div>
+        </div>
+        <div class="wallet-txn-amt" style="color:var(--danger);">-290 SRT</div>
+      </div>
+      <div class="wallet-txn-item">
+        <div class="wallet-txn-icon">💳</div>
+        <div class="wallet-txn-info">
+          <div class="txn-desc">Top-up via Maya</div>
+          <div class="txn-time">Jul 10, 9:00 AM</div>
+        </div>
+        <div class="wallet-txn-amt" style="color:var(--accent);">+2,000 SRT</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== REPORTS SCREEN ===== -->
 <div class="screen" id="reportsScreen">
   <div class="screen-content">
     <div style="height:44px;"></div>
     <div class="home-header">
       <h2>Reports</h2>
+    </div>
+
+    <!-- Month Selector -->
+    <div class="month-selector">
+      <button class="month-nav" onclick="changeMonth(-1)">‹</button>
+      <span class="month-current" id="reportMonth">July 2026</span>
+      <button class="month-nav" onclick="changeMonth(1)">›</button>
+    </div>
+
+    <!-- Monthly Statement Summary Card -->
+    <div class="statement-card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📋 Monthly Statement</div>
+      <div class="statement-row">
+        <span class="st-label">Opening Balance</span>
+        <span class="st-value">₱3,200.00</span>
+      </div>
+      <div class="statement-divider"></div>
+      <div class="statement-row">
+        <span class="st-label">Total Inflows</span>
+        <span class="st-value inflow">+₱8,750.00</span>
+      </div>
+      <div class="statement-row">
+        <span class="st-label">Total Outflows</span>
+        <span class="st-value outflow">-₱7,699.50</span>
+      </div>
+      <div class="statement-divider"></div>
+      <div class="statement-row">
+        <span class="st-label">Closing Balance</span>
+        <span class="st-value" style="font-size:16px;">₱4,250.50</span>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -963,6 +1315,53 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
         <div class="stat-label">Transactions</div>
         <div class="stat-value">28</div>
         <div class="stat-change">↑ 12% activity</div>
+      </div>
+    </div>
+
+    <!-- Spending Tracker with Budget Progress -->
+    <div class="section-header">
+      <h3>Budget Tracker</h3>
+    </div>
+    <div style="padding:0 20px 16px;">
+      <div class="budget-item">
+        <div class="budget-icon">🍔</div>
+        <div class="budget-info">
+          <div class="budget-label">Food & Drinks</div>
+          <div class="budget-bar"><div class="budget-fill" style="width:72%;background:var(--accent);"></div></div>
+        </div>
+        <div class="budget-meta">₱4,200/₱6,000</div>
+      </div>
+      <div class="budget-item">
+        <div class="budget-icon">🚗</div>
+        <div class="budget-info">
+          <div class="budget-label">Transportation</div>
+          <div class="budget-bar"><div class="budget-fill" style="width:56%;background:var(--blue);"></div></div>
+        </div>
+        <div class="budget-meta">₱2,800/₱5,000</div>
+      </div>
+      <div class="budget-item">
+        <div class="budget-icon">🏠</div>
+        <div class="budget-info">
+          <div class="budget-label">Rent & Bills</div>
+          <div class="budget-bar"><div class="budget-fill" style="width:88%;background:var(--warning);"></div></div>
+        </div>
+        <div class="budget-meta">₱3,500/₱4,000</div>
+      </div>
+      <div class="budget-item">
+        <div class="budget-icon">🎮</div>
+        <div class="budget-info">
+          <div class="budget-label">Entertainment</div>
+          <div class="budget-bar"><div class="budget-fill" style="width:38%;background:var(--purple);"></div></div>
+        </div>
+        <div class="budget-meta">₱1,900/₱5,000</div>
+      </div>
+      <div class="budget-item">
+        <div class="budget-icon">🛒</div>
+        <div class="budget-info">
+          <div class="budget-label">Shopping</div>
+          <div class="budget-bar"><div class="budget-fill" style="width:25%;background:var(--danger);"></div></div>
+        </div>
+        <div class="budget-meta">₱750/₱3,000</div>
       </div>
     </div>
 
@@ -998,6 +1397,11 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
         </div>
         <div class="progress-bar"><div class="progress-fill purple" style="width:0%" data-width="32%"></div></div>
       </div>
+    </div>
+
+    <!-- Export CSV Button -->
+    <div class="export-btn" onclick="exportCSV()">
+      📥 Export Monthly Report (CSV)
     </div>
 
     <div class="section-header">
@@ -1037,6 +1441,28 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <div class="avatar">JD</div>
       <div class="name" id="profileName">Juan Dela Cruz</div>
       <div class="email" id="profileEmail">juan@email.com</div>
+      <div class="sync-indicator" style="justify-content:center;margin-top:8px;" id="profileSyncStatus">
+        <span class="sync-dot online"></span>
+        <span>Last synced: 2 min ago</span>
+      </div>
+    </div>
+
+    <!-- KYC Verification Section -->
+    <div class="kyc-card" id="kycSection">
+      <div class="kyc-status-row">
+        <span style="font-size:15px;font-weight:700;">🛡️ Identity Verification</span>
+        <span class="kyc-badge verified" id="kycBadge">✓ Verified</span>
+      </div>
+      <div class="kyc-steps">
+        <div class="kyc-step done"></div>
+        <div class="kyc-step done"></div>
+        <div class="kyc-step done"></div>
+        <div class="kyc-step active"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+        ✅ Basic info • ✅ Phone verified • ✅ ID submitted • ⏳ Enhanced pending
+      </div>
+      <button class="kyc-verify-btn" onclick="openKYCModal()">Verify Now — Complete Enhanced KYC</button>
     </div>
 
     <div class="menu-section" style="margin-bottom:16px;">
@@ -1114,10 +1540,14 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <span class="tab-label">Groups</span>
   </div>
   <div class="tab-item" onclick="switchTab(2)">
+    <span class="tab-icon">💎</span>
+    <span class="tab-label">Wallet</span>
+  </div>
+  <div class="tab-item" onclick="switchTab(3)">
     <span class="tab-icon">📊</span>
     <span class="tab-label">Reports</span>
   </div>
-  <div class="tab-item" onclick="switchTab(3)">
+  <div class="tab-item" onclick="switchTab(4)">
     <span class="tab-icon">👤</span>
     <span class="tab-label">Profile</span>
   </div>
@@ -1136,11 +1566,20 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <h3>Add Expense</h3>
       <div class="modal-close" onclick="closeModal('addExpenseModal')">✕</div>
     </div>
-    <!-- SCAN RECEIPT BUTTON -->
+    <!-- SCAN RECEIPT BUTTON - PROMINENT -->
     <div style="margin-bottom:16px;">
-      <button onclick="openOCRScanner()" style="width:100%;padding:14px;border-radius:var(--radius-sm);border:2px dashed var(--accent-color);background:transparent;color:var(--accent-color);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" id="scanBtn">
-        📸 Scan Receipt
+      <button onclick="openOCRScanner()" style="width:100%;padding:18px;border-radius:var(--radius-sm);border:none;background:linear-gradient(135deg,var(--accent),#2ecc71);color:#fff;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;box-shadow:0 4px 12px rgba(52,199,89,0.3);" id="scanBtn">
+        📸 Scan Receipt with AI
       </button>
+      <div style="text-align:center;font-size:11px;color:var(--text-tertiary);margin-top:6px;">Auto-detect items, amounts & suggest splits</div>
+    </div>
+    <!-- AI Split Suggestion (shown after OCR) -->
+    <div id="expenseAISuggestion" style="display:none;background:linear-gradient(135deg,rgba(52,199,89,0.1),rgba(10,132,255,0.1));border:1px solid rgba(52,199,89,0.2);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span>🤖</span>
+        <span style="font-size:13px;font-weight:700;">AI Split Suggestion</span>
+      </div>
+      <p id="expenseAISplitText" style="font-size:12px;color:var(--text-secondary);margin:0;line-height:1.4;">Scanning will suggest the best split method based on your receipt items.</p>
     </div>
     <div class="input-group">
       <label>Description</label>
@@ -1394,6 +1833,15 @@ function applyOCRData() {
   document.getElementById('expAmount').value = data.total.toFixed(2);
   document.getElementById('expDate').value = data.date;
 
+  // Show AI split suggestion in expense form
+  const suggestion = document.getElementById('expenseAISuggestion');
+  if (suggestion) {
+    suggestion.style.display = 'block';
+    document.getElementById('expenseAISplitText').textContent = 
+      '🤝 Equal Split recommended — ' + data.items.length + ' items from ' + data.vendor.split(' - ')[0] + 
+      '. Suggested: ₱' + (data.total / 4).toFixed(2) + ' per person (4 members).';
+  }
+
   // Close OCR modal
   closeOCRModal();
 }
@@ -1430,6 +1878,161 @@ function applyOCRData() {
       <input type="text" placeholder="What's this group for?">
     </div>
     <button class="btn btn-primary btn-full" onclick="closeModal('createGroupModal')" style="margin-top:8px;">Create Group</button>
+  </div>
+</div>
+
+<!-- ===== KYC VERIFICATION MODAL ===== -->
+<div class="modal-overlay" id="kycModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3>🛡️ Identity Verification</h3>
+      <div class="modal-close" onclick="closeModal('kycModal')">✕</div>
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Complete your KYC to unlock full wallet features and higher limits.</div>
+    
+    <div class="input-group">
+      <label>Full Name <span class="kyc-field-status">✅</span></label>
+      <input type="text" placeholder="Juan Dela Cruz" value="Juan Dela Cruz" id="kycFullName">
+    </div>
+    <div class="input-group">
+      <label>Email Address <span class="kyc-field-status">✅</span></label>
+      <input type="email" placeholder="your@email.com" value="juan@email.com" id="kycEmail">
+    </div>
+    <div class="input-group">
+      <label>Phone Number <span class="kyc-field-status">✅</span></label>
+      <input type="tel" placeholder="+63 9XX XXX XXXX" value="+63 917 123 4567" id="kycPhone">
+    </div>
+    <div class="input-group">
+      <label>Birthday <span class="kyc-field-status">⏳ processing</span></label>
+      <input type="date" value="1995-03-15" id="kycBirthday">
+    </div>
+    <div class="input-group">
+      <label>ID Type</label>
+      <select id="kycIdType">
+        <option value="">Select ID type...</option>
+        <option value="passport">Passport</option>
+        <option value="drivers_license">Driver's License</option>
+        <option value="national_id">Philippine National ID</option>
+        <option value="sss">SSS ID</option>
+        <option value="philhealth">PhilHealth ID</option>
+        <option value="voters">Voter's ID</option>
+        <option value="postal">Postal ID</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>ID Number <span class="kyc-field-status">⏳ processing</span></label>
+      <input type="text" placeholder="Enter ID number" id="kycIdNumber">
+    </div>
+
+    <!-- Document Upload -->
+    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Document Uploads</label>
+    <div class="kyc-upload-btns">
+      <label class="kyc-upload-btn" id="kycIdFrontBtn">
+        📸 ID Front
+        <input type="file" accept="image/*" style="display:none;" onchange="handleKYCUpload(event,'front')">
+      </label>
+      <label class="kyc-upload-btn" id="kycSelfieBtn">
+        🤳 Selfie
+        <input type="file" accept="image/*" capture="user" style="display:none;" onchange="handleKYCUpload(event,'selfie')">
+      </label>
+    </div>
+    <div id="kycUploadStatus" style="font-size:12px;color:var(--text-secondary);margin-top:8px;text-align:center;"></div>
+
+    <button class="btn btn-primary btn-full" onclick="submitKYC()" style="margin-top:16px;">Submit Verification</button>
+    <div style="text-align:center;font-size:11px;color:var(--text-tertiary);margin-top:10px;">🔒 Your data is encrypted and stored securely</div>
+  </div>
+</div>
+
+<!-- ===== TOP-UP MODAL ===== -->
+<div class="modal-overlay" id="topUpModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3>💰 Top Up Wallet</h3>
+      <div class="modal-close" onclick="closeModal('topUpModal')">✕</div>
+    </div>
+    
+    <div class="input-group">
+      <label>Amount (₱)</label>
+      <input type="number" placeholder="0.00" inputmode="decimal" id="topUpAmount">
+    </div>
+
+    <!-- Quick amounts -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="btn btn-sm btn-secondary" onclick="setTopUpAmount(100)">₱100</button>
+      <button class="btn btn-sm btn-secondary" onclick="setTopUpAmount(500)">₱500</button>
+      <button class="btn btn-sm btn-secondary" onclick="setTopUpAmount(1000)">₱1,000</button>
+      <button class="btn btn-sm btn-secondary" onclick="setTopUpAmount(2500)">₱2,500</button>
+      <button class="btn btn-sm btn-secondary" onclick="setTopUpAmount(5000)">₱5,000</button>
+    </div>
+
+    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">Payment Method</label>
+    <div class="topup-methods" id="topUpMethods">
+      <div class="topup-method selected" onclick="selectTopUpMethod(this,'gcash')">
+        <span>💚</span>
+        <span>GCash</span>
+      </div>
+      <div class="topup-method" onclick="selectTopUpMethod(this,'maya')">
+        <span>💜</span>
+        <span>Maya</span>
+      </div>
+      <div class="topup-method" onclick="selectTopUpMethod(this,'bank')">
+        <span>🏦</span>
+        <span>Bank</span>
+      </div>
+      <div class="topup-method" onclick="selectTopUpMethod(this,'card')">
+        <span>💳</span>
+        <span>Card</span>
+      </div>
+      <div class="topup-method" onclick="selectTopUpMethod(this,'stellar')">
+        <span>⭐</span>
+        <span>Stellar</span>
+      </div>
+    </div>
+
+    <div class="security-notice" style="margin-top:16px;">
+      🔒 Secured by Stellar Network • Instant settlement
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="processTopUp()" style="margin-top:16px;">Confirm Top Up</button>
+  </div>
+</div>
+
+<!-- ===== SECURITY CONFIRMATION MODAL ===== -->
+<div class="modal-overlay" id="securityConfirmModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="security-popup">
+      <div class="sec-icon">🔐</div>
+      <div class="sec-title">Confirm Payment</div>
+      <div class="sec-desc">You're about to send funds via the Stellar Network. This action is irreversible once confirmed.</div>
+      <div class="sec-details">
+        <div class="sec-row">
+          <span class="sec-lbl">Recipient</span>
+          <span class="sec-val">Carlos M. <span class="verified-badge">✓</span></span>
+        </div>
+        <div class="sec-row">
+          <span class="sec-lbl">Amount</span>
+          <span class="sec-val">180 SRT (₱180.00)</span>
+        </div>
+        <div class="sec-row">
+          <span class="sec-lbl">Network Fee</span>
+          <span class="sec-val">0.00001 XLM</span>
+        </div>
+        <div class="sec-row">
+          <span class="sec-lbl">Status</span>
+          <span class="sec-val" style="color:var(--accent);">✓ Both verified</span>
+        </div>
+      </div>
+      <div class="security-notice" style="margin-bottom:16px;">
+        🔒 Only verified accounts • End-to-end encrypted
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('securityConfirmModal')">Cancel</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="confirmSecurePayment()">✓ Send Now</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1547,7 +2150,7 @@ function shakeElement(el) {
 }
 
 // ===== TAB NAVIGATION =====
-const screens = ['homeScreen', 'groupsScreen', 'reportsScreen', 'profileScreen'];
+const screens = ['homeScreen', 'groupsScreen', 'walletScreen', 'reportsScreen', 'profileScreen'];
 let currentTab = 0;
 
 function switchTab(index) {
@@ -1570,7 +2173,7 @@ function switchTab(index) {
   updateTabIndicator(index);
 
   // Animate progress bars if reports
-  if (index === 2) { animateProgressBars(); }
+  if (index === 3) { animateProgressBars(); }
 }
 
 function updateTabIndicator(index) {
@@ -1769,6 +2372,151 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Running as installed PWA');
   }
 });
+
+// ===== WALLET FUNCTIONS =====
+function openTopUpModal() {
+  openModal('topUpModal');
+}
+
+function setTopUpAmount(amount) {
+  document.getElementById('topUpAmount').value = amount;
+}
+
+function selectTopUpMethod(el, method) {
+  document.querySelectorAll('.topup-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function processTopUp() {
+  const amount = document.getElementById('topUpAmount').value;
+  if (!amount || amount <= 0) {
+    shakeElement(document.querySelector('#topUpModal .btn-primary'));
+    return;
+  }
+  // Simulate processing
+  const btn = document.querySelector('#topUpModal .btn-primary');
+  btn.textContent = '⏳ Processing...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '✓ Top Up Successful!';
+    btn.style.background = 'var(--accent)';
+    setTimeout(() => {
+      closeModal('topUpModal');
+      btn.textContent = 'Confirm Top Up';
+      btn.disabled = false;
+    }, 1200);
+  }, 1500);
+}
+
+function copyStellarAddress() {
+  const addr = document.getElementById('stellarAddress') || document.getElementById('walletStellarAddr');
+  if (addr) {
+    navigator.clipboard.writeText(addr.textContent).then(() => {
+      const btns = document.querySelectorAll('.copy-btn');
+      btns.forEach(btn => {
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = original, 1500);
+      });
+    }).catch(() => {
+      // Fallback
+      alert('Address: ' + addr.textContent);
+    });
+  }
+}
+
+// ===== KYC FUNCTIONS =====
+function openKYCModal() {
+  openModal('kycModal');
+}
+
+function handleKYCUpload(event, type) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const btn = type === 'front' ? document.getElementById('kycIdFrontBtn') : document.getElementById('kycSelfieBtn');
+  btn.textContent = type === 'front' ? '✅ ID Uploaded' : '✅ Selfie Taken';
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.color = 'var(--accent)';
+  document.getElementById('kycUploadStatus').textContent = 
+    type === 'front' ? 'ID front photo uploaded successfully' : 'Selfie captured successfully';
+}
+
+function submitKYC() {
+  const btn = document.querySelector('#kycModal .btn-primary');
+  btn.textContent = '⏳ Submitting...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '✓ Verification Submitted!';
+    btn.style.background = 'var(--accent)';
+    // Update KYC badge in profile
+    const badge = document.getElementById('kycBadge');
+    if (badge) {
+      badge.textContent = '⏳ Processing';
+      badge.className = 'kyc-badge basic';
+    }
+    setTimeout(() => {
+      closeModal('kycModal');
+      btn.textContent = 'Submit Verification';
+      btn.disabled = false;
+      btn.style.background = '';
+    }, 1500);
+  }, 2000);
+}
+
+// ===== SECURITY FUNCTIONS =====
+function openSecurityConfirmModal() {
+  openModal('securityConfirmModal');
+}
+
+function confirmSecurePayment() {
+  const btn = document.querySelector('#securityConfirmModal .btn-primary');
+  btn.textContent = '⏳ Sending...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = '✓ Payment Sent!';
+    setTimeout(() => {
+      closeModal('securityConfirmModal');
+      btn.textContent = '✓ Send Now';
+      btn.disabled = false;
+    }, 1200);
+  }, 2000);
+}
+
+// ===== REPORTS FUNCTIONS =====
+let currentReportMonth = 6; // July (0-indexed)
+let currentReportYear = 2026;
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function changeMonth(direction) {
+  currentReportMonth += direction;
+  if (currentReportMonth > 11) { currentReportMonth = 0; currentReportYear++; }
+  if (currentReportMonth < 0) { currentReportMonth = 11; currentReportYear--; }
+  document.getElementById('reportMonth').textContent = monthNames[currentReportMonth] + ' ' + currentReportYear;
+}
+
+function exportCSV() {
+  const btn = document.querySelector('.export-btn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '⏳ Generating report...';
+  setTimeout(() => {
+    btn.innerHTML = '✓ Report downloaded!';
+    setTimeout(() => { btn.innerHTML = original; }, 2000);
+  }, 1500);
+}
+
+// ===== SYNC STATUS =====
+function updateSyncStatus(status) {
+  const dot = document.getElementById('syncDot');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + status;
+}
+
+// Simulate sync status changes
+setInterval(() => {
+  const statuses = ['online', 'syncing', 'online', 'online'];
+  const random = statuses[Math.floor(Math.random() * statuses.length)];
+  updateSyncStatus(random);
+}, 15000);
 
 // ===== STELLAR ANCHOR INTEGRATION =====
 const STELLAR_ANCHOR_DOMAIN = "testanchor.stellar.org";

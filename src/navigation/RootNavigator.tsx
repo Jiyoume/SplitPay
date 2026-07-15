@@ -10,6 +10,9 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import { Colors } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
+import KYCScreen from '../screens/KYCScreen';
+import TopUpScreen from '../screens/TopUpScreen';
+import ScanReceiptScreen from '../screens/ScanReceiptScreen';
 
 export type RootStackParamList = {
   // Auth flow
@@ -22,6 +25,9 @@ export type RootStackParamList = {
   GroupDetail: { groupId: string };
   CreateGroup: undefined;
   SettleUp: { groupId: string; fromUserId: string; toUserId: string; amount: number };
+  KYC: undefined;
+  TopUp: undefined;
+  ScanReceipt: { groupId?: string };
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -97,7 +103,7 @@ export default function RootNavigator() {
           <Stack.Screen
             name="AddExpense"
             component={AddExpenseScreen}
-            options={{ title: 'Add Expense' }}
+            options={{ title: 'Add Expense', presentation: 'modal' }}
           />
           <Stack.Screen
             name="GroupDetail"
@@ -107,12 +113,27 @@ export default function RootNavigator() {
           <Stack.Screen
             name="CreateGroup"
             component={CreateGroupScreen}
-            options={{ title: 'Create Group' }}
+            options={{ title: 'Create Group', presentation: 'modal' }}
           />
           <Stack.Screen
             name="SettleUp"
             component={SettleUpScreen}
-            options={{ title: 'Settle Up' }}
+            options={{ title: 'Settle Up', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="KYC"
+            component={KYCScreen}
+            options={{ title: 'Identity Verification', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="TopUp"
+            component={TopUpScreen}
+            options={{ title: 'Top Up Wallet', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="ScanReceipt"
+            component={ScanReceiptScreen}
+            options={{ title: 'Scan Receipt', presentation: 'modal' }}
           />
         </>
       )}
