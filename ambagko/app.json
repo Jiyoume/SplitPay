@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "AmbagKo",
+    "slug": "ambagko",
+    "scheme": "ambagko",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": ["expo-router"],
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.ambagko.app" },
+    "android": { "package": "com.ambagko.app" }
+  }
+}
