@@ -277,24 +277,22 @@ export async function verifyMFA(
   return { error };
 }
 
-// ===== HELPER: BRIDGE TO FIREBASE =====
+// ===== HELPER: SYNC TO SUPABASE DB =====
 
 /**
- * After Supabase auth succeeds, sync the user to Firebase Firestore
- * so the rest of the app (data, sync engine) still works.
+ * After auth succeeds, ensure user profile exists in Supabase DB.
  */
-export async function syncAuthToFirebase(
-  user: User,
-  firebaseUpdateFn: (userId: string, data: any) => Promise<void>
-): Promise<void> {
-  await firebaseUpdateFn(user.id, {
+export async function syncAuthToDatabase(user: User): Promise<void> {
+  const { createClient } = await import('../utils/supabase/client');
+  const supabase = createClient();
+  const { error } = await supabase.from('users').upsert({
+    id: user.id,
     email: user.email,
-    displayName: user.user_metadata?.full_name || '',
+    full_name: user.user_metadata?.full_name || '',
     phone: user.phone || user.user_metadata?.phone || '',
-    supabaseId: user.id,
-    lastLoginAt: new Date().toISOString(),
-    provider: user.app_metadata?.provider || 'email',
-  });
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (error) console.error('Failed to sync user to DB:', error.message);
 }
 
 // ===== EXPORT =====
