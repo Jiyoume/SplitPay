@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ambagko-v2.0.0';
+const CACHE_NAME = 'myshare-v3.0.0';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -60,3 +60,4 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+

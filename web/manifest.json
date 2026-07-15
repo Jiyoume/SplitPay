@@ -1,6 +1,6 @@
 {
-  "name": "AmbagKo",
-  "short_name": "AmbagKo",
+  "name": "MyShare",
+  "short_name": "MyShare",
   "description": "Track, Split, Settle - Shared expense tracker",
   "start_url": "./index.html",
   "display": "standalone",
@@ -25,3 +25,4 @@
   "lang": "en",
   "dir": "ltr"
 }
+
