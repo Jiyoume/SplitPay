@@ -3,10 +3,10 @@ import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'myshare_auth_token';
 
-// Use localhost for iOS simulator, and 10.0.2.2 for Android emulator
-const DEFAULT_BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:3000' 
-  : 'http://localhost:3000';
+// Use localhost for Web, and PC LAN IP for physical mobile devices
+const DEFAULT_BASE_URL = Platform.OS === 'web'
+  ? 'http://localhost:3000'
+  : 'http://192.168.100.3:3000';
 
 let baseUrl = DEFAULT_BASE_URL;
 let cachedToken: string | null = null;

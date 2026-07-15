@@ -239,7 +239,7 @@ export async function startKYCRegistration(
   const authToken = await authenticateWithAnchor(userKeypair);
 
   // Step 2: Check required fields
-  const currentStatus = await getCustomer(authToken, { type: "sep6-deposit" });
+  const currentStatus = await getCustomer(authToken.token, { type: "sep6-deposit" });
   console.log("Current KYC status:", currentStatus.status);
 
   // Step 3: Map profile to SEP-9 and submit
@@ -263,20 +263,20 @@ export async function startKYCRegistration(
   
   if (documents) {
     if (documents.photoIdFront) {
-      const result = await uploadCustomerFile(authToken, documents.photoIdFront);
+      const result = await uploadCustomerFile(authToken.token, documents.photoIdFront);
       fileIds.photo_id_front_file_id = result.file_id;
     }
     if (documents.photoIdBack) {
-      const result = await uploadCustomerFile(authToken, documents.photoIdBack);
+      const result = await uploadCustomerFile(authToken.token, documents.photoIdBack);
       fileIds.photo_id_back_file_id = result.file_id;
     }
     if (documents.selfie) {
-      const result = await uploadCustomerFile(authToken, documents.selfie);
+      const result = await uploadCustomerFile(authToken.token, documents.selfie);
       // Selfie mapped to photo_id_front or separate field
       fileIds.selfie_file_id = result.file_id;
     }
     if (documents.proofOfResidence) {
-      const result = await uploadCustomerFile(authToken, documents.proofOfResidence);
+      const result = await uploadCustomerFile(authToken.token, documents.proofOfResidence);
       fileIds.photo_proof_residence_file_id = result.file_id;
     }
   }
@@ -285,10 +285,10 @@ export async function startKYCRegistration(
   const submissionData = { ...cleanData, ...fileIds };
 
   // Step 5: Submit to anchor
-  const putResult = await putCustomer(authToken, submissionData);
+  const putResult = await putCustomer(authToken.token, submissionData);
 
   // Step 6: Check final status
-  const finalStatus = await getCustomer(authToken, { id: putResult.id });
+  const finalStatus = await getCustomer(authToken.token, { id: putResult.id });
 
   return {
     customerId: putResult.id,

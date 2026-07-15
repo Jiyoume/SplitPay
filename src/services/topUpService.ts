@@ -294,7 +294,7 @@ export async function topUpViaStellarAnchor(
   const authToken = await authenticateWithAnchor(userKeypair);
 
   // Get SEP-24 service
-  const sep24 = await anchor.sep24();
+  const sep24 = anchor.sep24();
 
   // Initiate deposit
   const deposit = await sep24.deposit({
@@ -306,8 +306,8 @@ export async function topUpViaStellarAnchor(
   });
 
   return {
-    interactiveUrl: deposit.url,
-    transactionId: deposit.id,
+    interactiveUrl: deposit.url || "",
+    transactionId: deposit.id || "",
   };
 }
 

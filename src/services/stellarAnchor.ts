@@ -9,7 +9,7 @@
  *   npm install @stellar/typescript-wallet-sdk @stellar/stellar-sdk
  */
 
-import { Wallet, IssuedAssetId } from "@stellar/typescript-wallet-sdk";
+import { Wallet, IssuedAssetId, SigningKeypair } from "@stellar/typescript-wallet-sdk";
 import { Keypair, Memo, MemoText } from "@stellar/stellar-sdk";
 
 // ===== CONFIGURATION =====
@@ -22,10 +22,10 @@ const NETWORK = "testnet"; // Use "public" for mainnet
 const wallet = Wallet.TestNet();
 
 // Connect to the Stellar test anchor
-const anchor = wallet.anchor({ homeDomain: ANCHOR_HOME_DOMAIN });
+export const anchor = wallet.anchor({ homeDomain: ANCHOR_HOME_DOMAIN });
 
 // Get Stellar network helper for transactions
-const stellar = wallet.stellar();
+export const stellar = wallet.stellar();
 
 // ===== TYPES =====
 export interface AnchorTransaction {
@@ -53,9 +53,8 @@ export interface WithdrawalResult {
  * This generates a JWT token that authorizes subsequent operations.
  */
 export async function authenticateWithAnchor(keypair: Keypair) {
-  const authToken = await anchor
-    .sep10()
-    .authenticate({ accountKp: keypair });
+  const sep10 = await anchor.sep10();
+  const authToken = await sep10.authenticate({ accountKp: new SigningKeypair(keypair) });
   
   return authToken;
 }
@@ -103,7 +102,7 @@ export async function initiateDeposit(
   assetCode: string = "SRT",
   extraFields?: Record<string, string>
 ): Promise<DepositResult> {
-  const sep24 = await anchor.sep24();
+  const sep24 = anchor.sep24();
 
   const depositParams: any = {
     assetCode,
@@ -118,8 +117,8 @@ export async function initiateDeposit(
   const deposit = await sep24.deposit(depositParams);
 
   return {
-    url: deposit.url,    // Open this in webview/iframe for user to complete
-    id: deposit.id,      // Track this transaction
+    url: deposit.url || "",    // Open this in webview/iframe for user to complete
+    id: deposit.id || "",      // Track this transaction
   };
 }
 
@@ -138,7 +137,7 @@ export async function initiateWithdrawal(
   authToken: any,
   assetCode: string = "SRT"
 ): Promise<WithdrawalResult> {
-  const sep24 = await anchor.sep24();
+  const sep24 = anchor.sep24();
 
   const withdrawal = await sep24.withdraw({
     assetCode,
@@ -146,8 +145,8 @@ export async function initiateWithdrawal(
   });
 
   return {
-    url: withdrawal.url,
-    id: withdrawal.id,
+    url: withdrawal.url || "",
+    id: withdrawal.id || "",
   };
 }
 
@@ -167,30 +166,26 @@ export function watchTransaction(
     onError: (error: any) => void;
   }
 ) {
-  const sep24Sync = anchor.sep24();
+  const sep24 = anchor.sep24();
+  const watcher = sep24.watcher();
 
-  // We need to resolve the promise first
-  sep24Sync.then((sep24) => {
-    const watcher = sep24.watcher();
-
-    const { stop, refresh } = watcher.watchOneTransaction({
-      authToken,
-      assetCode,
-      id: transactionId,
-      onMessage: callbacks.onMessage,
-      onSuccess: callbacks.onSuccess,
-      onError: callbacks.onError,
-    });
-
-    return { stop, refresh };
+  const { stop, refresh } = watcher.watchOneTransaction({
+    authToken,
+    assetCode,
+    id: transactionId,
+    onMessage: callbacks.onMessage,
+    onSuccess: callbacks.onSuccess,
+    onError: callbacks.onError,
   });
+
+  return { stop, refresh };
 }
 
 /**
  * Get a specific transaction by ID.
  */
 export async function getTransaction(authToken: any, transactionId: string) {
-  const sep24 = await anchor.sep24();
+  const sep24 = anchor.sep24();
   
   const transaction = await sep24.getTransactionBy({
     authToken,
@@ -204,7 +199,7 @@ export async function getTransaction(authToken: any, transactionId: string) {
  * Get all transactions for an asset.
  */
 export async function getTransactions(authToken: any, assetCode: string = "SRT") {
-  const sep24 = await anchor.sep24();
+  const sep24 = anchor.sep24();
   
   const transactions = await sep24.getTransactionsForAsset({
     authToken,
@@ -233,7 +228,7 @@ export async function submitWithdrawalTransfer(
 
   // Build the transfer transaction
   const txBuilder = await stellar.transaction({
-    sourceAddress: keypair,
+    sourceAddress: new SigningKeypair(keypair),
     baseFee: 10000,    // 0.001 XLM
     timebounds: 180,   // 3 minutes
   });
@@ -246,11 +241,11 @@ export async function submitWithdrawalTransfer(
   transferTransaction.sign(keypair);
 
   // Submit to Stellar network
-  const response = await stellar.submitTransaction(transferTransaction);
+  const success = await stellar.submitTransaction(transferTransaction);
   
   return {
-    stellarTransactionId: response.id,
-    success: true,
+    stellarTransactionId: transferTransaction.hash().toString("hex"),
+    success,
   };
 }
 
@@ -350,4 +345,4 @@ export async function fullWithdrawalFlow(userKeypair: Keypair) {
 }
 
 // ===== EXPORT ANCHOR INSTANCE =====
-export { wallet, anchor, stellar };
+export { wallet };
