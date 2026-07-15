@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,23 +12,19 @@ import {
   ScrollView,
   SafeAreaView,
   Animated,
-  Modal,
-  Image,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { Colors } from '../constants/colors';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { APP_NAME } from '../constants';
+import { APP_NAME, GOOGLE_WEB_CLIENT_ID } from '../constants';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [showCustomForm, setShowCustomForm] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customEmail, setCustomEmail] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const { login, signInWithGoogle } = useAuth();
   const navigation = useNavigation<any>();
@@ -36,11 +32,12 @@ export default function LoginScreen() {
   const scale = useRef(new Animated.Value(1)).current;
   const googleScale = useRef(new Animated.Value(1)).current;
 
-  const demoAccounts = [
-    { name: 'Kiel Arthur', email: 'kiel.dev@gmail.com', avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80' },
-    { name: 'Clara Design', email: 'clara.design@gmail.com', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
-    { name: 'Carlos User', email: 'carlos.user@gmail.com', avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80' },
-  ];
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      offlineAccess: false,
+    });
+  }, []);
 
   const onPressIn = () => {
     Animated.spring(scale, {
@@ -94,28 +91,36 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGoogleSignIn = async (name: string, email: string, avatar?: string) => {
-    setModalVisible(false);
-    setLoading(true);
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
     try {
-      await signInWithGoogle(email.toLowerCase().trim(), name.trim(), avatar);
-    } catch (error: any) {
-      Alert.alert('Sign In Failed', error.message || 'An error occurred during Google authentication.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (response.type !== 'success') {
+        console.log('Google Sign-in not success:', response.type);
+        return;
+      }
+      
+      const googleUser = response.data.user;
 
-  const handleCustomSubmit = () => {
-    if (!customName.trim() || !customEmail.trim()) {
-      Alert.alert('Validation Error', 'Please fill in both Name and Email.');
-      return;
+      await signInWithGoogle(
+        googleUser.email,
+        googleUser.name || 'Google User',
+        googleUser.photo || undefined
+      );
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled Google Sign-in');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('Sign In', 'Sign in is already in progress.');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Google Play Services', 'Play services not available or outdated.');
+      } else {
+        Alert.alert('Sign In Failed', error.message || 'An error occurred during Google Sign-in.');
+      }
+    } finally {
+      setGoogleLoading(false);
     }
-    if (!customEmail.includes('@')) {
-      Alert.alert('Validation Error', 'Please enter a valid email address.');
-      return;
-    }
-    handleGoogleSignIn(customName, customEmail);
   };
 
   return (
@@ -146,6 +151,7 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
+                editable={!loading && !googleLoading}
               />
             </View>
 
@@ -160,6 +166,7 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!loading && !googleLoading}
               />
             </View>
 
@@ -167,9 +174,9 @@ export default function LoginScreen() {
               activeOpacity={0.9}
               onPressIn={onPressIn}
               onPressOut={onPressOut}
-              style={[styles.buttonContainer, loading && styles.buttonDisabled]}
+              style={[styles.buttonContainer, (loading || googleLoading) && styles.buttonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || googleLoading}
             >
               <Animated.View style={[styles.button, { transform: [{ scale }] }]}>
                 {loading ? (
@@ -190,15 +197,19 @@ export default function LoginScreen() {
               activeOpacity={0.9}
               onPressIn={onGooglePressIn}
               onPressOut={onGooglePressOut}
-              style={[styles.googleButtonContainer, loading && styles.buttonDisabled]}
-              onPress={() => setModalVisible(true)}
-              disabled={loading}
+              style={[styles.googleButtonContainer, (loading || googleLoading) && styles.buttonDisabled]}
+              onPress={handleGoogleSignIn}
+              disabled={loading || googleLoading}
             >
               <Animated.View style={[styles.googleButton, { transform: [{ scale: googleScale }] }]}>
-                <View style={styles.googleButtonContent}>
-                  <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.googleIcon} />
-                  <Text style={styles.googleButtonText}>Continue with Google</Text>
-                </View>
+                {googleLoading ? (
+                  <ActivityIndicator color={Colors.text} />
+                ) : (
+                  <View style={styles.googleButtonContent}>
+                    <Ionicons name="logo-google" size={18} color="#EA4335" style={styles.googleIcon} />
+                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  </View>
+                )}
               </Animated.View>
             </TouchableOpacity>
           </View>
@@ -211,103 +222,6 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      {/* Google Account Chooser Simulator Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => {
-          setModalVisible(false);
-          setShowCustomForm(false);
-        }}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Ionicons name="logo-google" size={24} color="#4285F4" />
-              <Text style={styles.modalTitle}>Sign in with Google</Text>
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => {
-                  setModalVisible(false);
-                  setShowCustomForm(false);
-                }}
-              >
-                <Ionicons name="close" size={24} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.modalSubtitle}>Choose an account to continue to SplitPay</Text>
-
-            {!showCustomForm ? (
-              <View style={styles.accountsList}>
-                {demoAccounts.map((account, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.accountItem}
-                    onPress={() => handleGoogleSignIn(account.name, account.email, account.avatar)}
-                  >
-                    <Image source={{ uri: account.avatar }} style={styles.accountAvatar} />
-                    <View style={styles.accountDetails}>
-                      <Text style={styles.accountName}>{account.name}</Text>
-                      <Text style={styles.accountEmail}>{account.email}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward-outline" size={16} color={Colors.textLight} />
-                  </TouchableOpacity>
-                ))}
-
-                <TouchableOpacity 
-                  style={[styles.accountItem, styles.useAnotherAccountItem]}
-                  onPress={() => setShowCustomForm(true)}
-                >
-                  <View style={styles.addAccountIconContainer}>
-                    <Ionicons name="person-add-outline" size={20} color={Colors.primary} />
-                  </View>
-                  <Text style={styles.useAnotherAccountText}>Use another account</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.customForm}>
-                <Text style={styles.inputLabel}>Name</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Enter your name"
-                  placeholderTextColor={Colors.textLight}
-                  value={customName}
-                  onChangeText={setCustomName}
-                />
-
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="name@example.com"
-                  placeholderTextColor={Colors.textLight}
-                  value={customEmail}
-                  onChangeText={setCustomEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-
-                <View style={styles.formActions}>
-                  <TouchableOpacity 
-                    style={styles.backButton}
-                    onPress={() => setShowCustomForm(false)}
-                  >
-                    <Text style={styles.backButtonText}>Back</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.submitButton}
-                    onPress={handleCustomSubmit}
-                  >
-                    <Text style={styles.submitButtonText}>Next</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -472,144 +386,5 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 14,
     fontWeight: '700',
-  },
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingTop: 24,
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    minHeight: 380,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    position: 'relative',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginLeft: 12,
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 0,
-    padding: 4,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 24,
-  },
-  accountsList: {
-    gap: 12,
-  },
-  accountItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    backgroundColor: Colors.background,
-  },
-  accountAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.border,
-  },
-  accountDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  accountName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  accountEmail: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  useAnotherAccountItem: {
-    backgroundColor: 'transparent',
-    borderStyle: 'dashed',
-  },
-  addAccountIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  useAnotherAccountText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  // Custom Form Styles
-  customForm: {
-    gap: 16,
-  },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: -4,
-  },
-  textInput: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.background,
-  },
-  formActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-    marginTop: 16,
-  },
-  backButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: Colors.textSecondary,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '600',
   },
 });

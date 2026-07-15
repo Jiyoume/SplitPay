@@ -3,6 +3,7 @@ export { Colors } from './colors';
 export const APP_NAME = 'MyShare';
 export const CURRENCY_SYMBOL = '$';
 export const DEFAULT_SPLIT_METHOD = 'equal';
+export const GOOGLE_WEB_CLIENT_ID = '947092823614-xxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com'; // Replace with your real Web Client ID from Google Cloud Console
 
 export const SPLIT_METHODS = {
   EQUAL: 'equal',
