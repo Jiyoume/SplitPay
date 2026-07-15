@@ -1136,13 +1136,19 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <h3>Add Expense</h3>
       <div class="modal-close" onclick="closeModal('addExpenseModal')">✕</div>
     </div>
+    <!-- SCAN RECEIPT BUTTON -->
+    <div style="margin-bottom:16px;">
+      <button onclick="openOCRScanner()" style="width:100%;padding:14px;border-radius:var(--radius-sm);border:2px dashed var(--accent-color);background:transparent;color:var(--accent-color);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;" id="scanBtn">
+        📸 Scan Receipt
+      </button>
+    </div>
     <div class="input-group">
       <label>Description</label>
-      <input type="text" placeholder="What was it for?">
+      <input type="text" placeholder="What was it for?" id="expDesc">
     </div>
     <div class="input-group">
       <label>Amount (₱)</label>
-      <input type="number" placeholder="0.00" inputmode="decimal">
+      <input type="number" placeholder="0.00" inputmode="decimal" id="expAmount">
     </div>
     <div class="input-group">
       <label>Group</label>
@@ -1162,11 +1168,236 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     </div>
     <div class="input-group">
       <label>Date</label>
-      <input type="date" value="2026-07-14">
+      <input type="date" value="2026-07-14" id="expDate">
     </div>
     <button class="btn btn-primary btn-full" onclick="closeModal('addExpenseModal')" style="margin-top:8px;">Add Expense</button>
   </div>
 </div>
+
+<!-- ===== OCR SCANNER MODAL ===== -->
+<div class="modal-overlay" id="ocrModal" style="display:none;">
+  <div class="modal-sheet" style="height:95%;max-height:95%;">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <h3>📸 Scan Receipt</h3>
+      <div class="modal-close" onclick="closeOCRModal()">✕</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:0 16px 16px;">
+      <!-- Camera / Upload Area -->
+      <div id="ocrUploadArea" style="text-align:center;padding:32px 16px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:36px;">📷</div>
+        <h4 style="font-size:17px;font-weight:700;margin-bottom:6px;">Take a photo or upload</h4>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;">Point your camera at a receipt for instant scanning</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <label style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--accent-color);color:#000;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+            📸 Camera
+            <input type="file" accept="image/*" capture="environment" onchange="handleReceiptCapture(event)" style="display:none;" id="cameraInput">
+          </label>
+          <label style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--bg-tertiary);color:var(--text-primary);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;border:1px solid var(--border-color);">
+            🖼️ Gallery
+            <input type="file" accept="image/*" onchange="handleReceiptCapture(event)" style="display:none;" id="galleryInput">
+          </label>
+        </div>
+      </div>
+
+      <!-- Processing State -->
+      <div id="ocrProcessing" style="display:none;text-align:center;padding:48px 16px;">
+        <div id="ocrSpinner" style="width:56px;height:56px;border:4px solid var(--bg-tertiary);border-top-color:var(--accent-color);border-radius:50%;margin:0 auto 20px;animation:spin 0.8s linear infinite;"></div>
+        <h4 id="ocrStatusText" style="font-size:16px;font-weight:600;margin-bottom:8px;">Reading receipt...</h4>
+        <div style="width:100%;max-width:240px;height:6px;border-radius:3px;background:var(--bg-tertiary);margin:0 auto;overflow:hidden;">
+          <div id="ocrProgressBar" style="height:100%;border-radius:3px;background:var(--accent-color);width:0%;transition:width 0.3s;"></div>
+        </div>
+        <p id="ocrProgressText" style="font-size:13px;color:var(--text-secondary);margin-top:8px;">0%</p>
+      </div>
+
+      <!-- Results -->
+      <div id="ocrResults" style="display:none;">
+        <!-- Preview -->
+        <div style="margin-bottom:16px;border-radius:var(--radius-sm);overflow:hidden;max-height:150px;">
+          <img id="ocrPreviewImg" style="width:100%;object-fit:cover;border-radius:var(--radius-sm);" />
+        </div>
+        <!-- Extracted Data -->
+        <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <span style="font-size:14px;">✅</span>
+            <span style="font-size:14px;font-weight:600;color:var(--accent-color);">Data extracted successfully</span>
+          </div>
+          <div style="display:grid;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-secondary);">Vendor</span>
+              <span style="font-size:14px;font-weight:600;" id="ocrVendor">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-secondary);">Date</span>
+              <span style="font-size:14px;font-weight:600;" id="ocrDate">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-secondary);">Subtotal</span>
+              <span style="font-size:14px;font-weight:600;" id="ocrSubtotal">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:13px;color:var(--text-secondary);">Tax/VAT</span>
+              <span style="font-size:14px;font-weight:600;" id="ocrTax">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border-color);">
+              <span style="font-size:15px;font-weight:700;">Total</span>
+              <span style="font-size:18px;font-weight:800;color:var(--accent-color);" id="ocrTotal">—</span>
+            </div>
+          </div>
+        </div>
+        <!-- Items -->
+        <div id="ocrItemsList" style="background:var(--bg-secondary);border-radius:var(--radius);padding:16px;margin-bottom:12px;display:none;">
+          <div style="font-size:14px;font-weight:600;margin-bottom:10px;">Items detected:</div>
+          <div id="ocrItemsContent"></div>
+        </div>
+        <!-- AI Split Suggestion -->
+        <div id="ocrSplitSuggestion" style="background:linear-gradient(135deg,rgba(52,199,89,0.1),rgba(10,132,255,0.1));border:1px solid rgba(52,199,89,0.2);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:none;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <span>🤖</span>
+            <span style="font-size:14px;font-weight:700;">AI Split Suggestion</span>
+          </div>
+          <p id="ocrSplitText" style="font-size:13px;color:var(--text-secondary);"></p>
+        </div>
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;">
+          <button onclick="applyOCRData()" style="flex:1;padding:14px;border-radius:var(--radius-sm);border:none;background:var(--accent-color);color:#000;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;">✓ Use this data</button>
+          <button onclick="resetOCR()" style="padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-color);background:transparent;color:var(--text-primary);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;">↺ Retry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<script>
+// ===== OCR SCANNER (MOBILE-COMPATIBLE) =====
+
+function openOCRScanner() {
+  document.getElementById('ocrModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('ocrModal').classList.add('active'), 10);
+  resetOCR();
+}
+
+function closeOCRModal() {
+  document.getElementById('ocrModal').classList.remove('active');
+  setTimeout(() => document.getElementById('ocrModal').style.display = 'none', 300);
+}
+
+function resetOCR() {
+  document.getElementById('ocrUploadArea').style.display = 'block';
+  document.getElementById('ocrProcessing').style.display = 'none';
+  document.getElementById('ocrResults').style.display = 'none';
+}
+
+function handleReceiptCapture(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Show processing
+  document.getElementById('ocrUploadArea').style.display = 'none';
+  document.getElementById('ocrProcessing').style.display = 'block';
+  document.getElementById('ocrResults').style.display = 'none';
+
+  // Show preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('ocrPreviewImg').src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+
+  // Simulate OCR processing (in production, use Tesseract.js)
+  simulateOCR(file);
+}
+
+function simulateOCR(file) {
+  const stages = [
+    { progress: 15, text: 'Preparing image...', delay: 400 },
+    { progress: 35, text: 'Reading text...', delay: 800 },
+    { progress: 60, text: 'Extracting data...', delay: 600 },
+    { progress: 80, text: 'Analyzing items...', delay: 500 },
+    { progress: 95, text: 'Categorizing...', delay: 300 },
+    { progress: 100, text: 'Done!', delay: 200 },
+  ];
+
+  let i = 0;
+  function nextStage() {
+    if (i >= stages.length) {
+      showOCRResults();
+      return;
+    }
+    const stage = stages[i];
+    document.getElementById('ocrProgressBar').style.width = stage.progress + '%';
+    document.getElementById('ocrStatusText').textContent = stage.text;
+    document.getElementById('ocrProgressText').textContent = stage.progress + '%';
+    i++;
+    setTimeout(nextStage, stage.delay);
+  }
+  nextStage();
+}
+
+function showOCRResults() {
+  document.getElementById('ocrProcessing').style.display = 'none';
+  document.getElementById('ocrResults').style.display = 'block';
+
+  // Mock extracted data (in production this comes from Tesseract.js + parsing)
+  const mockData = {
+    vendor: 'Jollibee - SM Megamall',
+    date: '2026-07-14',
+    items: [
+      { name: 'Chickenjoy Bucket (6pc)', price: 599 },
+      { name: 'Jolly Spaghetti Family', price: 249 },
+      { name: 'Peach Mango Pie (3pc)', price: 147 },
+      { name: 'Coke 1.5L', price: 89 },
+    ],
+    subtotal: 1084,
+    tax: 130.08,
+    total: 1214.08,
+    category: 'food_dining',
+  };
+
+  document.getElementById('ocrVendor').textContent = mockData.vendor;
+  document.getElementById('ocrDate').textContent = mockData.date;
+  document.getElementById('ocrSubtotal').textContent = '₱' + mockData.subtotal.toLocaleString();
+  document.getElementById('ocrTax').textContent = '₱' + mockData.tax.toFixed(2);
+  document.getElementById('ocrTotal').textContent = '₱' + mockData.total.toLocaleString(undefined, {minimumFractionDigits:2});
+
+  // Show items
+  if (mockData.items.length > 0) {
+    document.getElementById('ocrItemsList').style.display = 'block';
+    document.getElementById('ocrItemsContent').innerHTML = mockData.items.map(item => 
+      `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);font-size:13px;">
+        <span style="color:var(--text-primary);">${item.name}</span>
+        <span style="font-weight:600;">₱${item.price.toFixed(2)}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Show AI split suggestion
+  document.getElementById('ocrSplitSuggestion').style.display = 'block';
+  document.getElementById('ocrSplitText').textContent = 
+    '🤝 Equal Split recommended — Dining together at ' + mockData.vendor.split(' - ')[0] + 
+    '. With 4 members: ₱' + (mockData.total / 4).toFixed(2) + ' each.';
+
+  // Store for apply
+  window._ocrData = mockData;
+}
+
+function applyOCRData() {
+  if (!window._ocrData) return;
+  const data = window._ocrData;
+
+  // Fill the expense form
+  document.getElementById('expDesc').value = data.vendor;
+  document.getElementById('expAmount').value = data.total.toFixed(2);
+  document.getElementById('expDate').value = data.date;
+
+  // Close OCR modal
+  closeOCRModal();
+}
+</script>
 
 <!-- ===== CREATE GROUP MODAL ===== -->
 <div class="modal-overlay" id="createGroupModal">
