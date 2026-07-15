@@ -9,7 +9,7 @@ export async function registerExpenseRoutes(app: FastifyInstance): Promise<void>
     { preHandler: [app.authenticate, requireMember] },
     async (request, reply) => {
       const { id } = groupIdParamsSchema.parse(request.params);
-      reply.status(200).send(listGroupExpenses(id));
+      reply.status(200).send(await listGroupExpenses(id));
     }
   );
 
@@ -19,7 +19,7 @@ export async function registerExpenseRoutes(app: FastifyInstance): Promise<void>
     async (request, reply) => {
       const { id } = groupIdParamsSchema.parse(request.params);
       const body = createExpenseBodySchema.parse(request.body);
-      const result = addExpense(id, request.user!.id, body);
+      const result = await addExpense(id, request.user!.id, body);
       reply.status(201).send(result);
     }
   );

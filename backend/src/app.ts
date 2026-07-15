@@ -15,7 +15,7 @@ import { registerActivityRoutes } from "./modules/activity/activity.routes.js";
 
 /** Builds and returns a fully-configured Fastify instance (not yet listening). */
 export async function buildApp(): Promise<FastifyInstance> {
-  migrate();
+  await migrate();
 
   const app = Fastify({ logger: loggerOptions() });
 

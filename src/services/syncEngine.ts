@@ -12,7 +12,7 @@
  */
 
 import * as localDB from './localDatabase';
-import * as firebase from './firebaseService';
+import * as firebase from './supabaseService';
 import { User, Group, Expense, Payment } from '../models/types';
 
 // ===== SYNC STATUS =====

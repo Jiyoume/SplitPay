@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().default("0.0.0.0"),
 
-  DATABASE_PATH: z.string().default("./data/splitpay.db"),
+  DATABASE_URL: z.string().url("DATABASE_URL must be a valid PostgreSQL connection URL"),
 
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),

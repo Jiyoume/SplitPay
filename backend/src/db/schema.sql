@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   id TEXT PRIMARY KEY,
   group_id TEXT NOT NULL REFERENCES groups(id),
   description TEXT NOT NULL,
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   currency TEXT NOT NULL,
   category TEXT NOT NULL,
   paid_by TEXT NOT NULL REFERENCES users(id),
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS expense_splits (
   id TEXT PRIMARY KEY,
   expense_id TEXT NOT NULL REFERENCES expenses(id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users(id),
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   is_paid INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_expense_splits_expense ON expense_splits(expense_id);
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS settlements (
   group_id TEXT NOT NULL REFERENCES groups(id),
   from_user_id TEXT NOT NULL REFERENCES users(id),
   to_user_id TEXT NOT NULL REFERENCES users(id),
-  amount REAL NOT NULL,
+  amount DOUBLE PRECISION NOT NULL,
   currency TEXT NOT NULL,
   xlm_amount TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('pending', 'submitting', 'settled', 'failed')),
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS activities (
   group_id TEXT NOT NULL REFERENCES groups(id),
   user_id TEXT NOT NULL REFERENCES users(id),
   description TEXT NOT NULL,
-  amount REAL,
+  amount DOUBLE PRECISION,
   date TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_activities_group ON activities(group_id);

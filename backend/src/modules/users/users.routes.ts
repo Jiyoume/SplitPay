@@ -8,7 +8,7 @@ export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get("/users/me/summary", { preHandler: [app.authenticate] }, async (request, reply) => {
-    const result = getMySummary(request.user!.id);
+    const result = await getMySummary(request.user!.id);
     reply.status(200).send(result);
   });
 

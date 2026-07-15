@@ -10,14 +10,17 @@ import { AppError } from "../utils/errors.js";
 export async function requireMember(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   const { id: groupId } = request.params as { id: string };
 
-  const group = db.prepare("SELECT id FROM groups WHERE id = ?").get(groupId);
+  const { rows: groupRows } = await db.query("SELECT id FROM groups WHERE id = $1", [groupId]);
+  const group = groupRows[0];
   if (!group) {
     throw new AppError("NOT_FOUND", "Group not found");
   }
 
-  const membership = db
-    .prepare("SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?")
-    .get(groupId, request.user!.id);
+  const { rows: membershipRows } = await db.query(
+    "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+    [groupId, request.user!.id]
+  );
+  const membership = membershipRows[0];
   if (!membership) {
     throw new AppError("FORBIDDEN", "You are not a member of this group");
   }

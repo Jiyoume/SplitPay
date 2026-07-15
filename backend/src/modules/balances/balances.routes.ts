@@ -8,7 +8,7 @@ export async function registerBalanceRoutes(app: FastifyInstance): Promise<void>
     { preHandler: [app.authenticate, requireMember] },
     async (request, reply) => {
       const { id: groupId } = request.params as { id: string };
-      const result = getGroupBalancesAndSuggestions(groupId);
+      const result = await getGroupBalancesAndSuggestions(groupId);
       reply.status(200).send(result);
     }
   );

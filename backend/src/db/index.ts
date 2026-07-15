@@ -1,13 +1,18 @@
-import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import pg from "pg";
 import { env } from "../config/env.js";
 
-const dbPath = resolve(process.cwd(), env.DATABASE_PATH);
-mkdirSync(dirname(dbPath), { recursive: true });
+const { Pool } = pg;
 
-export const db = new Database(dbPath);
+export const pool = new Pool({
+  connectionString: env.DATABASE_URL,
+  ssl: env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+});
 
-// PRAGMAs on every connection (ARCHITECTURE §3 conventions).
-db.pragma("foreign_keys = ON");
-db.pragma("journal_mode = WAL");
+export const db = {
+  async query(text: string, params?: any[]) {
+    return pool.query(text, params);
+  },
+  async getClient() {
+    return pool.connect();
+  }
+};

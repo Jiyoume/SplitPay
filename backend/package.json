@@ -18,16 +18,16 @@
     "@fastify/jwt": "^8.0.0",
     "@stellar/stellar-sdk": "^16.0.1",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.11.1",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
     "fastify-type-provider-zod": "^2.1.0",
+    "pg": "^8.22.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
-    "@types/better-sqlite3": "^7.6.11",
     "@types/node": "^20.14.15",
+    "@types/pg": "^8.20.0",
     "tsx": "^4.19.0",
     "typescript": "^5.5.4"
   }

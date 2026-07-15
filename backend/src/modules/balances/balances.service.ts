@@ -34,34 +34,32 @@ interface SettlementRow {
   status: "pending" | "submitting" | "settled" | "failed";
 }
 
-export function getGroupMemberIds(groupId: string): string[] {
-  const rows = db.prepare("SELECT user_id FROM group_members WHERE group_id = ?").all(groupId) as {
-    user_id: string;
-  }[];
+export async function getGroupMemberIds(groupId: string): Promise<string[]> {
+  const { rows } = await db.query("SELECT user_id FROM group_members WHERE group_id = $1", [groupId]);
   return rows.map((r) => r.user_id);
 }
 
-export function getGroupExpenses(groupId: string): Expense[] {
-  const expenseRows = db
-    .prepare("SELECT * FROM expenses WHERE group_id = ? ORDER BY date DESC")
-    .all(groupId) as ExpenseRow[];
+export async function getGroupExpenses(groupId: string): Promise<Expense[]> {
+  const { rows: expenseRows } = await db.query(
+    "SELECT * FROM expenses WHERE group_id = $1 ORDER BY date DESC",
+    [groupId]
+  );
 
-  const splitRows = db
-    .prepare(
-      `SELECT es.* FROM expense_splits es
-       JOIN expenses e ON e.id = es.expense_id
-       WHERE e.group_id = ?`
-    )
-    .all(groupId) as SplitRow[];
+  const { rows: splitRows } = await db.query(
+    `SELECT es.* FROM expense_splits es
+     JOIN expenses e ON e.id = es.expense_id
+     WHERE e.group_id = $1`,
+    [groupId]
+  );
 
   const splitsByExpense = new Map<string, SplitRow[]>();
-  for (const s of splitRows) {
+  for (const s of splitRows as SplitRow[]) {
     const arr = splitsByExpense.get(s.expense_id) ?? [];
     arr.push(s);
     splitsByExpense.set(s.expense_id, arr);
   }
 
-  return expenseRows.map((e) => ({
+  return (expenseRows as ExpenseRow[]).map((e) => ({
     id: e.id,
     groupId: e.group_id,
     description: e.description,
@@ -87,16 +85,17 @@ export function getGroupExpenses(groupId: string): Expense[] {
  * applied via applySettlements (ARCHITECTURE §5.7). This is the single source of truth used by
  * #6 GET /groups, #8 GET /groups/:id, #11 GET /groups/:id/balances, and #4 GET /users/me/summary.
  */
-export function computeNettedBalances(groupId: string): Balance[] {
-  const memberIds = getGroupMemberIds(groupId);
-  const expenses = getGroupExpenses(groupId);
+export async function computeNettedBalances(groupId: string): Promise<Balance[]> {
+  const memberIds = await getGroupMemberIds(groupId);
+  const expenses = await getGroupExpenses(groupId);
   const rawBalances = calculateBalances(expenses, memberIds);
 
-  const settlementRows = db
-    .prepare("SELECT from_user_id, to_user_id, amount, status FROM settlements WHERE group_id = ?")
-    .all(groupId) as SettlementRow[];
+  const { rows: settlementRows } = await db.query(
+    "SELECT from_user_id, to_user_id, amount, status FROM settlements WHERE group_id = $1",
+    [groupId]
+  );
 
-  const settlementInputs: NettingSettlementInput[] = settlementRows.map((s) => ({
+  const settlementInputs: NettingSettlementInput[] = (settlementRows as SettlementRow[]).map((s) => ({
     fromUserId: s.from_user_id,
     toUserId: s.to_user_id,
     amount: s.amount,
@@ -111,20 +110,23 @@ interface UserNameRow {
   name: string;
 }
 
-export function getGroupBalancesAndSuggestions(groupId: string): {
+export async function getGroupBalancesAndSuggestions(groupId: string): Promise<{
   balances: Balance[];
   suggestions: SettleSuggestion[];
-} {
-  const balances = computeNettedBalances(groupId);
+}> {
+  const balances = await computeNettedBalances(groupId);
   const rawSuggestions = simplifyDebts(balances);
 
-  const memberIds = getGroupMemberIds(groupId);
-  const nameRows =
-    memberIds.length > 0
-      ? (db
-          .prepare(`SELECT id, name FROM users WHERE id IN (${memberIds.map(() => "?").join(",")})`)
-          .all(...memberIds) as UserNameRow[])
-      : [];
+  const memberIds = await getGroupMemberIds(groupId);
+  let nameRows: UserNameRow[] = [];
+  if (memberIds.length > 0) {
+    const placeholders = memberIds.map((_, i) => `$${i + 1}`).join(",");
+    const { rows } = await db.query(
+      `SELECT id, name FROM users WHERE id IN (${placeholders})`,
+      memberIds
+    );
+    nameRows = rows as UserNameRow[];
+  }
   const nameById = new Map(nameRows.map((r) => [r.id, r.name]));
 
   const suggestions: SettleSuggestion[] = rawSuggestions.map((s) => ({

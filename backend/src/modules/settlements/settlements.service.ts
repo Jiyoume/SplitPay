@@ -36,7 +36,7 @@ function mapRow(row: SettlementRow): Settlement {
     groupId: row.group_id,
     fromUserId: row.from_user_id,
     toUserId: row.to_user_id,
-    amount: row.amount,
+    amount: Number(row.amount),
     currency: row.currency,
     xlmAmount: row.xlm_amount,
     status: row.status,
@@ -52,14 +52,17 @@ function mapRow(row: SettlementRow): Settlement {
   };
 }
 
-function getSettlementRow(id: string): SettlementRow | undefined {
-  return db.prepare("SELECT * FROM settlements WHERE id = ?").get(id) as SettlementRow | undefined;
+async function getSettlementRow(id: string): Promise<SettlementRow | undefined> {
+  const { rows } = await db.query("SELECT * FROM settlements WHERE id = $1", [id]);
+  return rows[0] as SettlementRow | undefined;
 }
 
-function isGroupMember(groupId: string, userId: string): boolean {
-  return Boolean(
-    db.prepare("SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?").get(groupId, userId)
+async function isGroupMember(groupId: string, userId: string): Promise<boolean> {
+  const { rows } = await db.query(
+    "SELECT 1 FROM group_members WHERE group_id = $1 AND user_id = $2",
+    [groupId, userId]
   );
+  return rows.length > 0;
 }
 
 /**
@@ -68,16 +71,21 @@ function isGroupMember(groupId: string, userId: string): boolean {
  * calculations (those are driven by domain/netting.ts on the settlements table) — it is
  * additive UI bookkeeping only. See DEVIATIONS.md for the exact interpretation call.
  */
-function markSplitsPaidBestEffort(groupId: string, fromUserId: string, toUserId: string): void {
-  db.prepare(
+async function markSplitsPaidBestEffort(
+  groupId: string,
+  fromUserId: string,
+  toUserId: string
+): Promise<void> {
+  await db.query(
     `UPDATE expense_splits SET is_paid = 1
-     WHERE user_id = ? AND is_paid = 0
-       AND expense_id IN (SELECT id FROM expenses WHERE group_id = ? AND paid_by = ?)`
-  ).run(fromUserId, groupId, toUserId);
+     WHERE user_id = $1 AND is_paid = 0
+       AND expense_id IN (SELECT id FROM expenses WHERE group_id = $2 AND paid_by = $3)`,
+    [fromUserId, groupId, toUserId]
+  );
 }
 
 /** Idempotency: check-before-insert on (group_id, from_user_id, to_user_id) in-flight only (§5.5). */
-function checkInFlightOrInsertPending(params: {
+async function checkInFlightOrInsertPending(params: {
   groupId: string;
   fromUserId: string;
   toUserId: string;
@@ -87,55 +95,64 @@ function checkInFlightOrInsertPending(params: {
   sourcePublicKey: string;
   destPublicKey: string;
   note: string | null;
-}): { conflict: SettlementRow | null; id: string; now: string } {
+}): Promise<{ conflict: SettlementRow | null; id: string; now: string }> {
   const id = newId();
   const now = new Date().toISOString();
 
-  const tx = db.transaction(() => {
-    const existing = db
-      .prepare(
-        `SELECT * FROM settlements
-         WHERE group_id = ? AND from_user_id = ? AND to_user_id = ? AND status IN ('pending','submitting')
-         LIMIT 1`
-      )
-      .get(params.groupId, params.fromUserId, params.toUserId) as SettlementRow | undefined;
+  const client = await db.getClient();
+  try {
+    await client.query("BEGIN");
+
+    const { rows } = await client.query(
+      `SELECT * FROM settlements
+       WHERE group_id = $1 AND from_user_id = $2 AND to_user_id = $3 AND status IN ('pending','submitting')
+       LIMIT 1`,
+      [params.groupId, params.fromUserId, params.toUserId]
+    );
+    const existing = rows[0] as SettlementRow | undefined;
 
     if (existing) {
-      return { conflict: existing };
+      await client.query("ROLLBACK");
+      return { conflict: existing, id, now };
     }
 
-    db.prepare(
+    await client.query(
       `INSERT INTO settlements
          (id, group_id, from_user_id, to_user_id, amount, currency, xlm_amount, status,
           tx_hash, source_public_key, dest_public_key, note, failure_code, failure_message,
           created_at, updated_at, settled_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?, NULL, NULL, ?, ?, NULL)`
-    ).run(
-      id,
-      params.groupId,
-      params.fromUserId,
-      params.toUserId,
-      params.amount,
-      params.currency,
-      params.xlmAmount,
-      params.sourcePublicKey,
-      params.destPublicKey,
-      params.note,
-      now,
-      now
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', NULL, $8, $9, $10, NULL, NULL, $11, $12, NULL)`,
+      [
+        id,
+        params.groupId,
+        params.fromUserId,
+        params.toUserId,
+        params.amount,
+        params.currency,
+        params.xlmAmount,
+        params.sourcePublicKey,
+        params.destPublicKey,
+        params.note,
+        now,
+        now,
+      ]
     );
 
-    return { conflict: null };
-  });
-
-  const result = tx();
-  return { conflict: result.conflict, id, now };
+    await client.query("COMMIT");
+    return { conflict: null, id, now };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
-function markFailed(id: string, failureCode: string, failureMessage: string): void {
-  db.prepare(
-    `UPDATE settlements SET status = 'failed', failure_code = ?, failure_message = ?, updated_at = ? WHERE id = ?`
-  ).run(failureCode, failureMessage, new Date().toISOString(), id);
+async function markFailed(id: string, failureCode: string, failureMessage: string): Promise<void> {
+  await db.query(
+    `UPDATE settlements SET status = 'failed', failure_code = $1, failure_message = $2, updated_at = $3 WHERE id = $4`,
+    [failureCode, failureMessage, new Date().toISOString(), id]
+  );
 }
 
 export async function createSettlement(
@@ -149,17 +166,18 @@ export async function createSettlement(
   if (body.toUserId === body.fromUserId) {
     throw new AppError("VALIDATION_ERROR", "toUserId must differ from fromUserId");
   }
-  if (!isGroupMember(groupId, body.toUserId)) {
+  const isMember = await isGroupMember(groupId, body.toUserId);
+  if (!isMember) {
     throw new AppError("NOT_FOUND", "Creditor is not a member of this group");
   }
 
   const currency = body.currency ?? "USD";
   const xlmAmount = toStellarAmount(body.amount);
 
-  const debtorWallet = getWalletRow(body.fromUserId);
-  const creditorWallet = getWalletRow(body.toUserId);
+  const debtorWallet = await getWalletRow(body.fromUserId);
+  const creditorWallet = await getWalletRow(body.toUserId);
 
-  const { conflict, id } = checkInFlightOrInsertPending({
+  const { conflict, id } = await checkInFlightOrInsertPending({
     groupId,
     fromUserId: body.fromUserId,
     toUserId: body.toUserId,
@@ -178,11 +196,11 @@ export async function createSettlement(
   }
 
   if (debtorWallet.funding_status !== "funded") {
-    markFailed(id, "WALLET_UNFUNDED", "Debtor wallet is not funded");
+    await markFailed(id, "WALLET_UNFUNDED", "Debtor wallet is not funded");
     throw new AppError("WALLET_UNFUNDED", "Debtor's wallet is not funded", { who: "debtor" });
   }
   if (creditorWallet.funding_status !== "funded") {
-    markFailed(id, "WALLET_UNFUNDED", "Creditor wallet is not funded");
+    await markFailed(id, "WALLET_UNFUNDED", "Creditor wallet is not funded");
     throw new AppError("WALLET_UNFUNDED", "Creditor's wallet is not funded", { who: "creditor" });
   }
 
@@ -190,7 +208,7 @@ export async function createSettlement(
   try {
     secret = decryptSecret(debtorWallet.encrypted_secret);
   } catch (err) {
-    markFailed(id, "WALLET_KEY_ERROR", "wallet secret could not be decrypted");
+    await markFailed(id, "WALLET_KEY_ERROR", "wallet secret could not be decrypted");
     throw err;
   }
 
@@ -206,12 +224,13 @@ export async function createSettlement(
     const now = new Date().toISOString();
 
     if (outcome.status === "settled") {
-      db.prepare(
-        `UPDATE settlements SET status = 'settled', tx_hash = ?, settled_at = ?, updated_at = ? WHERE id = ?`
-      ).run(outcome.txHash, outcome.settledAt, now, id);
+      await db.query(
+        `UPDATE settlements SET status = 'settled', tx_hash = $1, settled_at = $2, updated_at = $3 WHERE id = $4`,
+        [outcome.txHash, outcome.settledAt, now, id]
+      );
 
-      markSplitsPaidBestEffort(groupId, body.fromUserId, body.toUserId);
-      insertActivity({
+      await markSplitsPaidBestEffort(groupId, body.fromUserId, body.toUserId);
+      await insertActivity({
         type: "payment_made",
         groupId,
         userId: body.fromUserId,
@@ -220,35 +239,40 @@ export async function createSettlement(
         date: now,
       });
 
-      return { status: 201, settlement: mapRow(getSettlementRow(id)!) };
+      const updatedRow = await getSettlementRow(id);
+      return { status: 201, settlement: mapRow(updatedRow!) };
     }
 
     // submitting (Horizon 504 / client timeout) — 202, client polls #14.
-    db.prepare(`UPDATE settlements SET status = 'submitting', tx_hash = ?, updated_at = ? WHERE id = ?`).run(
-      outcome.txHash,
-      now,
-      id
+    await db.query(
+      `UPDATE settlements SET status = 'submitting', tx_hash = $1, updated_at = $2 WHERE id = $3`,
+      [outcome.txHash, now, id]
     );
-    return { status: 202, settlement: mapRow(getSettlementRow(id)!) };
+    const updatedRow = await getSettlementRow(id);
+    return { status: 202, settlement: mapRow(updatedRow!) };
   } catch (err) {
     if (err instanceof AppError) {
-      markFailed(id, err.code, err.message);
+      await markFailed(id, err.code, err.message);
     } else {
-      markFailed(id, "STELLAR_ERROR", "Unexpected error during settlement submission");
+      await markFailed(id, "STELLAR_ERROR", "Unexpected error during settlement submission");
     }
     throw err;
   }
 }
 
-export function listGroupSettlements(groupId: string): { settlements: Settlement[] } {
-  const rows = db
-    .prepare("SELECT * FROM settlements WHERE group_id = ? ORDER BY created_at DESC")
-    .all(groupId) as SettlementRow[];
+export async function listGroupSettlements(groupId: string): Promise<{ settlements: Settlement[] }> {
+  const { rows } = await db.query(
+    "SELECT * FROM settlements WHERE group_id = $1 ORDER BY created_at DESC",
+    [groupId]
+  );
   return { settlements: rows.map(mapRow) };
 }
 
-export async function getSettlementById(id: string, callerId: string): Promise<{ settlement: Settlement }> {
-  const row = getSettlementRow(id);
+export async function getSettlementById(
+  id: string,
+  callerId: string
+): Promise<{ settlement: Settlement }> {
+  const row = await getSettlementRow(id);
   if (!row) throw new AppError("NOT_FOUND", "Settlement not found");
   if (row.from_user_id !== callerId && row.to_user_id !== callerId) {
     throw new AppError("FORBIDDEN", "You are not a party to this settlement");
@@ -261,13 +285,12 @@ export async function getSettlementById(id: string, callerId: string): Promise<{
     const now = new Date().toISOString();
 
     if (result.status === "settled") {
-      db.prepare(`UPDATE settlements SET status = 'settled', settled_at = ?, updated_at = ? WHERE id = ?`).run(
-        now,
-        now,
-        id
+      await db.query(
+        `UPDATE settlements SET status = 'settled', settled_at = $1, updated_at = $2 WHERE id = $3`,
+        [now, now, id]
       );
-      markSplitsPaidBestEffort(row.group_id, row.from_user_id, row.to_user_id);
-      insertActivity({
+      await markSplitsPaidBestEffort(row.group_id, row.from_user_id, row.to_user_id);
+      await insertActivity({
         type: "payment_made",
         groupId: row.group_id,
         userId: row.from_user_id,
@@ -276,12 +299,14 @@ export async function getSettlementById(id: string, callerId: string): Promise<{
         date: now,
       });
     } else if (result.status === "failed") {
-      db.prepare(
-        `UPDATE settlements SET status = 'failed', failure_code = ?, updated_at = ? WHERE id = ?`
-      ).run(result.failureCode, now, id);
+      await db.query(
+        `UPDATE settlements SET status = 'failed', failure_code = $1, updated_at = $2 WHERE id = $3`,
+        [result.failureCode, now, id]
+      );
     }
     // status === 'submitting' -> no change, still pending confirmation.
   }
 
-  return { settlement: mapRow(getSettlementRow(id)!) };
+  const updatedRow = await getSettlementRow(id);
+  return { settlement: mapRow(updatedRow!) };
 }

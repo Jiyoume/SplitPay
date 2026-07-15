@@ -24,7 +24,7 @@ export async function registerSettlementRoutes(app: FastifyInstance): Promise<vo
     { preHandler: [app.authenticate, requireMember] },
     async (request, reply) => {
       const { id: groupId } = groupIdParamsSchema.parse(request.params);
-      reply.status(200).send(listGroupSettlements(groupId));
+      reply.status(200).send(await listGroupSettlements(groupId));
     }
   );
 

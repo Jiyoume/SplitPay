@@ -8,8 +8,8 @@ import type { Split } from "../../domain/types.js";
 
 const EPSILON = 0.01;
 
-export function listGroupExpenses(groupId: string) {
-  return { expenses: getGroupExpenses(groupId) };
+export async function listGroupExpenses(groupId: string) {
+  return { expenses: await getGroupExpenses(groupId) };
 }
 
 function computeSplits(body: CreateExpenseBody, memberIds: string[]): Split[] {
@@ -80,8 +80,8 @@ function computeSplits(body: CreateExpenseBody, memberIds: string[]): Split[] {
   }));
 }
 
-export function addExpense(groupId: string, callerId: string, body: CreateExpenseBody) {
-  const memberIds = getGroupMemberIds(groupId);
+export async function addExpense(groupId: string, callerId: string, body: CreateExpenseBody) {
+  const memberIds = await getGroupMemberIds(groupId);
   const paidBy = body.paidBy ?? callerId;
 
   if (!memberIds.includes(paidBy)) {
@@ -97,46 +97,47 @@ export function addExpense(groupId: string, callerId: string, body: CreateExpens
   const date = body.date ?? now;
   const currency = body.currency ?? "USD";
 
-  const insertExpense = db.prepare(
-    `INSERT INTO expenses (id, group_id, description, amount, currency, category, paid_by, split_method, date, created_at, receipt, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
-  const insertSplit = db.prepare(
-    `INSERT INTO expense_splits (id, expense_id, user_id, amount, is_paid) VALUES (?, ?, ?, ?, ?)`
-  );
-  const insertActivity = db.prepare(
-    `INSERT INTO activities (id, type, group_id, user_id, description, amount, date) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  );
+  const client = await db.getClient();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO expenses (id, group_id, description, amount, currency, category, paid_by, split_method, date, created_at, receipt, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [
+        expenseId,
+        groupId,
+        body.description,
+        body.amount,
+        currency,
+        body.category,
+        paidBy,
+        body.splitMethod,
+        date,
+        now,
+        body.receipt ?? null,
+        body.notes ?? null,
+      ]
+    );
 
-  const tx = db.transaction(() => {
-    insertExpense.run(
-      expenseId,
-      groupId,
-      body.description,
-      body.amount,
-      currency,
-      body.category,
-      paidBy,
-      body.splitMethod,
-      date,
-      now,
-      body.receipt ?? null,
-      body.notes ?? null
-    );
     for (const split of splits) {
-      insertSplit.run(newId(), expenseId, split.userId, split.amount, 0);
+      await client.query(
+        `INSERT INTO expense_splits (id, expense_id, user_id, amount, is_paid) VALUES ($1, $2, $3, $4, $5)`,
+        [newId(), expenseId, split.userId, split.amount, 0]
+      );
     }
-    insertActivity.run(
-      newId(),
-      "expense_added",
-      groupId,
-      callerId,
-      `added "${body.description}"`,
-      body.amount,
-      now
+
+    await client.query(
+      `INSERT INTO activities (id, type, group_id, user_id, description, amount, date) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [newId(), "expense_added", groupId, callerId, `added "${body.description}"`, body.amount, now]
     );
-  });
-  tx();
+
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 
   return {
     expense: {

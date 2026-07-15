@@ -9,7 +9,7 @@ const querySchema = z.object({
 export async function registerActivityRoutes(app: FastifyInstance): Promise<void> {
   app.get("/activity", { preHandler: [app.authenticate] }, async (request, reply) => {
     const { limit } = querySchema.parse(request.query);
-    const result = getGlobalActivity(request.user!.id, limit);
+    const result = await getGlobalActivity(request.user!.id, limit);
     reply.status(200).send(result);
   });
 }

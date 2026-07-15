@@ -26,8 +26,8 @@ export interface RegisterResult {
 export async function registerUser(body: RegisterBody): Promise<RegisterResult> {
   const email = body.email.toLowerCase();
 
-  const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
-  if (existing) {
+  const { rows } = await db.query("SELECT id FROM users WHERE email = $1", [email]);
+  if (rows.length > 0) {
     throw new AppError("EMAIL_TAKEN", "An account with this email already exists");
   }
 
@@ -35,10 +35,11 @@ export async function registerUser(body: RegisterBody): Promise<RegisterResult> 
   const userId = newId();
   const now = new Date().toISOString();
 
-  db.prepare(
+  await db.query(
     `INSERT INTO users (id, name, email, password_hash, avatar, phone, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(userId, body.name, email, passwordHash, body.avatar ?? null, body.phone ?? null, now);
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [userId, body.name, email, passwordHash, body.avatar ?? null, body.phone ?? null, now]
+  );
 
   // Provision a custodial Stellar wallet (ARCHITECTURE §5.2). Funding is resilient: registration
   // never fails solely because Friendbot failed.
@@ -49,10 +50,11 @@ export async function registerUser(body: RegisterBody): Promise<RegisterResult> 
   const funded = await fundWithFriendbot(publicKey);
   const fundingStatus: "funded" | "unfunded" = funded ? "funded" : "unfunded";
 
-  db.prepare(
+  await db.query(
     `INSERT INTO wallets (id, user_id, public_key, encrypted_secret, funding_status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(newId(), userId, publicKey, encryptedSecret, fundingStatus, now);
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [newId(), userId, publicKey, encryptedSecret, fundingStatus, now]
+  );
 
   return {
     user: { id: userId, name: body.name, email, phone: body.phone ?? null },
@@ -68,7 +70,8 @@ const INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
 
 export async function loginUser(body: LoginBody): Promise<LoginResult> {
   const email = body.email.toLowerCase();
-  const row = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as UserRow | undefined;
+  const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+  const row = rows[0] as UserRow | undefined;
 
   if (!row) {
     throw new AppError("UNAUTHORIZED", INVALID_CREDENTIALS_MESSAGE);

@@ -20,23 +20,26 @@ interface WalletRow {
   funding_status: "funded" | "unfunded";
 }
 
-function getUserRow(userId: string): UserRow {
-  const row = db
-    .prepare("SELECT id, name, email, avatar, phone FROM users WHERE id = ?")
-    .get(userId) as UserRow | undefined;
+async function getUserRow(userId: string): Promise<UserRow> {
+  const { rows } = await db.query(
+    "SELECT id, name, email, avatar, phone FROM users WHERE id = $1",
+    [userId]
+  );
+  const row = rows[0] as UserRow | undefined;
   if (!row) throw new AppError("NOT_FOUND", "User not found");
   return row;
 }
 
-export function getWalletRow(userId: string): WalletRow {
-  const row = db.prepare("SELECT * FROM wallets WHERE user_id = ?").get(userId) as WalletRow | undefined;
+export async function getWalletRow(userId: string): Promise<WalletRow> {
+  const { rows } = await db.query("SELECT * FROM wallets WHERE user_id = $1", [userId]);
+  const row = rows[0] as WalletRow | undefined;
   if (!row) throw new AppError("NOT_FOUND", "Wallet not found");
   return row;
 }
 
 export async function getMe(userId: string) {
-  const user = getUserRow(userId);
-  const wallet = getWalletRow(userId);
+  const user = await getUserRow(userId);
+  const wallet = await getWalletRow(userId);
   const xlmBalance = await getXlmBalance(wallet.public_key);
 
   return {
@@ -46,7 +49,7 @@ export async function getMe(userId: string) {
 }
 
 export async function fundMyWallet(userId: string) {
-  const wallet = getWalletRow(userId);
+  const wallet = await getWalletRow(userId);
 
   if (wallet.funding_status === "funded") {
     const xlmBalance = await getXlmBalance(wallet.public_key);
@@ -58,7 +61,7 @@ export async function fundMyWallet(userId: string) {
     throw new AppError("FRIENDBOT_FAILED", "Friendbot funding failed — safe to retry");
   }
 
-  db.prepare("UPDATE wallets SET funding_status = 'funded' WHERE user_id = ?").run(userId);
+  await db.query("UPDATE wallets SET funding_status = 'funded' WHERE user_id = $1", [userId]);
   const xlmBalance = await getXlmBalance(wallet.public_key);
   return { wallet: { publicKey: wallet.public_key, fundingStatus: "funded" as const, xlmBalance } };
 }
@@ -73,17 +76,18 @@ interface ActivityRow {
   date: string;
 }
 
-export function getMySummary(userId: string) {
-  const groupRows = db
-    .prepare("SELECT group_id FROM group_members WHERE user_id = ?")
-    .all(userId) as { group_id: string }[];
+export async function getMySummary(userId: string) {
+  const { rows: groupRows } = await db.query(
+    "SELECT group_id FROM group_members WHERE user_id = $1",
+    [userId]
+  );
   const groupIds = groupRows.map((r) => r.group_id);
 
   let youOwe = 0;
   let youAreOwed = 0;
 
   for (const groupId of groupIds) {
-    const balances = computeNettedBalances(groupId);
+    const balances = await computeNettedBalances(groupId);
     const mine = balances.find((b) => b.userId === userId);
     if (!mine) continue;
     youOwe += mine.owes.reduce((sum, o) => sum + o.amount, 0);
@@ -94,19 +98,19 @@ export function getMySummary(userId: string) {
 
   let recentActivity: Activity[] = [];
   if (groupIds.length > 0) {
-    const placeholders = groupIds.map(() => "?").join(",");
-    const rows = db
-      .prepare(
-        `SELECT * FROM activities WHERE group_id IN (${placeholders}) ORDER BY date DESC LIMIT 5`
-      )
-      .all(...groupIds) as ActivityRow[];
-    recentActivity = rows.map((r) => ({
+    const placeholders = groupIds.map((_, i) => `$${i + 1}`).join(",");
+    const { rows } = await db.query(
+      `SELECT * FROM activities WHERE group_id IN (${placeholders}) ORDER BY date DESC LIMIT 5`,
+      groupIds
+    );
+    const activityRows = rows as ActivityRow[];
+    recentActivity = activityRows.map((r) => ({
       id: r.id,
       type: r.type,
       groupId: r.group_id,
       userId: r.user_id,
       description: r.description,
-      amount: r.amount,
+      amount: r.amount ? Number(r.amount) : null,
       date: r.date,
     }));
   }

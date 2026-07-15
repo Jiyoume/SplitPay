@@ -6,8 +6,8 @@ import { db } from "./index.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** Applies schema.sql idempotently (CREATE TABLE/INDEX IF NOT EXISTS) on every boot. */
-export function migrate(): void {
+export async function migrate(): Promise<void> {
   const schemaPath = resolve(__dirname, "schema.sql");
   const schema = readFileSync(schemaPath, "utf-8");
-  db.exec(schema);
+  await db.query(schema);
 }

@@ -20,72 +20,79 @@ interface UserRow {
   email: string;
 }
 
-function getGroupRow(groupId: string): GroupRow {
-  const row = db.prepare("SELECT * FROM groups WHERE id = ?").get(groupId) as GroupRow | undefined;
+async function getGroupRow(groupId: string): Promise<GroupRow> {
+  const { rows } = await db.query("SELECT * FROM groups WHERE id = $1", [groupId]);
+  const row = rows[0] as GroupRow | undefined;
   if (!row) throw new AppError("NOT_FOUND", "Group not found");
   return row;
 }
 
-function getGroupTotalExpenses(groupId: string): number {
-  const row = db
-    .prepare("SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE group_id = ?")
-    .get(groupId) as { total: number };
-  return row.total;
+async function getGroupTotalExpenses(groupId: string): Promise<number> {
+  const { rows } = await db.query(
+    "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses WHERE group_id = $1",
+    [groupId]
+  );
+  return Number(rows[0].total);
 }
 
-function getGroupMembers(groupId: string): UserRow[] {
-  return db
-    .prepare(
-      `SELECT u.id, u.name, u.email FROM users u
-       JOIN group_members gm ON gm.user_id = u.id
-       WHERE gm.group_id = ?`
-    )
-    .all(groupId) as UserRow[];
+async function getGroupMembers(groupId: string): Promise<UserRow[]> {
+  const { rows } = await db.query(
+    `SELECT u.id, u.name, u.email FROM users u
+     JOIN group_members gm ON gm.user_id = u.id
+     WHERE gm.group_id = $1`,
+    [groupId]
+  );
+  return rows as UserRow[];
 }
 
-export function listMyGroups(userId: string) {
-  const rows = db
-    .prepare(
-      `SELECT g.* FROM groups g
-       JOIN group_members gm ON gm.group_id = g.id
-       WHERE gm.user_id = ?`
-    )
-    .all(userId) as GroupRow[];
+export async function listMyGroups(userId: string) {
+  const { rows } = await db.query(
+    `SELECT g.* FROM groups g
+     JOIN group_members gm ON gm.group_id = g.id
+     WHERE gm.user_id = $1`,
+    [userId]
+  );
+  const groupRows = rows as GroupRow[];
 
-  const groups = rows.map((g) => {
-    const memberCountRow = db
-      .prepare("SELECT COUNT(*) AS c FROM group_members WHERE group_id = ?")
-      .get(g.id) as { c: number };
-    const totalExpenses = getGroupTotalExpenses(g.id);
+  const groups = await Promise.all(
+    groupRows.map(async (g) => {
+      const { rows: memberCountRow } = await db.query(
+        "SELECT COUNT(*) AS c FROM group_members WHERE group_id = $1",
+        [g.id]
+      );
+      const totalExpenses = await getGroupTotalExpenses(g.id);
 
-    const balances = computeNettedBalances(g.id);
-    const mine = balances.find((b) => b.userId === userId);
-    const balance = mine ? mine.netBalance : 0;
+      const balances = await computeNettedBalances(g.id);
+      const mine = balances.find((b) => b.userId === userId);
+      const balance = mine ? mine.netBalance : 0;
 
-    const lastActivityRow = db
-      .prepare("SELECT MAX(date) AS last FROM activities WHERE group_id = ?")
-      .get(g.id) as { last: string | null };
-    const lastActivity = lastActivityRow.last ?? g.created_at;
+      const { rows: lastActivityRow } = await db.query(
+        "SELECT MAX(date) AS last FROM activities WHERE group_id = $1",
+        [g.id]
+      );
+      const lastActivity = lastActivityRow[0].last ?? g.created_at;
 
-    return {
-      id: g.id,
-      name: g.name,
-      description: g.description,
-      type: g.type,
-      createdBy: g.created_by,
-      createdAt: g.created_at,
-      memberCount: memberCountRow.c,
-      totalExpenses,
-      balance,
-      lastActivity,
-    };
-  });
+      return {
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        type: g.type,
+        createdBy: g.created_by,
+        createdAt: g.created_at,
+        memberCount: Number(memberCountRow[0].c),
+        totalExpenses,
+        balance,
+        lastActivity,
+      };
+    })
+  );
 
   return { groups };
 }
 
-export function createGroup(userId: string, body: CreateGroupBody) {
-  const callerRow = db.prepare("SELECT email FROM users WHERE id = ?").get(userId) as { email: string };
+export async function createGroup(userId: string, body: CreateGroupBody) {
+  const { rows: callerRows } = await db.query("SELECT email FROM users WHERE id = $1", [userId]);
+  const callerRow = callerRows[0] as { email: string };
 
   const requestedEmails = Array.from(new Set((body.memberEmails ?? []).map((e) => e.toLowerCase()))).filter(
     (e) => e !== callerRow.email.toLowerCase()
@@ -93,10 +100,12 @@ export function createGroup(userId: string, body: CreateGroupBody) {
 
   let resolvedMembers: UserRow[] = [];
   if (requestedEmails.length > 0) {
-    const placeholders = requestedEmails.map(() => "?").join(",");
-    resolvedMembers = db
-      .prepare(`SELECT id, name, email FROM users WHERE email IN (${placeholders})`)
-      .all(...requestedEmails) as UserRow[];
+    const placeholders = requestedEmails.map((_, i) => `$${i + 1}`).join(",");
+    const { rows } = await db.query(
+      `SELECT id, name, email FROM users WHERE email IN (${placeholders})`,
+      requestedEmails
+    );
+    resolvedMembers = rows as UserRow[];
 
     const resolvedEmails = new Set(resolvedMembers.map((m) => m.email.toLowerCase()));
     const unknownEmails = requestedEmails.filter((e) => !resolvedEmails.has(e));
@@ -110,37 +119,41 @@ export function createGroup(userId: string, body: CreateGroupBody) {
   const groupId = newId();
   const now = new Date().toISOString();
 
-  const insertGroup = db.prepare(
-    `INSERT INTO groups (id, name, description, type, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?)`
-  );
-  const insertMember = db.prepare(
-    `INSERT INTO group_members (group_id, user_id, joined_at) VALUES (?, ?, ?)`
-  );
-  const insertActivity = db.prepare(
-    `INSERT INTO activities (id, type, group_id, user_id, description, amount, date) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  );
-
-  const tx = db.transaction(() => {
-    insertGroup.run(groupId, body.name, body.description ?? null, body.type, userId, now);
-    insertMember.run(groupId, userId, now);
-    insertActivity.run(newId(), "group_created", groupId, userId, `created "${body.name}"`, null, now);
+  const client = await db.getClient();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `INSERT INTO groups (id, name, description, type, created_by, created_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [groupId, body.name, body.description ?? null, body.type, userId, now]
+    );
+    await client.query(
+      `INSERT INTO group_members (group_id, user_id, joined_at) VALUES ($1, $2, $3)`,
+      [groupId, userId, now]
+    );
+    await client.query(
+      `INSERT INTO activities (id, type, group_id, user_id, description, amount, date) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [newId(), "group_created", groupId, userId, `created "${body.name}"`, null, now]
+    );
 
     for (const member of resolvedMembers) {
-      insertMember.run(groupId, member.id, now);
-      insertActivity.run(
-        newId(),
-        "member_added",
-        groupId,
-        userId,
-        `added ${member.name} to the group`,
-        null,
-        now
+      await client.query(
+        `INSERT INTO group_members (group_id, user_id, joined_at) VALUES ($1, $2, $3)`,
+        [groupId, member.id, now]
+      );
+      await client.query(
+        `INSERT INTO activities (id, type, group_id, user_id, description, amount, date) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [newId(), "member_added", groupId, userId, `added ${member.name} to the group`, null, now]
       );
     }
-  });
-  tx();
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 
-  const members = getGroupMembers(groupId);
+  const members = await getGroupMembers(groupId);
 
   return {
     group: {
@@ -156,11 +169,11 @@ export function createGroup(userId: string, body: CreateGroupBody) {
   };
 }
 
-export function getGroupDetail(groupId: string) {
-  const group = getGroupRow(groupId);
-  const members = getGroupMembers(groupId);
-  const totalExpenses = getGroupTotalExpenses(groupId);
-  const { balances } = getGroupBalancesAndSuggestions(groupId);
+export async function getGroupDetail(groupId: string) {
+  const group = await getGroupRow(groupId);
+  const members = await getGroupMembers(groupId);
+  const totalExpenses = await getGroupTotalExpenses(groupId);
+  const { balances } = await getGroupBalancesAndSuggestions(groupId);
 
   return {
     group: {
