@@ -2281,7 +2281,7 @@ function signInWithGoogle() {
   }
 })();
 
-// Auto-login if token exists
+// Auto-login if token exists — load only that user's session and content
 (function checkExistingSession() {
   const token = localStorage.getItem('myshare_token');
   if (token) {
@@ -2290,11 +2290,47 @@ function signInWithGoogle() {
     }).then(r => { if (r.ok) return r.json(); throw new Error('expired'); })
       .then(user => {
         currentUser = user;
-        showMainApp(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User');
+        loadUserSession(user, token);
       })
-      .catch(() => { localStorage.removeItem('myshare_token'); localStorage.removeItem('myshare_user'); });
+      .catch(() => { 
+        // Session expired — clear and show login
+        localStorage.removeItem('myshare_token'); 
+        localStorage.removeItem('myshare_user');
+        localStorage.removeItem('myshare_data');
+      });
   }
 })();
+
+// Load user-specific data from Supabase
+async function loadUserSession(user, token) {
+  const userId = user.id;
+  const headers = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + token };
+
+  // Fetch user's profile from users table
+  const profileRes = await fetch(SUPABASE_URL + '/rest/v1/users?id=eq.' + userId + '&select=*', { headers });
+  const profile = await profileRes.json();
+  const userProfile = profile?.[0] || null;
+
+  // Fetch user's groups
+  const groupsRes = await fetch(SUPABASE_URL + '/rest/v1/group_members?user_id=eq.' + userId + '&select=group_id,groups(*)', { headers });
+  const groups = await groupsRes.json();
+
+  // Fetch user's recent expenses
+  const expensesRes = await fetch(SUPABASE_URL + '/rest/v1/expenses?paid_by=eq.' + userId + '&select=*&order=date.desc&limit=10', { headers });
+  const expenses = await expensesRes.json();
+
+  // Fetch user's payments
+  const paymentsRes = await fetch(SUPABASE_URL + '/rest/v1/payments?or=(from_user_id.eq.' + userId + ',to_user_id.eq.' + userId + ')&select=*&order=date.desc&limit=10', { headers });
+  const payments = await paymentsRes.json();
+
+  // Cache locally for offline
+  const userData = { profile: userProfile, groups: groups || [], expenses: expenses || [], payments: payments || [], lastLoaded: new Date().toISOString() };
+  localStorage.setItem('myshare_data', JSON.stringify(userData));
+
+  // Show app with user's data
+  const displayName = userProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  showMainApp(displayName, userData);
+}
 
 function showLogin() {
   document.getElementById('signupScreen').classList.remove('active');
@@ -2306,15 +2342,32 @@ function showSignup() {
   document.getElementById('signupScreen').classList.add('active');
 }
 
-function showMainApp(name) {
+function showMainApp(name, userData) {
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('signupScreen').classList.remove('active');
   document.getElementById('mainApp').style.display = 'block';
+  
   if (name) {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     document.querySelector('.avatar').textContent = initials || 'JD';
     document.getElementById('profileName').textContent = name;
   }
+
+  // Load cached data if available
+  const data = userData || JSON.parse(localStorage.getItem('myshare_data') || 'null');
+  if (data) {
+    // Update profile email display if exists
+    if (data.profile?.email) {
+      const emailEl = document.getElementById('profileEmail');
+      if (emailEl) emailEl.textContent = data.profile.email;
+    }
+    // Update KYC badge
+    if (data.profile?.kyc_level && data.profile.kyc_level !== 'none') {
+      const badge = document.getElementById('kycBadge');
+      if (badge) { badge.textContent = '✓ ' + data.profile.kyc_level; badge.className = 'kyc-badge verified'; }
+    }
+  }
+
   startBalanceAnimation();
   updateTabIndicator(0);
   animateProgressBars();
