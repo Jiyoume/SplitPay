@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AmbagKo">
+<meta name="apple-mobile-web-app-title" content="MyShare">
 <meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
 <meta name="msapplication-tap-highlight" content="no">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23000'/%3E%3Ctext x='90' y='115' font-family='system-ui' font-size='68' font-weight='800' fill='%2334C759' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
-<title>AmbagKo - Split Expenses</title>
+<title>MyShare - Split Expenses</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ===== CSS VARIABLES - THEMING ===== */
@@ -858,7 +858,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 <!-- ===== LOGIN SCREEN ===== -->
 <div class="auth-screen active" id="loginScreen">
   <div class="auth-header">
-    <div class="logo">AmbagKo</div>
+    <div class="logo">MyShare</div>
     <p>Split expenses with friends, effortlessly</p>
   </div>
   <div class="auth-form">
@@ -880,7 +880,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 <!-- ===== SIGNUP SCREEN ===== -->
 <div class="auth-screen" id="signupScreen">
   <div class="auth-header">
-    <div class="logo">AmbagKo</div>
+    <div class="logo">MyShare</div>
     <p>Create your account to get started</p>
   </div>
   <div class="auth-form">
@@ -1509,7 +1509,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <div class="menu-section">
       <div class="menu-item">
         <span class="menu-icon">⭐</span>
-        <span class="menu-text">Rate AmbagKo</span>
+        <span class="menu-text">Rate MyShare</span>
         <span class="menu-arrow">›</span>
       </div>
       <div class="menu-item">
@@ -1522,7 +1522,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <div class="logout-btn" onclick="handleLogout()">Sign Out</div>
 
     <div style="text-align:center; padding:16px; font-size:12px; color:var(--text-tertiary);">
-      AmbagKo v2.0.0 • Made with ❤️
+      MyShare v2.0.0 • Made with ❤️
     </div>
   </div>
 </div>
@@ -2051,7 +2051,7 @@ if ('serviceWorker' in navigator) {
 
 // ===== THEME MANAGEMENT =====
 function initTheme() {
-  const saved = localStorage.getItem('ambagko-theme');
+  const saved = localStorage.getItem('MyShare-theme');
   if (saved) {
     document.body.className = saved;
   } else {
@@ -2067,7 +2067,7 @@ function initTheme() {
 function toggleTheme() {
   const isDark = document.body.classList.contains('dark');
   document.body.className = isDark ? 'light' : 'dark';
-  localStorage.setItem('ambagko-theme', document.body.className);
+  localStorage.setItem('MyShare-theme', document.body.className);
   updateThemeUI();
   // Update theme-color meta
   const themeColor = document.body.classList.contains('dark') ? '#000000' : '#F2F2F7';
@@ -2087,7 +2087,7 @@ function updateThemeUI() {
 
 // Listen for system theme changes
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-  if (!localStorage.getItem('ambagko-theme')) {
+  if (!localStorage.getItem('MyShare-theme')) {
     document.body.className = e.matches ? 'dark' : 'light';
     updateThemeUI();
   }
@@ -2609,3 +2609,4 @@ async function stellarAction(type) {
 </style>
 </body>
 </html>
+
