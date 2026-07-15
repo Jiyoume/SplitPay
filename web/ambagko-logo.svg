@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Background Circle - inspired by Philippine sun -->
+  <circle cx="100" cy="100" r="95" fill="#0038A8" />
+  <circle cx="100" cy="100" r="85" fill="#FFFFFF" />
+  
+  <!-- Philippine Sun Rays (8 rays representing 8 provinces) -->
+  <g fill="#FCD116" stroke="#FCD116" stroke-width="1">
+    <!-- Major rays (pointing outward from center sun) -->
+    <polygon points="100,28 96,45 104,45" />
+    <polygon points="100,172 96,155 104,155" />
+    <polygon points="28,100 45,96 45,104" />
+    <polygon points="172,100 155,96 155,104" />
+    <!-- Minor rays -->
+    <polygon points="51,51 62,58 58,62" />
+    <polygon points="149,51 138,58 142,62" />
+    <polygon points="51,149 62,142 58,138" />
+    <polygon points="149,149 138,142 142,138" />
+  </g>
+  
+  <!-- Central Sun (representing unity/bayanihan) -->
+  <circle cx="100" cy="100" r="32" fill="#FCD116" />
+  <circle cx="100" cy="100" r="26" fill="#FCD116" stroke="#E8A800" stroke-width="1" />
+  
+  <!-- Bayanihan Hands - two hands meeting in the middle (community/sharing) -->
+  <!-- Left hand -->
+  <path d="M68 95 C60 90, 55 95, 58 102 C55 98, 50 100, 52 107 C49 104, 45 107, 48 113 L58 120 C62 124, 70 122, 75 118 L85 108" 
+        fill="none" stroke="#CE1126" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right hand -->
+  <path d="M132 95 C140 90, 145 95, 142 102 C145 98, 150 100, 148 107 C151 104, 155 107, 152 113 L142 120 C138 124, 130 122, 125 118 L115 108" 
+        fill="none" stroke="#CE1126" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Peso Sign (₱) in the center -->
+  <text x="100" y="108" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0038A8">₱</text>
+  <!-- Double line through peso -->
+  <line x1="86" y1="92" x2="114" y2="92" stroke="#0038A8" stroke-width="2"/>
+  <line x1="86" y1="97" x2="114" y2="97" stroke="#0038A8" stroke-width="2"/>
+  
+  <!-- Three Stars (representing Luzon, Visayas, Mindanao - unity of regions) -->
+  <polygon points="100,38 102,44 108,44 103,48 105,54 100,50 95,54 97,48 92,44 98,44" fill="#FCD116"/>
+  <polygon points="55,68 57,74 63,74 58,78 60,84 55,80 50,84 52,78 47,74 53,74" fill="#FCD116"/>
+  <polygon points="145,68 147,74 153,74 148,78 150,84 145,80 140,84 142,78 137,74 143,74" fill="#FCD116"/>
+  
+  <!-- Outer ring text area hint -->
+  <circle cx="100" cy="100" r="90" fill="none" stroke="#0038A8" stroke-width="2" opacity="0.3"/>
+</svg>
