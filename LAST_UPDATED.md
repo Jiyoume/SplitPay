@@ -1,6 +1,14 @@
 # MyShare - Last Updated
 
-Updated: 2026-07-16 01:22:26
+Updated: 2026-07-16 01:27:00
+
+## Quick Start
+
+```bash
+cd web
+python -m http.server 5000
+```
+Open: http://localhost:5000
 
 ## Features
 - Stellar Blockchain (SEP-10, SEP-12, SEP-24)
