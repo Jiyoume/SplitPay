@@ -1004,11 +1004,11 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <div class="wallet-balances">
         <div class="wallet-bal-item">
           <div class="bal-label">XLM</div>
-          <div class="bal-value" id="xlmBalance">124.50</div>
+          <div class="bal-value" id="xlmBalance">0.00</div>
         </div>
         <div class="wallet-bal-item">
           <div class="bal-label">SRT</div>
-          <div class="bal-value" id="srtBalance">2,500.00</div>
+          <div class="bal-value" id="srtBalance">0.00</div>
         </div>
       </div>
       <div class="wallet-address">
@@ -1127,7 +1127,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">MA</div>
           <div class="member-avatar">CL</div>
           <div class="member-avatar">+2</div>
-          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
+          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 2 hours ago</div>
       </div>
@@ -1141,7 +1141,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">JD</div>
           <div class="member-avatar">RK</div>
           <div class="member-avatar">AL</div>
-          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
+          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 1 day ago</div>
       </div>
@@ -1157,7 +1157,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
           <div class="member-avatar">CL</div>
           <div class="member-avatar">RK</div>
           <div class="member-avatar">+3</div>
-          <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
+          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
         </div>
         <div class="group-meta">Last activity: 3 days ago</div>
       </div>
@@ -1469,7 +1469,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <div class="email" id="profileEmail">juan@email.com</div>
       <div class="sync-indicator" style="justify-content:center;margin-top:8px;" id="profileSyncStatus">
         <span class="sync-dot online"></span>
-        <span>Last synced: 2 min ago</span>
+        <span>Last synced: Never</span>
       </div>
     </div>
 
@@ -1477,18 +1477,18 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <div class="kyc-card" id="kycSection">
       <div class="kyc-status-row">
         <span style="font-size:15px;font-weight:700;">🛡️ Identity Verification</span>
-        <span class="kyc-badge verified" id="kycBadge">✓ Verified</span>
+        <span class="kyc-badge" id="kycBadge" style="background:var(--bg-tertiary);color:var(--text-secondary);">Not Started</span>
       </div>
       <div class="kyc-steps">
-        <div class="kyc-step done"></div>
-        <div class="kyc-step done"></div>
-        <div class="kyc-step done"></div>
-        <div class="kyc-step active"></div>
+        <div class="kyc-step"></div>
+        <div class="kyc-step"></div>
+        <div class="kyc-step"></div>
+        <div class="kyc-step"></div>
       </div>
-      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
-        ✅ Basic info • ✅ Phone verified • ✅ ID submitted • ⏳ Enhanced pending
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;" id="kycStatusText">
+        Complete verification to unlock all features
       </div>
-      <button class="kyc-verify-btn" onclick="openKYCModal()">Verify Now — Complete Enhanced KYC</button>
+      <button class="kyc-verify-btn" onclick="openKYCModal()">Start Verification</button>
     </div>
 
     <div class="menu-section" style="margin-bottom:16px;">
