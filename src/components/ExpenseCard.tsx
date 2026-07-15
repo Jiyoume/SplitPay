@@ -28,10 +28,38 @@ export default function ExpenseCard({ description, amount, paidBy, date, onPress
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 14, borderRadius: 12, marginBottom: 8 },
-  icon: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#1A2320',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 0,
+    elevation: 1,
+  },
+  icon: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   info: { flex: 1 },
   description: { fontSize: 15, fontWeight: '500', color: Colors.text },
   meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 3 },
-  amount: { fontSize: 16, fontWeight: '600', color: Colors.text },
+  amount: {
+    fontFamily: 'Georgia',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+    color: Colors.text,
+  },
 });

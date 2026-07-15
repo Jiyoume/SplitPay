@@ -1,76 +1,142 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
-
-interface ActivityItem {
-  id: string;
-  type: 'expense_added' | 'payment_made' | 'group_created' | 'member_added';
-  description: string;
-  userName: string;
-  groupName: string;
-  amount?: number;
-  date: string;
-}
+import { apiService } from '../services/apiService';
+import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Activity } from '../models/types';
 
 export default function ActivityScreen() {
-  const activities: ActivityItem[] = [
-    { id: '1', type: 'expense_added', description: 'added "Dinner at restaurant"', userName: 'You', groupName: 'Apartment 4B', amount: 85.0, date: 'Today, 7:30 PM' },
-    { id: '2', type: 'payment_made', description: 'paid Sarah', userName: 'Mike', groupName: 'Apartment 4B', amount: 25.0, date: 'Today, 3:15 PM' },
-    { id: '3', type: 'expense_added', description: 'added "Groceries"', userName: 'Sarah', groupName: 'Family Expenses', amount: 42.5, date: 'Yesterday' },
-    { id: '4', type: 'group_created', description: 'created "Weekend Trip"', userName: 'You', groupName: 'Weekend Trip', date: '3 days ago' },
-    { id: '5', type: 'member_added', description: 'added Alex to the group', userName: 'You', groupName: 'Weekend Trip', date: '3 days ago' },
-    { id: '6', type: 'expense_added', description: 'added "Movie tickets"', userName: 'Alex', groupName: 'Weekend Trip', amount: 30.0, date: '3 days ago' },
-  ];
+  const insets = useSafeAreaInsets();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const getActivityIcon = (type: string): { name: keyof typeof Ionicons.glyphMap; color: string } => {
-    switch (type) {
-      case 'expense_added': return { name: 'receipt', color: Colors.primary };
-      case 'payment_made': return { name: 'card', color: Colors.accent };
-      case 'group_created': return { name: 'people', color: Colors.secondary };
-      case 'member_added': return { name: 'person-add', color: Colors.secondary };
-      default: return { name: 'ellipse', color: Colors.textSecondary };
+  const fetchActivities = async (showLoadingIndicator = true, forceRefresh = false) => {
+    if (showLoadingIndicator) setLoading(true);
+    try {
+      const data = await apiService.getActivities(50, forceRefresh);
+      setActivities(data);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to load activity feed.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const renderActivity = ({ item }: { item: ActivityItem }) => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchActivities(activities.length === 0, false);
+    }, [activities.length])
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchActivities(false, true);
+  };
+
+  const getActivityIcon = (type: string): { name: keyof typeof Ionicons.glyphMap; color: string } => {
+    switch (type) {
+      case 'expense_added': return { name: 'receipt-outline', color: Colors.success };
+      case 'payment_made': return { name: 'card-outline', color: Colors.secondary };
+      case 'group_created': return { name: 'people-outline', color: Colors.accent };
+      case 'member_added': return { name: 'person-add-outline', color: Colors.textSecondary };
+      default: return { name: 'ellipse-outline', color: Colors.textLight };
+    }
+  };
+
+  const formatActivityDate = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const renderActivity = ({ item, index }: { item: Activity; index: number }) => {
     const icon = getActivityIcon(item.type);
 
     return (
-      <View style={styles.activityItem}>
-        <View style={[styles.iconContainer, { backgroundColor: `${icon.color}20` }]}>
-          <Ionicons name={icon.name} size={20} color={icon.color} />
+      <View style={styles.timelineRow}>
+        {/* Left Timeline Column */}
+        <View style={styles.timelineColumn}>
+          {/* Vertical line connecting nodes */}
+          <View 
+            style={[
+              styles.timelineLine,
+              index === 0 && { top: 20 },
+              index === activities.length - 1 && { height: 20 }
+            ]} 
+          />
+          {/* Timeline node icon */}
+          <View style={[
+            styles.iconNode, 
+            { backgroundColor: `${icon.color}15`, borderColor: '#FFFFFF' }
+          ]}>
+            <Ionicons name={icon.name} size={16} color={icon.color} />
+          </View>
         </View>
-        <View style={styles.activityContent}>
-          <Text style={styles.activityText}>
-            <Text style={styles.userName}>{item.userName}</Text> {item.description}
-          </Text>
-          <Text style={styles.activityMeta}>
-            {item.groupName} • {item.date}
-          </Text>
+
+        {/* Right Content Card */}
+        <View style={styles.activityCard}>
+          <View style={styles.activityContent}>
+            <Text style={styles.activityText}>
+              {item.description}
+            </Text>
+            <Text style={styles.activityMeta}>
+              {formatActivityDate(item.date)}
+            </Text>
+          </View>
+          {item.amount !== undefined && item.amount !== null && (
+            <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+          )}
         </View>
-        {item.amount && (
-          <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
-        )}
       </View>
     );
   };
 
+  if (loading && activities.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Activity</Text>
+      </View>
       <FlatList
         data={activities}
         renderItem={renderActivity}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.primary]} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color={Colors.textLight} />
+            <Ionicons name="document-text-outline" size={56} color={Colors.textSecondary} />
             <Text style={styles.emptyText}>No activity yet</Text>
             <Text style={styles.emptySubtext}>
               Your expense history will appear here
@@ -87,24 +153,78 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  list: {
-    padding: 16,
-  },
-  activityItem: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerTitle: {
+    fontFamily: 'Georgia',
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.text,
+  },
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    backgroundColor: Colors.background,
+  },
+  list: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+    position: 'relative',
+    minHeight: 80,
+  },
+  timelineColumn: {
+    width: 46,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'relative',
+  },
+  timelineLine: {
+    position: 'absolute',
+    left: 22,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: Colors.border,
+  },
+  iconNode: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    marginTop: 2,
+    shadowColor: '#1A2320',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 0,
+    elevation: 2,
+  },
+  activityCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#1A2320',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 0,
+    elevation: 1,
+    marginLeft: 4,
   },
   activityContent: {
     flex: 1,
@@ -112,18 +232,20 @@ const styles = StyleSheet.create({
   activityText: {
     fontSize: 14,
     color: Colors.text,
-  },
-  userName: {
-    fontWeight: '600',
+    lineHeight: 18,
+    fontWeight: '500',
   },
   activityMeta: {
     fontSize: 12,
     color: Colors.textSecondary,
-    marginTop: 3,
+    marginTop: 4,
+    fontWeight: '500',
   },
   amount: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Georgia',
+    fontSize: 15,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
     color: Colors.text,
   },
   emptyState: {
@@ -131,8 +253,9 @@ const styles = StyleSheet.create({
     paddingTop: 80,
   },
   emptyText: {
+    fontFamily: 'Georgia',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: Colors.text,
     marginTop: 16,
   },
@@ -140,5 +263,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 8,
+    fontWeight: '500',
   },
 });

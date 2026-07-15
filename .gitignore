@@ -13,6 +13,7 @@ web-build/
 .env.local
 postman/
 backend/.env
+.claude/
 backend/ARCHITECTURE.md
 backend/DEVIATIONS.md
 backend/RESEARCH.md

@@ -31,12 +31,34 @@ export default function BalanceSummary({ totalBalance, youOwe, youAreOwed }: Bal
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.surface, margin: 16, padding: 24, borderRadius: 16, alignItems: 'center', elevation: 2, shadowColor: Colors.black, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  card: {
+    backgroundColor: Colors.surface,
+    margin: 16,
+    padding: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#1A2320',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 0,
+    elevation: 2,
+  },
   title: { fontSize: 14, color: Colors.textSecondary, marginBottom: 8 },
-  amount: { fontSize: 36, fontWeight: '700', marginBottom: 16 },
+  amount: {
+    fontFamily: 'Georgia',
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
   row: { flexDirection: 'row', alignItems: 'center', width: '100%' },
   item: { flex: 1, alignItems: 'center' },
   divider: { width: 1, height: 40, backgroundColor: Colors.border },
   label: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
-  value: { fontSize: 18, fontWeight: '600' },
+  value: {
+    fontFamily: 'Georgia',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
 });

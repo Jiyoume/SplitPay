@@ -1,20 +1,23 @@
 export const Colors = {
-  primary: '#4CAF50',
-  primaryDark: '#388E3C',
-  primaryLight: '#C8E6C9',
-  secondary: '#FF9800',
-  accent: '#2196F3',
-  background: '#F5F5F5',
+  primary: '#0B2F24',          // Deep Forest Pine
+  primaryDark: '#08221A',
+  primaryLight: 'rgba(11, 47, 36, 0.08)',
+  secondary: '#C5A880',        // Champagne Gold
+  accent: '#2A4B40',           // Muted Pine Sage
+  background: '#FAF9F6',       // Alabaster Silk
+  backgroundCard: '#FFFFFF',   // Pure white for cards/inputs
   surface: '#FFFFFF',
-  text: '#212121',
-  textSecondary: '#757575',
-  textLight: '#BDBDBD',
-  border: '#E0E0E0',
-  error: '#F44336',
-  success: '#4CAF50',
-  warning: '#FFC107',
-  positive: '#4CAF50',
-  negative: '#F44336',
+  text: '#1A2320',             // Midnight Slate
+  textSecondary: '#5C6B64',    // Lichen Sage
+  textLight: '#8F9E96',        // Lighter lichen sage
+  border: '#E2EAE6',           // Fossil Grey
+  error: '#B91C1C',            // Rust Red
+  success: '#15803D',          // Spruce Green
+  warning: '#C5A880',
+  positive: '#15803D',
+  negative: '#B91C1C',
   white: '#FFFFFF',
-  black: '#000000',
+  black: '#1A2320',
 };
+
+

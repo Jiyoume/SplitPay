@@ -1,6 +1,6 @@
 export { Colors } from './colors';
 
-export const APP_NAME = 'SplitPay';
+export const APP_NAME = 'MyShare';
 export const CURRENCY_SYMBOL = '$';
 export const DEFAULT_SPLIT_METHOD = 'equal';
 

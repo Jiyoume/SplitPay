@@ -1,0 +1,478 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.claude
+.claude/agents
+.claude/agents/sp-advisor.md
+.claude/agents/sp-architect.md
+.claude/agents/sp-developer.md
+.claude/agents/sp-qa.md
+.claude/agents/sp-researcher.md
+.expo
+.expo/README.md
+.expo/devices.json
+.expo/prebuild
+.expo/prebuild/cached-packages.json
+.expo/web
+.expo/web/cache
+.expo/web/cache/production
+.expo/xcodebuild-error.log
+.expo/xcodebuild.log
+.gitignore
+App.tsx
+README.md
+app.json
+assets
+assets/adaptive-icon.png
+assets/favicon.png
+assets/icon.png
+assets/images
+assets/splash.png
+babel.config.js
+backend
+backend/.env
+backend/.env.example
+backend/.gitignore
+backend/.pipeline
+backend/.pipeline/panes.env
+backend/.pipeline/run-developer.sh
+backend/.pipeline/run-qa.sh
+backend/ARCHITECTURE.md
+backend/DECISIONS.md
+backend/DEVIATIONS.md
+backend/README.md
+backend/RESEARCH.md
+backend/TEST_REPORT.md
+backend/TRADEOFFS.md
+backend/data
+backend/data/splitpay.db
+backend/data/splitpay.db-shm
+backend/data/splitpay.db-wal
+backend/package-lock.json
+backend/package.json
+backend/src
+backend/src/app.ts
+backend/src/config
+backend/src/config/constants.ts
+backend/src/config/env.ts
+backend/src/db
+backend/src/db/index.ts
+backend/src/db/migrate.ts
+backend/src/db/schema.sql
+backend/src/domain
+backend/src/domain/netting.test.ts
+backend/src/domain/netting.ts
+backend/src/domain/splitCalculator.test.ts
+backend/src/domain/splitCalculator.ts
+backend/src/domain/types.ts
+backend/src/hooks
+backend/src/hooks/requireMember.ts
+backend/src/integration.test.ts
+backend/src/modules
+backend/src/modules/activity
+backend/src/modules/auth
+backend/src/modules/balances
+backend/src/modules/expenses
+backend/src/modules/groups
+backend/src/modules/settlements
+backend/src/modules/users
+backend/src/plugins
+backend/src/plugins/auth.ts
+backend/src/plugins/errorHandler.ts
+backend/src/plugins/requestLogging.ts
+backend/src/server.ts
+backend/src/stellar
+backend/src/stellar/client.ts
+backend/src/stellar/conversion.ts
+backend/src/stellar/crypto.ts
+backend/src/stellar/payment.ts
+backend/src/stellar/wallet.ts
+backend/src/utils
+backend/src/utils/errors.ts
+backend/src/utils/id.ts
+backend/src/utils/logger.ts
+backend/tsconfig.json
+docs
+docs/codebase
+docs/codebase/.codebase-scan.txt
+index.js
+ios
+ios/.gitignore
+ios/.xcode.env
+ios/.xcode.env.local
+ios/Podfile
+ios/Podfile.lock
+ios/Podfile.properties.json
+ios/Pods
+ios/Pods/DoubleConversion
+ios/Pods/DoubleConversion/LICENSE
+ios/Pods/DoubleConversion/README
+ios/Pods/DoubleConversion/double-conversion
+ios/Pods/Headers
+ios/Pods/Headers/Private
+ios/Pods/Headers/Public
+ios/Pods/Local Podspecs
+ios/Pods/Local Podspecs/DoubleConversion.podspec.json
+ios/Pods/Local Podspecs/EXConstants.podspec.json
+ios/Pods/Local Podspecs/Expo.podspec.json
+ios/Pods/Local Podspecs/ExpoAsset.podspec.json
+ios/Pods/Local Podspecs/ExpoFileSystem.podspec.json
+ios/Pods/Local Podspecs/ExpoFont.podspec.json
+ios/Pods/Local Podspecs/ExpoKeepAwake.podspec.json
+ios/Pods/Local Podspecs/ExpoLinearGradient.podspec.json
+ios/Pods/Local Podspecs/ExpoModulesCore.podspec.json
+ios/Pods/Local Podspecs/FBLazyVector.podspec.json
+ios/Pods/Local Podspecs/RCT-Folly.podspec.json
+ios/Pods/Local Podspecs/RCTDeprecation.podspec.json
+ios/Pods/Local Podspecs/RCTRequired.podspec.json
+ios/Pods/Local Podspecs/RCTTypeSafety.podspec.json
+ios/Pods/Local Podspecs/RNCAsyncStorage.podspec.json
+ios/Pods/Local Podspecs/RNGestureHandler.podspec.json
+ios/Pods/Local Podspecs/RNScreens.podspec.json
+ios/Pods/Local Podspecs/React-Core.podspec.json
+ios/Pods/Local Podspecs/React-CoreModules.podspec.json
+ios/Pods/Local Podspecs/React-Fabric.podspec.json
+ios/Pods/Local Podspecs/React-FabricComponents.podspec.json
+ios/Pods/Local Podspecs/React-FabricImage.podspec.json
+ios/Pods/Local Podspecs/React-ImageManager.podspec.json
+ios/Pods/Local Podspecs/React-Mapbuffer.podspec.json
+ios/Pods/Local Podspecs/React-NativeModulesApple.podspec.json
+ios/Pods/Local Podspecs/React-RCTActionSheet.podspec.json
+ios/Pods/Local Podspecs/React-RCTAnimation.podspec.json
+ios/Pods/Local Podspecs/React-RCTAppDelegate.podspec.json
+ios/Pods/Local Podspecs/React-RCTBlob.podspec.json
+ios/Pods/Local Podspecs/React-RCTFBReactNativeSpec.podspec.json
+ios/Pods/Local Podspecs/React-RCTFabric.podspec.json
+ios/Pods/Local Podspecs/React-RCTImage.podspec.json
+ios/Pods/Local Podspecs/React-RCTLinking.podspec.json
+ios/Pods/Local Podspecs/React-RCTNetwork.podspec.json
+ios/Pods/Local Podspecs/React-RCTRuntime.podspec.json
+ios/Pods/Local Podspecs/React-RCTSettings.podspec.json
+ios/Pods/Local Podspecs/React-RCTText.podspec.json
+ios/Pods/Local Podspecs/React-RCTVibration.podspec.json
+ios/Pods/Local Podspecs/React-RuntimeApple.podspec.json
+ios/Pods/Local Podspecs/React-RuntimeCore.podspec.json
+ios/Pods/Local Podspecs/React-RuntimeHermes.podspec.json
+ios/Pods/Local Podspecs/React-callinvoker.podspec.json
+ios/Pods/Local Podspecs/React-cxxreact.podspec.json
+ios/Pods/Local Podspecs/React-debug.podspec.json
+ios/Pods/Local Podspecs/React-defaultsnativemodule.podspec.json
+ios/Pods/Local Podspecs/React-domnativemodule.podspec.json
+ios/Pods/Local Podspecs/React-featureflags.podspec.json
+ios/Pods/Local Podspecs/React-featureflagsnativemodule.podspec.json
+ios/Pods/Local Podspecs/React-graphics.podspec.json
+ios/Pods/Local Podspecs/React-hermes.podspec.json
+ios/Pods/Local Podspecs/React-idlecallbacksnativemodule.podspec.json
+ios/Pods/Local Podspecs/React-jserrorhandler.podspec.json
+ios/Pods/Local Podspecs/React-jsi.podspec.json
+ios/Pods/Local Podspecs/React-jsiexecutor.podspec.json
+ios/Pods/Local Podspecs/React-jsinspector.podspec.json
+ios/Pods/Local Podspecs/React-jsinspectorcdp.podspec.json
+ios/Pods/Local Podspecs/React-jsinspectornetwork.podspec.json
+ios/Pods/Local Podspecs/React-jsinspectortracing.podspec.json
+ios/Pods/Local Podspecs/React-jsitooling.podspec.json
+ios/Pods/Local Podspecs/React-jsitracing.podspec.json
+ios/Pods/Local Podspecs/React-logger.podspec.json
+ios/Pods/Local Podspecs/React-microtasksnativemodule.podspec.json
+ios/Pods/Local Podspecs/React-oscompat.podspec.json
+ios/Pods/Local Podspecs/React-perflogger.podspec.json
+ios/Pods/Local Podspecs/React-performancetimeline.podspec.json
+ios/Pods/Local Podspecs/React-rendererconsistency.podspec.json
+ios/Pods/Local Podspecs/React-renderercss.podspec.json
+ios/Pods/Local Podspecs/React-rendererdebug.podspec.json
+ios/Pods/Local Podspecs/React-runtimeexecutor.podspec.json
+ios/Pods/Local Podspecs/React-runtimescheduler.podspec.json
+ios/Pods/Local Podspecs/React-timing.podspec.json
+ios/Pods/Local Podspecs/React-utils.podspec.json
+ios/Pods/Local Podspecs/React.podspec.json
+ios/Pods/Local Podspecs/ReactAppDependencyProvider.podspec.json
+ios/Pods/Local Podspecs/ReactCodegen.podspec.json
+ios/Pods/Local Podspecs/ReactCommon.podspec.json
+ios/Pods/Local Podspecs/Yoga.podspec.json
+ios/Pods/Local Podspecs/boost.podspec.json
+ios/Pods/Local Podspecs/fast_float.podspec.json
+ios/Pods/Local Podspecs/fmt.podspec.json
+ios/Pods/Local Podspecs/glog.podspec.json
+ios/Pods/Local Podspecs/hermes-engine.podspec.json
+ios/Pods/Local Podspecs/react-native-safe-area-context.podspec.json
+ios/Pods/Manifest.lock
+ios/Pods/Pods.xcodeproj
+ios/Pods/Pods.xcodeproj/project.pbxproj
+ios/Pods/Pods.xcodeproj/xcuserdata
+ios/Pods/RCT-Folly
+ios/Pods/RCT-Folly/LICENSE
+
+=== STACK DETECTION (manifest files) ===
+
+--- package-lock.json ---
+{
+  "name": "myshare",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "myshare",
+      "version": "1.0.0",
+      "dependencies": {
+        "@expo/metro-runtime": "~6.1.2",
+        "@expo/vector-icons": "^15.0.3",
+        "@react-native-async-storage/async-storage": "2.2.0",
+        "@react-navigation/bottom-tabs": "^6.5.20",
+        "@react-navigation/native": "^6.1.18",
+        "@react-navigation/native-stack": "^6.9.26",
+        "@react-navigation/stack": "^6.4.1",
+        "expo": "^54.0.35",
+        "expo-font": "~14.0.12",
+        "expo-linear-gradient": "~15.0.8",
+        "expo-status-bar": "~3.0.9",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+        "react-native": "^0.81.5",
+        "react-native-gesture-handler": "~2.28.0",
+        "react-native-safe-area-context": "~5.6.0",
+        "react-native-screens": "~4.16.0",
+        "react-native-uuid": "^2.0.2",
+        "react-native-web": "^0.21.0"
+      },
+      "devDependencies": {
+        "@babel/core": "^7.24.0",
+        "@react-native-community/cli": "^20.2.0",
+        "@types/react": "~19.1.10",
+        "babel-preset-expo": "~54.0.10",
+        "typescript": "~5.9.2"
+      }
+    },
+    "node_modules/@0no-co/graphql.web": {
+      "version": "1.3.2",
+      "resolved": "https://registry.npmjs.org/@0no-co/graphql.web/-/graphql.web-1.3.2.tgz",
+      "integrity": "sha512-Q1+pRlLhE31GOY/2c9BAEnFTNxO7Awtc6fhhEDlxyCBQ2N0IhD32cPVvPChrK9mwBNSgRdW/sF1kd2e0ojHj1Q==",
+      "license": "MIT",
+      "peerDependencies": {
+        "graphql": "^14.0.0 || ^15.0.0 || ^16.0.0"
+      },
+      "peerDependenciesMeta": {
+        "graphql": {
+          "optional": true
+        }
+      }
+    },
+    "node_modules/@babel/code-frame": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.7.tgz",
+      "integrity": "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==",
+      "license": "MIT",
+      "dependencies": {
+        "@babel/helper-validator-identifier": "^7.29.7",
+        "js-tokens": "^4.0.0",
+        "picocolors": "^1.1.1"
+      },
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/compat-data": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/compat-data/-/compat-data-7.29.7.tgz",
+      "integrity": "sha512-locTkQyKvwIEgBzVrn8693ebc97F2U8ZHjbXwDXJ5Fn2TCpNwTlKcaKLkdHop5c/icOFE7qt7Q9JC5hnKNa6Gg==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+    "node_modules/@babel/core": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/core/-/core-7.29.7.tgz",
+      "integrity": "sha512-RgHBCvtjbOK2gXSNBNIkNoEc9qoVEtau3hj8gEqKQuL3HZAibKarWFEI3Lfm6EYKkLalOh8eSrj9b+ch9H/VBA==",
+      "license": "MIT",
+
+[TRUNCATED] Showing first 80 of 10863 lines.
+--- package.json ---
+{
+  "name": "myshare",
+  "version": "1.0.0",
+  "description": "Split and track shared expenses for families, friends, and roommates",
+  "main": "expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "eslint . --ext .ts,.tsx",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
+    "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^6.5.20",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/native-stack": "^6.9.26",
+    "@react-navigation/stack": "^6.4.1",
+    "expo": "^54.0.35",
+    "expo-font": "~14.0.12",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-status-bar": "~3.0.9",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-native": "^0.81.5",
+    "react-native-gesture-handler": "~2.28.0",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-uuid": "^2.0.2",
+    "react-native-web": "^0.21.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@react-native-community/cli": "^20.2.0",
+    "@types/react": "~19.1.10",
+    "babel-preset-expo": "~54.0.10",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
+
+
+=== ENTRY POINTS ===
+Found: index.js
+
+=== LINTING AND FORMATTING CONFIG ===
+Found: tsconfig.json
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+ios/Pods/RCT-Folly/folly/Synchronized.h:185: // TODO: Codemod them away.
+ios/Pods/RCT-Folly/folly/ConcurrentSkipList.h:654: // TODO:(xliu) remove these.
+ios/Pods/RCT-Folly/folly/ObserverContainer.h:715: * TODO(bschlinker): The current implementation scans the entire container to
+ios/Pods/RCT-Folly/folly/ConcurrentSkipList-inl.h:162: // TODO(xliu): on x86_64, it's possible to squeeze these into
+ios/Pods/RCT-Folly/folly/ConcurrentSkipList-inl.h:296: // TODO(xliu) should we spawn a thread to do this when there are large
+ios/Pods/RCT-Folly/folly/PackedSyncPtr.h:56: * TODO(jdelong): should we use the low order bit for the lock, so we
+ios/Pods/RCT-Folly/folly/String.cpp:411: // TODO:
+ios/Pods/RCT-Folly/folly/Optional.h:688: // TODO: fix clang/llvm codegen
+ios/Pods/RCT-Folly/folly/CPortability.h:272: //  FOLLY_ERASE_HACK_GCC
+ios/Pods/RCT-Folly/folly/CPortability.h:281: #define FOLLY_ERASE_HACK_GCC FOLLY_ALWAYS_INLINE
+ios/Pods/RCT-Folly/folly/CPortability.h:283: #define FOLLY_ERASE_HACK_GCC FOLLY_ERASE
+ios/Pods/RCT-Folly/folly/Expected.h:1605: // TODO: fix clang/llvm codegen
+ios/Pods/RCT-Folly/folly/FBString.h:2641: // TODO: make this faster.
+ios/Pods/RCT-Folly/folly/Memory.h:607: // TODO: remove this ctor, which is is no longer required as of under gcc7
+ios/Pods/RCT-Folly/folly/Poly.h:17: // TODO: [x] "cast" from Poly<C&> to Poly<C&&>
+ios/Pods/RCT-Folly/folly/Poly.h:18: // TODO: [ ] copy/move from Poly<C&>/Poly<C&&> to Poly<C>
+ios/Pods/RCT-Folly/folly/Poly.h:19: // TODO: [ ] copy-on-write?
+ios/Pods/RCT-Folly/folly/Poly.h:20: // TODO: [ ] down- and cross-casting? (Possible?)
+ios/Pods/RCT-Folly/folly/Poly.h:21: // TODO: [ ] shared ownership? (Dubious.)
+ios/Pods/RCT-Folly/folly/Poly.h:22: // TODO: [ ] can games be played with making the VTable a member of a struct
+ios/Pods/RCT-Folly/folly/Utility.h:732: //  TODO: return these to the class body and remove the static assertions
+ios/Pods/RCT-Folly/folly/Utility.h:911: [[maybe_unused]] FOLLY_ERASE_HACK_GCC                                       \
+ios/Pods/RCT-Folly/folly/Utility.h:916: [[maybe_unused]] FOLLY_ERASE_HACK_GCC                                       \
+ios/Pods/RCT-Folly/folly/Utility.h:921: [[maybe_unused]] FOLLY_ERASE_HACK_GCC                                       \
+ios/Pods/RCT-Folly/folly/Utility.h:926: [[maybe_unused]] FOLLY_ERASE_HACK_GCC                                       \
+ios/Pods/RCT-Folly/folly/FixedString.h:2932: // TODO:
+ios/Pods/RCT-Folly/folly/Fingerprint.h:95: * TODO(tudorb): Extend this to allow removing values from the computed
+ios/Pods/RCT-Folly/folly/Fingerprint.h:141: // TODO(tudorb): We could be smart and do update64 or update32 if aligned
+ios/Pods/RCT-Folly/folly/Conv.h:1827: out.append(in.data(), in.size()); // TODO try/catch?
+ios/Pods/RCT-Folly/folly/synchronization/AtomicUtil-inl.h:143: // TODO: Remove the non-default implementations when both gcc and clang
+ios/Pods/RCT-Folly/folly/container/MapUtil.h:233: // TODO: Remove the return type computations when clang 3.5 and gcc 5.1 are
+ios/Pods/RCT-Folly/folly/container/F14Map.h:289: * TODO(T31574848): Work around libstdc++ versions (e.g., GCC < 6) with no
+ios/Pods/RCT-Folly/folly/container/F14Map.h:304: * TODO(T31574848): Work around libstdc++ versions (e.g., GCC < 6) with no
+ios/Pods/RCT-Folly/folly/container/F14Map.h:1325: // TODO extract and node_handle insert
+ios/Pods/RCT-Folly/folly/container/WeightedEvictingCacheMap.h:243: // TODO: insert() functions, which would refuse insert if new entry weight
+ios/Pods/RCT-Folly/folly/container/WeightedEvictingCacheMap.h:554: // TODO: insert() functions, which would refuse insert if new entry weight
+ios/Pods/RCT-Folly/folly/container/FBVector.h:274: // TODO we can expand this optimization to: default copyable and assignable
+ios/Pods/RCT-Folly/folly/container/detail/F14MapFallback.h:99: // TODO(T31574848): Work around libstdc++ versions (e.g., GCC < 6) with no
+ios/Pods/RCT-Folly/folly/container/detail/F14MapFallback.h:110: // TODO(T31574848)
+ios/Pods/RCT-Folly/folly/container/detail/F14Table.h:1263: // TODO: remove once the compiler selects BZHI on its own.
+ios/Pods/RCT-Folly/folly/container/detail/Util.h:86: // TODO(T31574848): We can remove the std::enable_if_t once we no longer
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:602: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:834: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:838: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:848: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:1184: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:1247: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/container/detail/F14Policy.h:1277: // TODO(T31574848): clean up assume-s used to optimize placement new
+ios/Pods/RCT-Folly/folly/detail/TypeList.h:518: // TODO For a list of N lists, this algorithm is O(N). It does no unrolling.
+ios/Pods/RCT-Folly/folly/detail/ThreadLocalDetail.h:66: //  TODO: ensure in-situ storage for other standard-library implementations
+ios/Pods/RCT-Folly/folly/functional/Invoke.h:522: [[maybe_unused]] FOLLY_ERASE_HACK_GCC constexpr auto operator()(         \
+ios/Pods/RCT-Folly/folly/functional/Invoke.h:558: [[maybe_unused]] FOLLY_ERASE_HACK_GCC constexpr auto operator()(A&&... a) \
+ios/Pods/RCT-Folly/folly/functional/Invoke.h:627: [[maybe_unused]] FOLLY_ERASE_HACK_GCC constexpr auto operator()(       \
+ios/Pods/RCT-Folly/folly/functional/Invoke.h:724: [[maybe_unused]] FOLLY_ERASE_HACK_GCC constexpr auto operator()(    \
+ios/Pods/glog/src/googletest.h:207: // TODO(hamaji): Death test somehow doesn't work in Windows.
+ios/Pods/glog/src/utilities.h:52: // TODO(hamaji): Add other platforms.
+ios/Pods/glog/src/base/mutex.h:184: // TODO(hamaji): Do nothing, implement correctly.
+ios/Pods/SocketRocket/SocketRocket/Internal/IOConsumer/SRIOConsumerPool.h:14: #import "SRIOConsumer.h" // TODO: (nlutsenko) Convert to @class and constants file for block types
+ios/Pods/SocketRocket/SocketRocket/Internal/IOConsumer/SRIOConsumer.h:14: @class SRWebSocket; // TODO: (nlutsenko) Remove dependency on SRWebSocket here.
+ios/Pods/Headers/Public/React-Core/React/RCTImageLoaderWithAttributionProtocol.h:15: // TODO (T61325135): Remove C++ checks
+
+=== GIT RECENT COMMITS (last 20) ===
+f837ccb Stop tracking .claude directory
+71c95ae Stop tracking backend/postman docs ignored by .gitignore
+bce0953 update: fixed documentation cleanup
+c666e1f update: added postman collection
+2350861 update: added backend and ios test environment
+b6a0265 Add files via upload
+27c255b Add files via upload
+ed4e302 Initial commit
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+   2 .claude/agents/sp-advisor.md
+   2 .claude/agents/sp-architect.md
+   2 .claude/agents/sp-developer.md
+   2 .claude/agents/sp-qa.md
+   2 .claude/agents/sp-researcher.md
+   2 backend/ARCHITECTURE.md
+   2 backend/DECISIONS.md
+   2 backend/DEVIATIONS.md
+   2 backend/README.md
+   2 backend/RESEARCH.md
+   2 backend/TEST_REPORT.md
+   2 backend/TRADEOFFS.md
+   2 postman/README.md
+   2 postman/SplitPay.postman_collection.json
+   2 .gitignore
+   2 backend/.gitignore
+   2 package-lock.json
+   2 package.json
+   2 README.md
+   1 assets/adaptive-icon.png
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 8947
+Total lines of code: 719019
+
+Files by language:
+  Other: 4708
+  C Header: 4134
+  TypeScript: 52
+  C++: 31
+  TypeScript/React: 18
+  JavaScript: 2
+  Swift: 2
+
+Top 10 largest files:
+ios/Pods/hermes-engine-artifacts/hermes-ios-0.81.5-debug.tar.gz: 29770.9KB
+ios/Pods/hermes-engine-artifacts/hermes-ios-0.81.5-release.tar.gz: 20842.2KB
+.expo/xcodebuild.log: 3930.8KB
+ios/Pods/Pods.xcodeproj/project.pbxproj: 2792.5KB
+backend/data/splitpay.db-wal: 788.6KB
+package-lock.json: 399.5KB
+ios/Pods/boost/boost/preprocessor/tuple/limits/to_list_256.hpp: 389.1KB
+ios/Pods/Headers/Public/boost/preprocessor/tuple/limits/to_list_256.hpp: 389.1KB
+ios/Pods/Headers/Private/boost/preprocessor/tuple/limits/to_list_256.hpp: 389.1KB
+ios/Pods/Headers/Public/React-RCTFBReactNativeSpec/FBReactNativeSpec/FBReactNativeSpecJSI.h: 334.0KB
+
+=== CI/CD PIPELINES ===
+No CI/CD pipelines detected.
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===

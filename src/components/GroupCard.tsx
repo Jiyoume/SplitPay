@@ -45,12 +45,39 @@ export default function GroupCard({ name, type, memberCount, balance, lastActivi
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 16, borderRadius: 12, marginBottom: 10, elevation: 1, shadowColor: Colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
-  iconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#1A2320',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 0,
+    elevation: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24, // Circular avatar/icon container
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   info: { flex: 1 },
   name: { fontSize: 16, fontWeight: '600', color: Colors.text },
   meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
   balanceContainer: { alignItems: 'flex-end' },
-  balance: { fontSize: 16, fontWeight: '600' },
+  balance: {
+    fontFamily: 'Georgia',
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontVariant: ['tabular-nums'],
+  },
   settled: { fontSize: 14, color: Colors.textSecondary },
 });
