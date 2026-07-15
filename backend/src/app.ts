@@ -12,6 +12,10 @@ import { registerExpenseRoutes } from "./modules/expenses/expenses.routes.js";
 import { registerBalanceRoutes } from "./modules/balances/balances.routes.js";
 import { registerSettlementRoutes } from "./modules/settlements/settlements.routes.js";
 import { registerActivityRoutes } from "./modules/activity/activity.routes.js";
+import { registerReceiptRoutes } from "./modules/receipts/receipts.routes.js";
+import { registerAnchorRoutes } from "./modules/anchor/anchor.routes.js";
+import { registerKycRoutes } from "./modules/kyc/kyc.routes.js";
+import { registerTopupRoutes } from "./modules/topup/topup.routes.js";
 
 /** Builds and returns a fully-configured Fastify instance (not yet listening). */
 export async function buildApp(): Promise<FastifyInstance> {
@@ -47,6 +51,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await registerBalanceRoutes(app);
   await registerSettlementRoutes(app);
   await registerActivityRoutes(app);
+  await registerReceiptRoutes(app);
+  await registerAnchorRoutes(app);
+  await registerKycRoutes(app);
+  await registerTopupRoutes(app);
 
   return app;
 }

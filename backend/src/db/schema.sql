@@ -97,3 +97,32 @@ CREATE TABLE IF NOT EXISTS activities (
 CREATE INDEX IF NOT EXISTS idx_activities_group ON activities(group_id);
 CREATE INDEX IF NOT EXISTS idx_activities_user ON activities(user_id);
 CREATE INDEX IF NOT EXISTS idx_activities_date ON activities(date);
+
+CREATE TABLE IF NOT EXISTS kyc_profiles (
+  user_id TEXT PRIMARY KEY REFERENCES users(id),
+  customer_id TEXT,
+  status TEXT NOT NULL DEFAULT 'NOT_STARTED',
+  level TEXT NOT NULL DEFAULT 'none',
+  fields_json TEXT NOT NULL DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS topups (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  method TEXT NOT NULL,
+  status TEXT NOT NULL,
+  amount REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'PHP',
+  fee REAL NOT NULL DEFAULT 0,
+  net_amount REAL NOT NULL,
+  interactive_url TEXT,
+  instructions_json TEXT,
+  stellar_tx_hash TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  expires_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_topups_user ON topups(user_id);
+CREATE INDEX IF NOT EXISTS idx_topups_status ON topups(status);

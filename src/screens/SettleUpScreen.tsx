@@ -18,6 +18,8 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { apiService } from '../services/apiService';
 import { useAuth } from '../contexts/AuthContext';
 import { ApiError } from '../services/apiClient';
+import { evaluatePaymentSecurity, PaymentRequest } from '../services/securityService';
+import { Payment } from '../models/types';
 
 type SettleUpRouteProp = RouteProp<RootStackParamList, 'SettleUp'>;
 
@@ -34,16 +36,21 @@ export default function SettleUpScreen() {
   
   const [debtorName, setDebtorName] = useState('Debtor');
   const [creditorName, setCreditorName] = useState('Creditor');
+  const [localSettlements, setLocalSettlements] = useState<Payment[]>([]);
 
   useEffect(() => {
     const resolveNames = async () => {
       try {
-        const detail = await apiService.getGroupDetail(groupId);
+        const [detail, settlements] = await Promise.all([
+          apiService.getGroupDetail(groupId),
+          apiService.getSettlements(groupId).catch(() => [] as Payment[]),
+        ]);
         const fromUser = detail.group.members.find(m => m.id === fromUserId);
         const toUser = detail.group.members.find(m => m.id === toUserId);
-        
+
         if (fromUser) setDebtorName(fromUserId === currentUser?.id ? 'You' : fromUser.name);
         if (toUser) setCreditorName(toUserId === currentUser?.id ? 'You' : toUser.name);
+        setLocalSettlements(settlements);
       } catch (err) {
         console.warn('Failed to resolve member names:', err);
       } finally {
@@ -62,12 +69,55 @@ export default function SettleUpScreen() {
 
     if (fromUserId !== currentUser?.id) {
       Alert.alert(
-        'Action Prohibited', 
+        'Action Prohibited',
         'Only the debtor who owes the money can initiate a Stellar payment settlement (since it uses their custodial signing key).'
       );
       return;
     }
 
+    setLoading(true);
+    try {
+      const paymentReq: PaymentRequest = {
+        fromUserId,
+        toUserId,
+        amount: parsedAmount,
+        currency: 'USD',
+        groupId,
+        method: 'stellar',
+        timestamp: new Date().toISOString(),
+      };
+      const gate = await evaluatePaymentSecurity(paymentReq, localSettlements);
+
+      if (gate.risk.blocked) {
+        setLoading(false);
+        Alert.alert(
+          gate.confirmation?.title || 'Payment Blocked',
+          [gate.confirmation?.message, ...(gate.confirmation?.details || [])].filter(Boolean).join('\n\n')
+        );
+        return;
+      }
+
+      if (!gate.allowed && gate.confirmation) {
+        setLoading(false);
+        Alert.alert(
+          gate.confirmation.title,
+          [gate.confirmation.message, ...gate.confirmation.details].filter(Boolean).join('\n\n'),
+          [
+            { text: gate.confirmation.actions.cancel, style: 'cancel' },
+            { text: gate.confirmation.actions.confirm, onPress: () => submitSettlement(parsedAmount) },
+          ]
+        );
+        return;
+      }
+
+      await submitSettlement(parsedAmount);
+    } catch (error: any) {
+      setLoading(false);
+      Alert.alert('Security Check Failed', error.message || 'Could not verify recipient. Please try again.');
+    }
+  };
+
+  const submitSettlement = async (parsedAmount: number) => {
     setLoading(true);
     try {
       const res = await apiService.createSettlement(groupId, {
@@ -78,7 +128,7 @@ export default function SettleUpScreen() {
       });
 
       const settlement = res.settlement;
-      
+
       if (settlement.status === 'settled') {
         Alert.alert(
           'Stellar Payment Settled! 🎉',

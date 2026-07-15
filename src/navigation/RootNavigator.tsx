@@ -8,6 +8,9 @@ import CreateGroupScreen from '../screens/CreateGroupScreen';
 import SettleUpScreen from '../screens/SettleUpScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import TopUpScreen from '../screens/TopUpScreen';
+import KYCScreen from '../screens/KYCScreen';
+import ReportsScreen from '../screens/ReportsScreen';
 import { Colors } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,6 +25,9 @@ export type RootStackParamList = {
   GroupDetail: { groupId: string };
   CreateGroup: undefined;
   SettleUp: { groupId: string; fromUserId: string; toUserId: string; amount: number };
+  TopUp: undefined;
+  KYC: undefined;
+  Reports: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -113,6 +119,21 @@ export default function RootNavigator() {
             name="SettleUp"
             component={SettleUpScreen}
             options={{ title: 'Settle Up' }}
+          />
+          <Stack.Screen
+            name="TopUp"
+            component={TopUpScreen}
+            options={{ title: 'Top Up' }}
+          />
+          <Stack.Screen
+            name="KYC"
+            component={KYCScreen}
+            options={{ title: 'Verify Identity' }}
+          />
+          <Stack.Screen
+            name="Reports"
+            component={ReportsScreen}
+            options={{ title: 'Reports' }}
           />
         </>
       )}

@@ -4,11 +4,11 @@ import { Platform } from 'react-native';
 const TOKEN_KEY = 'myshare_auth_token';
 
 // Use localhost for iOS simulator, and 10.0.2.2 for Android emulator
-const DEFAULT_BASE_URL = Platform.OS === 'android' 
-  ? 'http://10.0.2.2:3000' 
+const DEFAULT_BASE_URL = Platform.OS === 'android'
+  ? 'http://10.0.2.2:3000'
   : 'http://localhost:3000';
 
-let baseUrl = DEFAULT_BASE_URL;
+let baseUrl = process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_BASE_URL;
 let cachedToken: string | null = null;
 
 export const setBaseUrl = (url: string) => {

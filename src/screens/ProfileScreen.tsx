@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,22 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
+import { getKycStatus, KycStatusResponse } from '../services/kycService';
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { user, wallet, logout, refreshUser } = useAuth();
   const [funding, setFunding] = useState(false);
+  const [kycStatus, setKycStatus] = useState<KycStatusResponse | null>(null);
+
+  useEffect(() => {
+    getKycStatus().then(setKycStatus).catch(() => {});
+  }, []);
 
   // Animated scale values for action buttons
   const scaleFund = useRef(new Animated.Value(1)).current;
@@ -170,6 +178,39 @@ export default function ProfileScreen() {
       {/* Menu Cards */}
       <Text style={styles.sectionLabel}>Account</Text>
       <View style={styles.menuCard}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('TopUp')}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+          </View>
+          <Text style={styles.menuLabel}>Top Up</Text>
+          <View style={styles.menuRight}>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('KYC')}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary} />
+          </View>
+          <Text style={styles.menuLabel}>Verify Identity</Text>
+          <View style={styles.menuRight}>
+            <View style={[styles.kycPill, kycStatus?.status === 'ACCEPTED' ? styles.kycPillVerified : styles.kycPillPending]}>
+              <Text style={styles.kycPillText}>{kycStatus ? kycStatus.status.replace('_', ' ') : '...'}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Reports')}>
+          <View style={styles.menuIconContainer}>
+            <Ionicons name="bar-chart-outline" size={20} color={Colors.primary} />
+          </View>
+          <Text style={styles.menuLabel}>Reports</Text>
+          <View style={styles.menuRight}>
+            <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => refreshUser()}>
           <View style={styles.menuIconContainer}>
             <Ionicons name="refresh-outline" size={20} color={Colors.primary} />
@@ -444,6 +485,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  kycPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  kycPillVerified: {
+    backgroundColor: Colors.primaryLight,
+  },
+  kycPillPending: {
+    backgroundColor: 'rgba(197, 168, 128, 0.15)',
+  },
+  kycPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.text,
+    textTransform: 'capitalize',
   },
   logoutBtnContainer: {
     margin: 16,

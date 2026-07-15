@@ -14,12 +14,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../constants/colors';
+import * as ImagePicker from 'expo-image-picker';
 import { EXPENSE_CATEGORIES, SPLIT_METHODS } from '../constants';
 import { apiService } from '../services/apiService';
+import { scanReceipt } from '../services/ocrService';
+import { generateSplitSuggestions } from '../services/aiSplitService';
 import { useAuth } from '../contexts/AuthContext';
 import { Group, User } from '../models/types';
+import { ReceiptOCRResult, OCRProgress, AISplitSuggestion } from '../models/receipt';
 
 type AddExpenseRouteProp = RouteProp<any, 'AddExpense'>;
+
+// Maps OCR-inferred categories (models/receipt.ts) to this screen's category chips (constants/index.ts)
+const OCR_CATEGORY_MAP: Record<string, string> = {
+  food_dining: 'food',
+  groceries: 'groceries',
+  transport: 'transport',
+  utilities: 'utilities',
+  entertainment: 'entertainment',
+  shopping: 'shopping',
+  rent_housing: 'rent',
+  healthcare: 'other',
+  travel: 'other',
+  education: 'other',
+  gifts: 'other',
+  other: 'other',
+};
 
 export default function AddExpenseScreen() {
   const navigation = useNavigation();
@@ -42,6 +62,13 @@ export default function AddExpenseScreen() {
   // States for custom split inputs
   const [exactAmounts, setExactAmounts] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
+
+  // Receipt scan + AI split suggestion state
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState('');
+  const [ocrResult, setOcrResult] = useState<ReceiptOCRResult | null>(null);
+  const [aiSuggestions, setAiSuggestions] = useState<AISplitSuggestion[]>([]);
+  const [appliedSuggestionId, setAppliedSuggestionId] = useState<string | null>(null);
 
   // 1. Load groups on mount
   useEffect(() => {
@@ -91,6 +118,90 @@ export default function AddExpenseScreen() {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0 || groupMembers.length === 0) return '0.00';
     return (parsedAmount / groupMembers.length).toFixed(2);
+  };
+
+  const pickReceiptImage = () => {
+    if (submitting || scanning) return;
+    Alert.alert('Scan Receipt', 'Choose a photo source', [
+      { text: 'Take Photo', onPress: () => launchPicker('camera') },
+      { text: 'Choose from Library', onPress: () => launchPicker('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const launchPicker = async (source: 'camera' | 'library') => {
+    const permission =
+      source === 'camera'
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission Needed',
+        `Please allow ${source === 'camera' ? 'camera' : 'photo library'} access to scan a receipt.`
+      );
+      return;
+    }
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], base64: true, quality: 0.5 })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], base64: true, quality: 0.5 });
+
+    if (result.canceled || !result.assets?.[0]?.base64) return;
+    await handleScanReceipt(result.assets[0].base64);
+  };
+
+  const handleScanReceipt = async (base64: string) => {
+    setScanning(true);
+    setAiSuggestions([]);
+    setAppliedSuggestionId(null);
+    try {
+      const receipt = await scanReceipt(base64, (progress: OCRProgress) => setScanMessage(progress.message));
+      setOcrResult(receipt);
+      if (receipt.vendor.name && receipt.vendor.name !== 'Unknown Vendor') {
+        setDescription(receipt.vendor.name);
+      }
+      if (receipt.total > 0) setAmount(receipt.total.toFixed(2));
+      setSelectedCategory(OCR_CATEGORY_MAP[receipt.category] || 'other');
+      Alert.alert('Receipt Scanned', 'Review the pre-filled details below and adjust anything before saving.');
+    } catch (error: any) {
+      Alert.alert('Scan Failed', error.message || 'Could not read this receipt. Please enter the expense manually.');
+    } finally {
+      setScanning(false);
+      setScanMessage('');
+    }
+  };
+
+  const handleSuggestSplit = () => {
+    if (!ocrResult || groupMembers.length === 0) return;
+    const response = generateSplitSuggestions({
+      receiptData: ocrResult,
+      members: groupMembers.map((m) => ({ userId: m.id, name: m.name })),
+      groupId: selectedGroup,
+    });
+    setAiSuggestions(response.suggestions);
+  };
+
+  const applySuggestion = (suggestion: AISplitSuggestion) => {
+    if (suggestion.method === 'equal') {
+      setSplitMethod('equal');
+    } else if (suggestion.method === 'percentage') {
+      const pct: Record<string, string> = {};
+      suggestion.shares.forEach((s) => {
+        pct[s.userId] = String(s.percentage);
+      });
+      setPercentages(pct);
+      setSplitMethod('percentage');
+    } else {
+      // by_item / weighted suggestions map onto this screen's "exact" split inputs
+      const exact: Record<string, string> = {};
+      suggestion.shares.forEach((s) => {
+        exact[s.userId] = s.amount.toFixed(2);
+      });
+      setExactAmounts(exact);
+      setSplitMethod('exact');
+    }
+    setAppliedSuggestionId(suggestion.id);
   };
 
   const handleSave = async () => {
@@ -192,6 +303,30 @@ export default function AddExpenseScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* Receipt Scan Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Receipt (optional)</Text>
+          <TouchableOpacity
+            style={styles.scanButton}
+            onPress={pickReceiptImage}
+            disabled={scanning || submitting}
+          >
+            {scanning ? (
+              <>
+                <ActivityIndicator color={Colors.primary} size="small" />
+                <Text style={styles.scanButtonText} numberOfLines={1}>{scanMessage || 'Scanning...'}</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={20} color={Colors.primary} />
+                <Text style={styles.scanButtonText} numberOfLines={1}>
+                  {ocrResult ? `Scanned: ${ocrResult.vendor.name}` : 'Scan Receipt'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {/* Amount Section Card */}
         <View style={styles.card}>
           <Text style={styles.cardLabel}>Amount</Text>
@@ -409,6 +544,43 @@ export default function AddExpenseScreen() {
               )}
             </View>
           )
+        )}
+
+        {/* AI Split Suggestions (only once a receipt has been scanned) */}
+        {ocrResult && groupMembers.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.suggestHeader}>
+              <Text style={[styles.cardLabel, { marginBottom: 0 }]}>AI Split Suggestions</Text>
+              {aiSuggestions.length === 0 && (
+                <TouchableOpacity onPress={handleSuggestSplit} style={styles.suggestButton} disabled={submitting}>
+                  <Ionicons name="sparkles-outline" size={14} color={Colors.primary} />
+                  <Text style={styles.suggestButtonText}>Suggest</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            {aiSuggestions.map((s) => {
+              const isApplied = appliedSuggestionId === s.id;
+              return (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[styles.suggestionRow, isApplied && styles.suggestionRowApplied]}
+                  onPress={() => applySuggestion(s)}
+                  disabled={submitting}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.suggestionLabel} numberOfLines={1}>
+                      {s.label}{s.isRecommended ? ' · Recommended' : ''}
+                    </Text>
+                    <Text style={styles.suggestionReason} numberOfLines={2}>{s.description}</Text>
+                  </View>
+                  <Text style={styles.suggestionConfidence}>{Math.round(s.confidence * 100)}%</Text>
+                  {isApplied && (
+                    <Ionicons name="checkmark-circle" size={18} color={Colors.primary} style={{ marginLeft: 8 }} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
 
         {/* Bottom Button */}
@@ -728,5 +900,77 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     padding: 0,
+  },
+  scanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: Colors.border,
+    paddingVertical: 14,
+    gap: 8,
+    minHeight: 48,
+  },
+  scanButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.primary,
+    flexShrink: 1,
+  },
+  suggestHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  suggestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    gap: 6,
+    minHeight: 32,
+  },
+  suggestButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 12,
+    marginBottom: 8,
+    minHeight: 48,
+  },
+  suggestionRowApplied: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  suggestionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  suggestionReason: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  suggestionConfidence: {
+    fontFamily: 'Georgia',
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginLeft: 8,
   },
 });

@@ -12,6 +12,8 @@
  */
 
 import { AmbagKoKYCProfile, KYCLevel, KYC_LIMITS } from '../models/kyc';
+import { Payment } from '../models/types';
+import { apiClient } from './apiClient';
 
 // ===== TYPES =====
 
@@ -516,4 +518,89 @@ export function checkRateLimit(
 
   entry.count++;
   return { allowed: true, remaining: maxTx - entry.count, resetIn: entry.resetAt - now };
+}
+
+// ===== BACKEND-BACKED HELPERS =====
+
+/**
+ * Fetch a user's verification profile from the backend (GET /users/:id/verification).
+ */
+export async function fetchVerifiedAccount(userId: string): Promise<VerifiedAccount> {
+  const data = await apiClient.get(`/users/${userId}/verification`);
+  return {
+    userId: data.userId,
+    name: data.name,
+    kycLevel: data.kycLevel as KYCLevel,
+    kycStatus: data.kycStatus as VerifiedAccount['kycStatus'],
+    isVerified: data.isVerified,
+    trustScore: data.isVerified ? 80 : 30,
+    transactionCount: data.transactionCount,
+    memberSince: data.memberSince,
+    flags: [],
+  };
+}
+
+/**
+ * Derive a sender's transaction history from locally-loaded settlement records
+ * (there is no dedicated history endpoint — this is a best-effort local view).
+ */
+export function buildTransactionHistory(settlements: Payment[], userId: string): TransactionHistory {
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+  const MONTH = 30 * DAY;
+  const sent = settlements.filter((s) => s.fromUserId === userId && s.settled);
+  const withinDay = sent.filter((s) => now - new Date(s.date).getTime() < DAY);
+  const withinMonth = sent.filter((s) => now - new Date(s.date).getTime() < MONTH);
+  const amounts = sent.map((s) => s.amount);
+  const sorted = [...sent].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return {
+    dailyTotal: withinDay.reduce((sum, s) => sum + s.amount, 0),
+    monthlyTotal: withinMonth.reduce((sum, s) => sum + s.amount, 0),
+    last24hCount: withinDay.length,
+    lastTransactionAt: sorted[0] ? new Date(sorted[0].date).toISOString() : undefined,
+    averageAmount: amounts.length ? amounts.reduce((a, b) => a + b, 0) / amounts.length : 0,
+    maxHistoricalAmount: amounts.length ? Math.max(...amounts) : 0,
+    uniqueRecipients: new Set(sent.map((s) => s.toUserId)).size,
+  };
+}
+
+/**
+ * Evaluate the security gate for a real payment: fetches both parties'
+ * verification status from the backend, derives the sender's history from
+ * locally-loaded settlements, and runs the existing paymentSecurityGate.
+ */
+export async function evaluatePaymentSecurity(
+  payment: PaymentRequest,
+  localSettlements: Payment[] = []
+): Promise<ReturnType<typeof paymentSecurityGate>> {
+  const [sender, recipient] = await Promise.all([
+    fetchVerifiedAccount(payment.fromUserId),
+    fetchVerifiedAccount(payment.toUserId),
+  ]);
+
+  // paymentSecurityGate only reads senderKYC.kycLevel — the rest of this
+  // stub profile is unused but required to satisfy AmbagKoKYCProfile's shape.
+  const senderKYC: AmbagKoKYCProfile = {
+    userId: payment.fromUserId,
+    kycLevel: sender.kycLevel,
+    status: sender.kycStatus,
+    lastUpdated: new Date().toISOString(),
+    firstName: '',
+    lastName: '',
+    email: '',
+    mobileNumber: '',
+    birthDate: '',
+    address: { street: '', city: '', province: '', postalCode: '', countryCode: 'PHL' },
+    idType: 'national_id',
+    idNumber: '',
+    documents: {},
+    mobileVerified: false,
+    emailVerified: false,
+    identityVerified: false,
+  };
+
+  const senderHistory = buildTransactionHistory(localSettlements, payment.fromUserId);
+
+  return paymentSecurityGate(payment, sender, recipient, senderHistory, senderKYC);
 }

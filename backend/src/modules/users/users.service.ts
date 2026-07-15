@@ -73,6 +73,55 @@ interface ActivityRow {
   date: string;
 }
 
+interface VerificationRow {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface KycStatusRow {
+  status: string;
+  level: string;
+}
+
+export interface VerificationResult {
+  userId: string;
+  name: string;
+  isVerified: boolean;
+  kycLevel: string;
+  kycStatus: string;
+  memberSince: string;
+  transactionCount: number;
+}
+
+/** GET /users/:id/verification — public-within-app profile trust signal (contract §6). */
+export function getVerification(userId: string): VerificationResult {
+  const user = db
+    .prepare("SELECT id, name, created_at FROM users WHERE id = ?")
+    .get(userId) as VerificationRow | undefined;
+  if (!user) throw new AppError("NOT_FOUND", "User not found");
+
+  const kyc = db
+    .prepare("SELECT status, level FROM kyc_profiles WHERE user_id = ?")
+    .get(userId) as KycStatusRow | undefined;
+  const kycStatus = kyc?.status ?? "NOT_STARTED";
+  const kycLevel = kyc?.level ?? "none";
+
+  const { cnt } = db
+    .prepare("SELECT COUNT(*) as cnt FROM settlements WHERE from_user_id = ? OR to_user_id = ?")
+    .get(userId, userId) as { cnt: number };
+
+  return {
+    userId: user.id,
+    name: user.name,
+    isVerified: kycStatus === "ACCEPTED",
+    kycLevel,
+    kycStatus,
+    memberSince: user.created_at,
+    transactionCount: cnt,
+  };
+}
+
 export function getMySummary(userId: string) {
   const groupRows = db
     .prepare("SELECT group_id FROM group_members WHERE user_id = ?")

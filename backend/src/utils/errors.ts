@@ -19,6 +19,10 @@ export type ErrorCode =
   | "FRIENDBOT_FAILED"
   | "STELLAR_ERROR"
   | "WALLET_KEY_ERROR"
+  | "ANCHOR_ERROR"
+  | "KYC_REQUIRED"
+  | "INVALID_STATE"
+  | "OCR_FAILED"
   | "INTERNAL";
 
 export const ERROR_CODE_STATUS: Record<ErrorCode, number> = {
@@ -36,6 +40,10 @@ export const ERROR_CODE_STATUS: Record<ErrorCode, number> = {
   FRIENDBOT_FAILED: 502,
   STELLAR_ERROR: 502,
   WALLET_KEY_ERROR: 500,
+  ANCHOR_ERROR: 502,
+  KYC_REQUIRED: 403,
+  INVALID_STATE: 409,
+  OCR_FAILED: 502,
   INTERNAL: 500,
 };
 
