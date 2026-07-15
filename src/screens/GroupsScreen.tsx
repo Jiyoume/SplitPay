@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import * as localDB from '../services/localDatabase';
+import { calculateGroupBalances } from '../utils/balance';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -25,13 +28,56 @@ interface GroupItem {
 
 export default function GroupsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const [groups, setGroups] = useState<GroupItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const groups: GroupItem[] = [
-    { id: '1', name: 'Apartment 4B', type: 'roommates', memberCount: 3, balance: 45.0, lastActivity: '2 hours ago' },
-    { id: '2', name: 'Family Expenses', type: 'family', memberCount: 5, balance: -30.0, lastActivity: 'Yesterday' },
-    { id: '3', name: 'Weekend Trip', type: 'trip', memberCount: 4, balance: 80.5, lastActivity: '3 days ago' },
-    { id: '4', name: 'Office Lunch', type: 'friends', memberCount: 6, balance: 0, lastActivity: '1 week ago' },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function loadData() {
+        try {
+          const userGroups = await localDB.getUserGroups('1');
+          const groupItems: GroupItem[] = [];
+
+          for (const g of userGroups) {
+            const fullGroup = await localDB.getGroup(g.id);
+            if (!fullGroup) continue;
+
+            const expenses = await localDB.getGroupExpenses(g.id);
+            const payments = await localDB.getGroupPayments(g.id);
+
+            const balances = calculateGroupBalances(
+              fullGroup.members || [],
+              expenses,
+              payments
+            );
+
+            const myBalance = balances.find((b) => b.userId === '1')?.balance || 0;
+
+            groupItems.push({
+              id: g.id,
+              name: g.name,
+              type: g.type,
+              memberCount: fullGroup.members?.length || 0,
+              balance: myBalance,
+              lastActivity: expenses.length > 0 ? 'Active' : 'No expenses',
+            });
+          }
+
+          if (active) {
+            setGroups(groupItems);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Failed to load groups:', err);
+        }
+      }
+      loadData();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const getGroupIcon = (type: string): keyof typeof Ionicons.glyphMap => {
     switch (type) {
@@ -68,6 +114,14 @@ export default function GroupsScreen() {
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

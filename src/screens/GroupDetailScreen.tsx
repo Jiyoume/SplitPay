@@ -1,16 +1,20 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import * as localDB from '../services/localDatabase';
+import { calculateGroupBalances } from '../utils/balance';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -20,43 +24,148 @@ export default function GroupDetailScreen() {
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
 
-  const group = {
-    id: groupId,
-    name: 'Apartment 4B',
-    totalExpenses: 450.0,
-    members: [
-      { id: '1', name: 'You', balance: 45.0 },
-      { id: '2', name: 'Sarah', balance: -20.0 },
-      { id: '3', name: 'Mike', balance: -25.0 },
-    ],
-  };
+  const [group, setGroup] = useState<any>(null);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const expenses = [
-    { id: '1', description: 'Electricity bill', amount: 120.0, paidBy: 'You', date: 'Jul 10' },
-    { id: '2', description: 'Groceries', amount: 85.0, paidBy: 'Sarah', date: 'Jul 8' },
-    { id: '3', description: 'Internet', amount: 65.0, paidBy: 'Mike', date: 'Jul 5' },
-    { id: '4', description: 'Cleaning supplies', amount: 32.0, paidBy: 'You', date: 'Jul 3' },
-  ];
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function loadData() {
+        try {
+          const fullGroup = await localDB.getGroup(groupId);
+          if (!fullGroup) return;
+
+          const groupExpenses = await localDB.getGroupExpenses(groupId);
+          const groupPayments = await localDB.getGroupPayments(groupId);
+
+          const memberBalances = calculateGroupBalances(
+            fullGroup.members || [],
+            groupExpenses,
+            groupPayments
+          );
+
+          // Calculate total expenses for the group
+          const totalExpenses = groupExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+          // Map expenses to display names for paidBy
+          const memberMap: Record<string, string> = {};
+          fullGroup.members?.forEach((m: any) => {
+            memberMap[m.id] = m.id === '1' ? 'You' : m.name;
+          });
+
+          const formattedExpenses = groupExpenses.map((exp) => ({
+            id: exp.id,
+            description: exp.description,
+            amount: exp.amount,
+            paidBy: memberMap[exp.paidBy] || 'Unknown User',
+            date: new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+          }));
+
+          const formattedMembers = (fullGroup.members || []).map((m: any) => {
+            const bal = memberBalances.find((b) => b.userId === m.id)?.balance || 0;
+            return {
+              id: m.id,
+              name: m.id === '1' ? 'You' : m.name,
+              balance: bal,
+            };
+          });
+
+          if (active) {
+            setGroup({
+              id: fullGroup.id,
+              name: fullGroup.name,
+              totalExpenses,
+              members: formattedMembers,
+            });
+            setExpenses(formattedExpenses);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Failed to load group details:', err);
+        }
+      }
+      loadData();
+      return () => {
+        active = false;
+      };
+    }, [groupId])
+  );
+
+  if (loading || !group) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+    const debtor = group.members.find((m: any) => m.balance < 0);
+    const creditor = group.members.find((m: any) => m.balance > 0);
+    
+    if (myBalance > 0) {
+      // You are owed money. Find who owes the most (largest negative balance)
+      const sortedDebtors = [...group.members]
+        .filter((m: any) => m.balance < 0)
+        .sort((a, b) => a.balance - b.balance);
+      const mainDebtor = sortedDebtors[0];
+      
+      if (mainDebtor) {
+        return {
+          fromUserId: mainDebtor.id,
+          toUserId: '1',
+          amount: Math.abs(mainDebtor.balance)
+        };
+      }
+    } else if (myBalance < 0) {
+      // You owe money. Find who gets back the most (largest positive balance)
+      const sortedCreditors = [...group.members]
+        .filter((m: any) => m.balance > 0)
+        .sort((a, b) => b.balance - a.balance);
+      const mainCreditor = sortedCreditors[0];
+      
+      if (mainCreditor) {
+        return {
+          fromUserId: '1',
+          toUserId: mainCreditor.id,
+          amount: Math.abs(myBalance)
+        };
+      }
+    }
+    
+    // Fallback: if settled or no matching, check if any debtor/creditor exists at all
+    const anyDebtor = group.members.find((m: any) => m.balance < 0);
+    const anyCreditor = group.members.find((m: any) => m.balance > 0);
+    if (anyDebtor && anyCreditor) {
+      return {
+        fromUserId: anyDebtor.id,
+        toUserId: anyCreditor.id,
+        amount: Math.min(Math.abs(anyDebtor.balance), Math.abs(anyCreditor.balance))
+      };
+    }
+    
+    return { fromUserId: '1', toUserId: '1', amount: 0 };
+  };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.summaryCard}>
         <Text style={styles.groupName}>{group.name}</Text>
         <Text style={styles.totalExpenses}>
-          Total expenses: ${group.totalExpenses.toFixed(2)}
+          Total expenses: ₱{group.totalExpenses.toFixed(2)}
         </Text>
       </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Balances</Text>
-        {group.members.map((member) => (
+        {group.members.map((member: any) => (
           <View key={member.id} style={styles.memberRow}>
             <View style={styles.memberAvatar}>
               <Text style={styles.avatarText}>{member.name[0]}</Text>
             </View>
             <Text style={styles.memberName}>{member.name}</Text>
             <Text style={[styles.memberBalance, { color: member.balance >= 0 ? Colors.positive : Colors.negative }]}>
-              {member.balance >= 0 ? 'gets back ' : 'owes '}${Math.abs(member.balance).toFixed(2)}
+              {member.balance >= 0 ? 'gets back ' : 'owes '}₱{Math.abs(member.balance).toFixed(2)}
             </Text>
           </View>
         ))}
@@ -72,7 +181,19 @@ export default function GroupDetailScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, styles.settleBtn]}
-          onPress={() => navigation.navigate('SettleUp', { groupId, fromUserId: '3', toUserId: '1', amount: 25.0 })}
+          onPress={() => {
+            const params = getSettleUpParams();
+            if (params.amount > 0) {
+              navigation.navigate('SettleUp', {
+                groupId,
+                fromUserId: params.fromUserId,
+                toUserId: params.toUserId,
+                amount: params.amount
+              });
+            } else {
+              Alert.alert('All Settled!', 'No outstanding balances to settle in this group.');
+            }
+          }}
         >
           <Ionicons name="wallet" size={20} color={Colors.white} />
           <Text style={styles.actionBtnText}>Settle Up</Text>

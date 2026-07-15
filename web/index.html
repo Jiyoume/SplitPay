@@ -13,6 +13,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23000'/%3E%3Ctext x='90' y='115' font-family='system-ui' font-size='68' font-weight='800' fill='%2334C759' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
 <title>MyShare - Split Expenses</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ===== CSS VARIABLES - THEMING ===== */
@@ -1049,46 +1050,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <a onclick="switchTab(1)">See All</a>
     </div>
 
-    <div class="expense-item">
-      <div class="expense-icon">🍕</div>
-      <div class="expense-info">
-        <div class="name">Pizza Night</div>
-        <div class="detail">You and 3 others • Jul 12</div>
-      </div>
-      <div class="expense-amount negative">-₱425</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">🚗</div>
-      <div class="expense-info">
-        <div class="name">Grab Ride</div>
-        <div class="detail">You and Carlos • Jul 11</div>
-      </div>
-      <div class="expense-amount negative">-₱180</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">💰</div>
-      <div class="expense-info">
-        <div class="name">Rent Payment</div>
-        <div class="detail">Maria paid you • Jul 10</div>
-      </div>
-      <div class="expense-amount positive">+₱2,500</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">🛒</div>
-      <div class="expense-info">
-        <div class="name">Grocery Run</div>
-        <div class="detail">You and 2 others • Jul 9</div>
-      </div>
-      <div class="expense-amount negative">-₱650</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">☕</div>
-      <div class="expense-info">
-        <div class="name">Coffee</div>
-        <div class="detail">You paid for Ana • Jul 8</div>
-      </div>
-      <div class="expense-amount negative">-₱290</div>
-    </div>
+    <div id="homeRecentExpenses"></div>
   </div>
 </div>
 
@@ -1617,7 +1579,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     </div>
     <div class="input-group">
       <label>Group</label>
-      <select>
+      <select id="expGroupSelect">
         <option>Barkada Food Trip</option>
         <option>Apartment Rent</option>
         <option>Boracay Trip 2026</option>
@@ -1635,7 +1597,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <label>Date</label>
       <input type="date" value="2026-07-14" id="expDate">
     </div>
-    <button class="btn btn-primary btn-full" onclick="closeModal('addExpenseModal')" style="margin-top:8px;">Add Expense</button>
+    <button class="btn btn-primary btn-full" onclick="handleCreateExpense()" style="margin-top:8px;">Add Expense</button>
   </div>
 </div>
 
@@ -1883,11 +1845,11 @@ function applyOCRData() {
     </div>
     <div class="input-group">
       <label>Group Name</label>
-      <input type="text" placeholder="e.g., Road Trip 2026">
+      <input type="text" placeholder="e.g., Road Trip 2026" id="newGroupName">
     </div>
     <div class="input-group">
       <label>Category</label>
-      <select>
+      <select id="newGroupCategory">
         <option>Food & Drinks</option>
         <option>Travel</option>
         <option>Rent & Bills</option>
@@ -1897,13 +1859,13 @@ function applyOCRData() {
     </div>
     <div class="input-group">
       <label>Add Members (email)</label>
-      <input type="email" placeholder="friend@email.com" autocomplete="email">
+      <input type="email" placeholder="friend@email.com" autocomplete="email" id="newGroupMembers">
     </div>
     <div class="input-group">
       <label>Description (optional)</label>
-      <input type="text" placeholder="What's this group for?">
+      <input type="text" placeholder="What's this group for?" id="newGroupDesc">
     </div>
-    <button class="btn btn-primary btn-full" onclick="closeModal('createGroupModal')" style="margin-top:8px;">Create Group</button>
+    <button class="btn btn-primary btn-full" onclick="handleCreateGroup()" style="margin-top:8px;">Create Group</button>
   </div>
 </div>
 
@@ -2119,44 +2081,107 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
   }
 });
 
-// ===== AUTH =====
-function handleLogin() {
-  const email = document.getElementById('loginEmail').value;
+// ===== AUTH & DATABASE =====
+const supabaseUrl = 'https://dmhqotrkfrhimdqoftil.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtaHFvdHJrZnJoaW1kcW9mdGlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxMzAyMjAsImV4cCI6MjA5OTcwNjIyMH0.svCaCbs5hu-ZrLXKYel5tlZ4IGYZ4ub4O0DKKXx3x-E';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+let currentUser = null;
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPassword').value;
   if (!email || !pass) { shakeElement(document.querySelector('#loginScreen .btn-primary')); return; }
-  showMainApp(email.split('@')[0]);
+  
+  const loginButton = document.querySelector('#loginScreen .btn-primary');
+  const originalText = loginButton.textContent;
+  loginButton.textContent = 'Signing in...';
+  loginButton.disabled = true;
+  
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password: pass
+    });
+    
+    if (error) throw error;
+    
+    const name = data.user.user_metadata?.full_name || email.split('@')[0];
+    await showMainApp(name);
+  } catch (err) {
+    alert(err.message || 'Login failed. Please check your credentials.');
+    shakeElement(loginButton);
+  } finally {
+    loginButton.textContent = originalText;
+    loginButton.disabled = false;
+  }
 }
 
-function handleSignup() {
-  const name = document.getElementById('signupName').value;
-  const email = document.getElementById('signupEmail').value;
+async function handleSignup() {
+  const name = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim().toLowerCase();
   const pass = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
   if (!name || !email || !pass || !confirm) { shakeElement(document.querySelector('#signupScreen .btn-primary')); return; }
   if (pass !== confirm) { alert('Passwords do not match'); return; }
-  showMainApp(name);
+  
+  const signupButton = document.querySelector('#signupScreen .btn-primary');
+  const originalText = signupButton.textContent;
+  signupButton.textContent = 'Signing up...';
+  signupButton.disabled = true;
+  
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          full_name: name
+        }
+      }
+    });
+    
+    if (error) throw error;
+    
+    alert('Signup successful! Please check your email for confirmation link, then log in.');
+    showLogin();
+  } catch (err) {
+    alert(err.message || 'Sign up failed.');
+    shakeElement(signupButton);
+  } finally {
+    signupButton.textContent = originalText;
+    signupButton.disabled = false;
+  }
 }
 
 function signInWithGoogle() {
-  // Redirect to Supabase Google OAuth
-  const supabaseUrl = 'https://dmhqotrkfrhimdqoftil.supabase.co';
   const redirectTo = window.location.origin + window.location.pathname;
   window.location.href = supabaseUrl + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(redirectTo);
 }
 
 // Check if returning from OAuth redirect
-(function checkOAuthReturn() {
+(async function checkOAuthReturn() {
   const hash = window.location.hash;
   if (hash && hash.includes('access_token')) {
-    // User returned from Google OAuth — extract token
     const params = new URLSearchParams(hash.substring(1));
     const accessToken = params.get('access_token');
     if (accessToken) {
-      // Clear the hash
       history.replaceState(null, '', window.location.pathname);
-      // Show app
-      showMainApp('Google User');
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        await showMainApp(user.user_metadata?.full_name || 'Google User');
+      }
     }
+  }
+})();
+
+// Auto-login hook on page load/refresh
+(async function checkExistingSession() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session && session.user) {
+    currentUser = session.user;
+    const name = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+    await showMainApp(name);
   }
 })();
 
@@ -2170,21 +2195,500 @@ function showSignup() {
   document.getElementById('signupScreen').classList.add('active');
 }
 
-function showMainApp(name) {
+async function showMainApp(name) {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) {
+    showLogin();
+    return;
+  }
+  currentUser = user;
+
+  // Insert user profile into public users table if not exists
+  const { data: dbUser } = await supabaseClient
+    .from('users')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!dbUser) {
+    await supabaseClient
+      .from('users')
+      .insert({
+        id: user.id,
+        email: user.email,
+        full_name: name || user.user_metadata?.full_name || user.email.split('@')[0]
+      });
+  }
+
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('signupScreen').classList.remove('active');
   document.getElementById('mainApp').style.display = 'block';
-  if (name) {
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    document.querySelector('.avatar').textContent = initials || 'JD';
-    document.getElementById('profileName').textContent = name;
-  }
+
+  await refreshApp();
+
   startBalanceAnimation();
   updateTabIndicator(0);
   animateProgressBars();
 }
 
-function handleLogout() {
+async function refreshApp() {
+  await loadDashboard();
+  await loadRecentExpenses();
+  await loadGroupsList();
+}
+
+async function loadDashboard() {
+  if (!currentUser) return;
+  try {
+    const { data: profile } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+      
+    if (profile) {
+      document.getElementById('profileName').textContent = profile.full_name;
+      const initials = profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      document.querySelectorAll('.avatar').forEach(el => el.textContent = initials || 'JD');
+    }
+
+    const { data: membersData } = await supabaseClient
+      .from('group_members')
+      .select('group_id, groups (*)')
+      .eq('user_id', currentUser.id);
+
+    const groups = (membersData || []).map(d => d.groups).filter(Boolean);
+
+    let totalOwed = 0;
+    let totalOwe = 0;
+
+    for (const g of groups) {
+      const { data: gMembers } = await supabaseClient
+        .from('group_members')
+        .select('user_id, users (*)')
+        .eq('group_id', g.id);
+
+      const membersList = (gMembers || []).map(m => m.users).filter(Boolean);
+
+      const { data: expenses } = await supabaseClient
+        .from('expenses')
+        .select('*, expense_splits (*)')
+        .eq('group_id', g.id);
+
+      const { data: payments } = await supabaseClient
+        .from('payments')
+        .select('*')
+        .eq('group_id', g.id);
+
+      const balances = {};
+      membersList.forEach(m => { balances[m.id] = 0; });
+
+      (expenses || []).forEach(exp => {
+        if (balances[exp.paid_by] !== undefined) {
+          balances[exp.paid_by] += parseFloat(exp.amount);
+        }
+        exp.expense_splits?.forEach(split => {
+          if (balances[split.user_id] !== undefined) {
+            balances[split.user_id] -= parseFloat(split.amount);
+          }
+        });
+      });
+
+      (payments || []).forEach(pay => {
+        if (balances[pay.from_user_id] !== undefined) {
+          balances[pay.from_user_id] += parseFloat(pay.amount);
+        }
+        if (balances[pay.to_user_id] !== undefined) {
+          balances[pay.to_user_id] -= parseFloat(pay.amount);
+        }
+      });
+
+      const myBalance = balances[currentUser.id] || 0;
+      if (myBalance > 0) {
+        totalOwed += myBalance;
+      } else if (myBalance < 0) {
+        totalOwe += Math.abs(myBalance);
+      }
+    }
+
+    const netBalance = totalOwed - totalOwe;
+    document.getElementById('balanceAmount').textContent = `₱${netBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const balanceSub = document.querySelector('#balanceWidget .sub');
+    if (netBalance > 0) {
+      balanceSub.textContent = `You are owed ₱${totalOwed.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      balanceSub.style.color = 'var(--accent)';
+    } else if (netBalance < 0) {
+      balanceSub.textContent = `You owe ₱${totalOwe.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      balanceSub.style.color = 'var(--danger)';
+    } else {
+      balanceSub.textContent = 'All settled up';
+      balanceSub.style.color = 'var(--text-secondary)';
+    }
+
+    document.getElementById('balanceShimmer').style.display = 'none';
+    document.getElementById('balanceWidget').style.display = 'block';
+  } catch (err) {
+    console.error('Failed to load dashboard:', err);
+  }
+}
+
+async function loadRecentExpenses() {
+  if (!currentUser) return;
+  try {
+    const { data: memberGroups } = await supabaseClient
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', currentUser.id);
+
+    const groupIds = (memberGroups || []).map(mg => mg.group_id);
+    const container = document.getElementById('homeRecentExpenses');
+    container.innerHTML = '';
+
+    if (groupIds.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;font-size:14px;color:var(--text-secondary);">No recent activity</div>';
+      return;
+    }
+
+    const { data: expenses } = await supabaseClient
+      .from('expenses')
+      .select('*, groups (name)')
+      .in('group_id', groupIds)
+      .order('date', { ascending: false })
+      .limit(5);
+
+    if (!expenses || expenses.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;font-size:14px;color:var(--text-secondary);">No recent activity</div>';
+      return;
+    }
+
+    for (const exp of expenses) {
+      const icon = getCategoryIcon(exp.category);
+      const formattedDate = new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+      const itemHTML = `
+        <div class="expense-item">
+          <div class="expense-icon">${icon}</div>
+          <div class="expense-info">
+            <div class="name">${exp.description}</div>
+            <div class="detail">${exp.groups?.name || 'Group'} • ${formattedDate}</div>
+          </div>
+          <div class="expense-amount ${exp.paid_by === currentUser.id ? 'positive' : 'negative'}">
+            ${exp.paid_by === currentUser.id ? '+' : '-'}₱${parseFloat(exp.amount).toFixed(2)}
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', itemHTML);
+    }
+  } catch (err) {
+    console.error('Failed to load recent expenses:', err);
+  }
+}
+
+async function loadGroupsList() {
+  if (!currentUser) return;
+  try {
+    const { data: membersData } = await supabaseClient
+      .from('group_members')
+      .select('group_id, groups (*)')
+      .eq('user_id', currentUser.id);
+
+    const groups = (membersData || []).map(d => d.groups).filter(Boolean);
+    const container = document.getElementById('groupsList');
+    container.innerHTML = '';
+
+    if (groups.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;font-size:15px;color:var(--text-secondary);">No groups found. Tap ➕ to create one!</div>';
+      return;
+    }
+
+    // Populate Add Expense modal dropdown select options
+    const groupSelect = document.getElementById('expGroupSelect');
+    if (groupSelect) {
+      groupSelect.innerHTML = '';
+      groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = g.name;
+        groupSelect.appendChild(opt);
+      });
+    }
+
+    for (const g of groups) {
+      const { data: gMembers } = await supabaseClient
+        .from('group_members')
+        .select('user_id, users (*)')
+        .eq('group_id', g.id);
+
+      const membersList = (gMembers || []).map(m => m.users).filter(Boolean);
+
+      const { data: expenses } = await supabaseClient
+        .from('expenses')
+        .select('*, expense_splits (*)')
+        .eq('group_id', g.id);
+
+      const { data: payments } = await supabaseClient
+        .from('payments')
+        .select('*')
+        .eq('group_id', g.id);
+
+      const balances = {};
+      membersList.forEach(m => { balances[m.id] = 0; });
+
+      (expenses || []).forEach(exp => {
+        if (balances[exp.paid_by] !== undefined) {
+          balances[exp.paid_by] += parseFloat(exp.amount);
+        }
+        exp.expense_splits?.forEach(split => {
+          if (balances[split.user_id] !== undefined) {
+            balances[split.user_id] -= parseFloat(split.amount);
+          }
+        });
+      });
+
+      (payments || []).forEach(pay => {
+        if (balances[pay.from_user_id] !== undefined) {
+          balances[pay.from_user_id] += parseFloat(pay.amount);
+        }
+        if (balances[pay.to_user_id] !== undefined) {
+          balances[pay.to_user_id] -= parseFloat(pay.amount);
+        }
+      });
+
+      const myBalance = balances[currentUser.id] || 0;
+
+      let avatarsHTML = '';
+      membersList.slice(0, 3).forEach(m => {
+        const init = m.full_name ? m.full_name[0].toUpperCase() : '?';
+        avatarsHTML += `<div class="member-avatar">${init}</div>`;
+      });
+      if (membersList.length > 3) {
+        avatarsHTML += `<div class="member-avatar">+${membersList.length - 3}</div>`;
+      }
+
+      const amountText = myBalance !== 0
+        ? `${myBalance > 0 ? '+' : '-'}₱${Math.abs(myBalance).toFixed(2)}`
+        : 'Settled ✓';
+      const amountClass = myBalance > 0 ? 'positive' : (myBalance < 0 ? 'negative' : 'settled');
+
+      const cardHTML = `
+        <div class="group-card" data-category="active ${g.type}">
+          <div class="group-top">
+            <div class="group-name">${getGroupIcon(g.type)} ${g.name}</div>
+            <div class="group-amount ${amountClass}">${amountText}</div>
+          </div>
+          <div class="group-members">
+            ${avatarsHTML}
+            <span class="verified-badge" style="margin-left:8px;">✓ Verified</span>
+          </div>
+          <div class="group-meta">Last activity: Active</div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', cardHTML);
+    }
+  } catch (err) {
+    console.error('Failed to load groups list:', err);
+  }
+}
+
+async function handleCreateGroup() {
+  const name = document.getElementById('newGroupName').value.trim();
+  const cat = document.getElementById('newGroupCategory').value;
+  const membersInput = document.getElementById('newGroupMembers').value.trim();
+  const desc = document.getElementById('newGroupDesc').value.trim();
+
+  if (!name) { alert('Please enter a group name'); return; }
+
+  const createBtn = document.querySelector('#createGroupModal .btn-primary');
+  const originalText = createBtn.textContent;
+  createBtn.textContent = 'Creating...';
+  createBtn.disabled = true;
+
+  try {
+    const { data: newG, error: gErr } = await supabaseClient
+      .from('groups')
+      .insert({
+        name,
+        type: getGroupTypeFromCategory(cat),
+        description: desc || null,
+        created_by: currentUser.id
+      })
+      .select()
+      .single();
+
+    if (gErr) throw gErr;
+
+    const { error: memErr1 } = await supabaseClient
+      .from('group_members')
+      .insert({
+        group_id: newG.id,
+        user_id: currentUser.id
+      });
+    if (memErr1) throw memErr1;
+
+    if (membersInput) {
+      const emails = membersInput.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+      for (const email of emails) {
+        const { data: foundUser } = await supabaseClient
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+
+        let targetUserId;
+        if (foundUser) {
+          targetUserId = foundUser.id;
+        } else {
+          const stubName = email.split('@')[0];
+          const { data: newU, error: uErr } = await supabaseClient
+            .from('users')
+            .insert({
+              email,
+              full_name: stubName.charAt(0).toUpperCase() + stubName.slice(1)
+            })
+            .select()
+            .single();
+          if (uErr) throw uErr;
+          targetUserId = newU.id;
+        }
+
+        await supabaseClient
+          .from('group_members')
+          .insert({
+            group_id: newG.id,
+            user_id: targetUserId
+          });
+      }
+    }
+
+    closeModal('createGroupModal');
+    document.getElementById('newGroupName').value = '';
+    document.getElementById('newGroupMembers').value = '';
+    document.getElementById('newGroupDesc').value = '';
+
+    await refreshApp();
+  } catch (err) {
+    alert(err.message || 'Failed to create group');
+  } finally {
+    createBtn.textContent = originalText;
+    createBtn.disabled = false;
+  }
+}
+
+async function handleCreateExpense() {
+  const desc = document.getElementById('expDesc').value.trim();
+  const amount = parseFloat(document.getElementById('expAmount').value);
+  const groupId = document.getElementById('expGroupSelect').value;
+  const dateInput = document.getElementById('expDate').value;
+
+  if (!desc) { alert('Please enter a description'); return; }
+  if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
+  if (!groupId) { alert('Please select a group'); return; }
+
+  const expBtn = document.querySelector('#addExpenseModal .btn-primary');
+  const originalText = expBtn.textContent;
+  expBtn.textContent = 'Adding...';
+  expBtn.disabled = true;
+
+  try {
+    const { data: gMembers, error: memErr } = await supabaseClient
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', groupId);
+
+    if (memErr) throw memErr;
+    if (!gMembers || gMembers.length === 0) {
+      alert('Selected group has no members.');
+      return;
+    }
+
+    const { data: newExp, error: expErr } = await supabaseClient
+      .from('expenses')
+      .insert({
+        group_id: groupId,
+        description: desc,
+        amount,
+        paid_by: currentUser.id,
+        category: 'other',
+        split_method: 'equal',
+        date: dateInput ? new Date(dateInput).toISOString() : new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (expErr) throw expErr;
+
+    const memberCount = gMembers.length;
+    const splitAmount = parseFloat((amount / memberCount).toFixed(2));
+    const splits = gMembers.map((m, index) => {
+      let amt = splitAmount;
+      if (index === memberCount - 1) {
+        const sumOfOthers = splitAmount * (memberCount - 1);
+        amt = parseFloat((amount - sumOfOthers).toFixed(2));
+      }
+      return {
+        expense_id: newExp.id,
+        user_id: m.user_id,
+        amount: amt,
+        is_paid: m.user_id === currentUser.id
+      };
+    });
+
+    const { error: splitErr } = await supabaseClient
+      .from('expense_splits')
+      .insert(splits);
+    if (splitErr) throw splitErr;
+
+    closeModal('addExpenseModal');
+    document.getElementById('expDesc').value = '';
+    document.getElementById('expAmount').value = '';
+
+    await refreshApp();
+  } catch (err) {
+    alert(err.message || 'Failed to add expense');
+  } finally {
+    expBtn.textContent = originalText;
+    expBtn.disabled = false;
+  }
+}
+
+function getGroupIcon(type) {
+  switch (type?.toLowerCase()) {
+    case 'family': return '❤️';
+    case 'friends': return '🍕';
+    case 'roommates': return '🏠';
+    case 'trip': return '✈️';
+    default: return '📁';
+  }
+}
+
+function getCategoryIcon(cat) {
+  switch (cat?.toLowerCase()) {
+    case 'food':
+    case 'food & drinks': return '🍕';
+    case 'transport': return '🚗';
+    case 'shopping': return '🛒';
+    case 'utilities': return '⚡';
+    case 'rent':
+    case 'rent & bills': return '🏠';
+    case 'travel': return '✈️';
+    case 'entertainment': return '🎬';
+    default: return '💸';
+  }
+}
+
+function getGroupTypeFromCategory(cat) {
+  switch (cat?.toLowerCase()) {
+    case 'food & drinks': return 'friends';
+    case 'travel': return 'trip';
+    case 'rent & bills': return 'roommates';
+    default: return 'other';
+  }
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  currentUser = null;
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('loginEmail').value = '';

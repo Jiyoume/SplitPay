@@ -1,33 +1,101 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import * as localDB from '../services/localDatabase';
+import { calculateGroupBalances } from '../utils/balance';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [youOwe, setYouOwe] = useState(0);
+  const [youAreOwed, setYouAreOwed] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for demonstration
-  const totalBalance = 125.5;
-  const youOwe = 45.0;
-  const youAreOwed = 170.5;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      async function loadData() {
+        try {
+          // 1. Calculate balances
+          const userGroups = await localDB.getUserGroups('1');
+          let totalOwed = 0;
+          let totalOwe = 0;
 
-  const recentActivity = [
-    { id: '1', description: 'Dinner at restaurant', amount: 85.0, group: 'Roommates', date: 'Today' },
-    { id: '2', description: 'Groceries', amount: 42.5, group: 'Family', date: 'Yesterday' },
-    { id: '3', description: 'Movie tickets', amount: 30.0, group: 'Friends', date: '2 days ago' },
-  ];
+          for (const g of userGroups) {
+            const fullGroup = await localDB.getGroup(g.id);
+            if (!fullGroup) continue;
+
+            const expenses = await localDB.getGroupExpenses(g.id);
+            const payments = await localDB.getGroupPayments(g.id);
+
+            const balances = calculateGroupBalances(
+              fullGroup.members || [],
+              expenses,
+              payments
+            );
+
+            const myBalance = balances.find((b) => b.userId === '1')?.balance || 0;
+            if (myBalance > 0) {
+              totalOwed += myBalance;
+            } else if (myBalance < 0) {
+              totalOwe += Math.abs(myBalance);
+            }
+          }
+
+          // 2. Fetch recent expenses
+          const recentExpenses = await localDB.getRecentExpenses('1', 5);
+          const activityItems = [];
+
+          for (const exp of recentExpenses) {
+            const groupInfo = await localDB.getGroup(exp.groupId);
+            activityItems.push({
+              id: exp.id,
+              description: exp.description,
+              amount: exp.amount,
+              group: groupInfo?.name || 'Unknown Group',
+              date: new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            });
+          }
+
+          if (active) {
+            setTotalBalance(totalOwed - totalOwe);
+            setYouOwe(totalOwe);
+            setYouAreOwed(totalOwed);
+            setRecentActivity(activityItems);
+            setLoading(false);
+          }
+        } catch (err) {
+          console.error('Failed to load home screen data:', err);
+        }
+      }
+      loadData();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>

@@ -11,6 +11,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../constants/colors';
+import * as localDB from '../services/localDatabase';
+import uuid from 'react-native-uuid';
 
 const GROUP_TYPES = [
   { id: 'family', label: 'Family', icon: 'heart' as const },
@@ -39,14 +41,64 @@ export default function CreateGroupScreen() {
     setMembers(members.filter((m) => m !== email));
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!groupName.trim()) {
       Alert.alert('Error', 'Please enter a group name');
       return;
     }
-    Alert.alert('Success', `Group "${groupName}" created!`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+
+    try {
+      // 1. Get the current user
+      const currentUser = await localDB.getUser('1');
+      if (!currentUser) {
+        Alert.alert('Error', 'Current user not found');
+        return;
+      }
+
+      // 2. Resolve members
+      const allUsers = await localDB.getAllUsers();
+      const groupMembers: any[] = [currentUser];
+
+      for (const email of members) {
+        const existing = allUsers.find(
+          (u) => u.email?.toLowerCase() === email.toLowerCase()
+        );
+        if (existing) {
+          groupMembers.push(existing);
+        } else {
+          const name = email.split('@')[0];
+          const stubUser = {
+            id: uuid.v4().toString(),
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            email: email,
+          };
+          await localDB.saveUser(stubUser);
+          groupMembers.push(stubUser);
+        }
+      }
+
+      // 3. Create group object
+      const newGroup = {
+        id: uuid.v4().toString(),
+        name: groupName.trim(),
+        description: description.trim() || undefined,
+        members: groupMembers,
+        createdBy: '1',
+        createdAt: new Date(),
+        type: selectedType as any,
+        totalExpenses: 0,
+      };
+
+      // 4. Save to DB
+      await localDB.saveGroup(newGroup);
+
+      Alert.alert('Success', `Group "${groupName}" created!`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('Failed to create group:', err);
+      Alert.alert('Error', 'Failed to create group. Please try again.');
+    }
   };
 
   return (

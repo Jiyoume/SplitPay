@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,36 +9,107 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Colors } from '../constants/colors';
 import { EXPENSE_CATEGORIES, SPLIT_METHODS } from '../constants';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import * as localDB from '../services/localDatabase';
+import uuid from 'react-native-uuid';
+
+type AddExpenseRouteProp = RouteProp<RootStackParamList, 'AddExpense'>;
 
 export default function AddExpenseScreen() {
   const navigation = useNavigation();
+  const route = useRoute<AddExpenseRouteProp>();
+  const { groupId } = route.params || {};
+
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
   const [splitMethod, setSplitMethod] = useState<string>(SPLIT_METHODS.EQUAL);
-  const [selectedGroup, setSelectedGroup] = useState('1');
+  const [selectedGroup, setSelectedGroup] = useState(groupId || '');
+  const [groups, setGroups] = useState<any[]>([]);
 
-  const groups = [
-    { id: '1', name: 'Apartment 4B' },
-    { id: '2', name: 'Family Expenses' },
-    { id: '3', name: 'Weekend Trip' },
-  ];
+  useEffect(() => {
+    async function loadGroups() {
+      try {
+        const userGroups = await localDB.getUserGroups('1');
+        setGroups(userGroups);
+        if (userGroups.length > 0 && !selectedGroup) {
+          setSelectedGroup(userGroups[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load groups for expense:', err);
+      }
+    }
+    loadGroups();
+  }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!description.trim()) {
       Alert.alert('Error', 'Please enter a description');
       return;
     }
-    if (!amount || parseFloat(amount) <= 0) {
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    Alert.alert('Success', 'Expense added successfully!', [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+    if (!selectedGroup) {
+      Alert.alert('Error', 'Please select a group');
+      return;
+    }
+
+    try {
+      // 1. Fetch group members to calculate splits
+      const fullGroup = await localDB.getGroup(selectedGroup);
+      if (!fullGroup || !fullGroup.members || fullGroup.members.length === 0) {
+        Alert.alert('Error', 'Selected group has no members');
+        return;
+      }
+
+      // 2. Generate splits (split method: equal)
+      const memberCount = fullGroup.members.length;
+      const splitAmount = parseFloat((parsedAmount / memberCount).toFixed(2));
+      
+      const splits = fullGroup.members.map((m: any, index: number) => {
+        let amt = splitAmount;
+        if (index === memberCount - 1) {
+          const sumOfOthers = splitAmount * (memberCount - 1);
+          amt = parseFloat((parsedAmount - sumOfOthers).toFixed(2));
+        }
+        return {
+          userId: m.id,
+          amount: amt,
+          isPaid: m.id === '1', // '1' is the payer
+        };
+      });
+
+      // 3. Create expense object
+      const newExpense = {
+        id: uuid.v4().toString(),
+        groupId: selectedGroup,
+        description,
+        amount: parsedAmount,
+        currency: 'PHP',
+        category: selectedCategory,
+        paidBy: '1',
+        splits,
+        splitMethod: splitMethod as any,
+        date: new Date(),
+        createdAt: new Date(),
+      };
+
+      // 4. Save to database
+      await localDB.saveExpense(newExpense);
+
+      Alert.alert('Success', 'Expense added successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('Failed to save expense:', err);
+      Alert.alert('Error', 'Failed to save expense. Please try again.');
+    }
   };
 
   return (

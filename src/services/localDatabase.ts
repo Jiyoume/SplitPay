@@ -24,6 +24,118 @@ let db: SQLite.SQLiteDatabase;
 export async function initLocalDatabase(): Promise<void> {
   db = await SQLite.openDatabaseAsync('ambagko.db');
   await createTables();
+  await seedDatabase();
+}
+
+async function seedDatabase(): Promise<void> {
+  try {
+    const userCount = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM users');
+    if (userCount && userCount.count > 0) {
+      return; // Already seeded
+    }
+
+    // Seed default users
+    const defaultUsers = [
+      { id: '1', name: 'John Doe', email: 'john.doe@email.com', phone: '+1 234 567 890', avatar: null, kycLevel: 'none' },
+      { id: '2', name: 'Sarah', email: 'sarah@email.com', phone: '+1 987 654 321', avatar: null, kycLevel: 'none' },
+      { id: '3', name: 'Mike', email: 'mike@email.com', phone: '+1 555 123 456', avatar: null, kycLevel: 'none' }
+    ];
+
+    for (const u of defaultUsers) {
+      await db.runAsync(
+        `INSERT INTO users (id, name, email, phone, avatar, kycLevel, updatedAt, synced) VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+        [u.id, u.name, u.email, u.phone, u.avatar, u.kycLevel, new Date().toISOString()]
+      );
+    }
+
+    // Seed default group
+    const defaultGroup = {
+      id: '1',
+      name: 'Apartment 4B',
+      description: 'Shared rent & utility expenses',
+      type: 'roommates',
+      createdBy: '1',
+      totalExpenses: 270.0
+    };
+
+    await db.runAsync(
+      `INSERT INTO groups_table (id, name, description, type, createdBy, totalExpenses, updatedAt, synced) VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [defaultGroup.id, defaultGroup.name, defaultGroup.description, defaultGroup.type, defaultGroup.createdBy, defaultGroup.totalExpenses, new Date().toISOString()]
+    );
+
+    // Link group members
+    for (const userId of ['1', '2', '3']) {
+      await db.runAsync(
+        `INSERT INTO group_members (groupId, userId) VALUES (?, ?)`,
+        [defaultGroup.id, userId]
+      );
+    }
+
+    // Seed default expenses
+    const defaultExpenses = [
+      {
+        id: 'exp1',
+        groupId: '1',
+        description: 'Electricity bill',
+        amount: 120.0,
+        paidBy: '1',
+        category: 'utilities',
+        splitMethod: 'equal',
+        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        splits: [
+          { userId: '1', amount: 40.0 },
+          { userId: '2', amount: 40.0 },
+          { userId: '3', amount: 40.0 }
+        ]
+      },
+      {
+        id: 'exp2',
+        groupId: '1',
+        description: 'Groceries',
+        amount: 85.0,
+        paidBy: '2',
+        category: 'groceries',
+        splitMethod: 'equal',
+        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        splits: [
+          { userId: '1', amount: 28.33 },
+          { userId: '2', amount: 28.33 },
+          { userId: '3', amount: 28.34 }
+        ]
+      },
+      {
+        id: 'exp3',
+        groupId: '1',
+        description: 'Internet',
+        amount: 65.0,
+        paidBy: '3',
+        category: 'utilities',
+        splitMethod: 'equal',
+        date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        splits: [
+          { userId: '1', amount: 21.66 },
+          { userId: '2', amount: 21.67 },
+          { userId: '3', amount: 21.67 }
+        ]
+      }
+    ];
+
+    for (const exp of defaultExpenses) {
+      await db.runAsync(
+        `INSERT INTO expenses (id, groupId, description, amount, currency, category, paidBy, splitMethod, date, notes, receiptUrl, updatedAt, synced) VALUES (?, ?, ?, ?, 'PHP', ?, ?, ?, ?, null, null, ?, 1)`,
+        [exp.id, exp.groupId, exp.description, exp.amount, exp.category, exp.paidBy, exp.splitMethod, exp.date, new Date().toISOString()]
+      );
+
+      for (const split of exp.splits) {
+        await db.runAsync(
+          `INSERT INTO expense_splits (expenseId, userId, amount, isPaid, paidAt) VALUES (?, ?, ?, 0, null)`,
+          [exp.id, split.userId, split.amount]
+        );
+      }
+    }
+  } catch (error) {
+    console.error('Failed to seed local database:', error);
+  }
 }
 
 async function createTables(): Promise<void> {

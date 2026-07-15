@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,44 +6,102 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import * as localDB from '../services/localDatabase';
+import uuid from 'react-native-uuid';
 
 type SettleUpRouteProp = RouteProp<RootStackParamList, 'SettleUp'>;
 
 export default function SettleUpScreen() {
   const navigation = useNavigation();
   const route = useRoute<SettleUpRouteProp>();
-  const { amount } = route.params;
+  const { groupId, fromUserId, toUserId, amount } = route.params;
   const [payAmount, setPayAmount] = useState(amount.toFixed(2));
   const [note, setNote] = useState('');
 
-  const handleSettle = () => {
-    Alert.alert('Payment Recorded', `You settled $${payAmount}`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+  const [fromUser, setFromUser] = useState<any>(null);
+  const [toUser, setToUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const from = await localDB.getUser(fromUserId);
+        const to = await localDB.getUser(toUserId);
+        setFromUser(from);
+        setToUser(to);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to load users for SettleUp:', err);
+      }
+    }
+    loadUsers();
+  }, [fromUserId, toUserId]);
+
+  const handleSettle = async () => {
+    const parsedAmount = parseFloat(payAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const payment = {
+        id: uuid.v4().toString(),
+        groupId,
+        fromUserId,
+        toUserId,
+        amount: parsedAmount,
+        date: new Date(),
+        note: note.trim() || undefined,
+        settled: true,
+      };
+
+      await localDB.savePayment(payment);
+
+      Alert.alert('Payment Recorded', `Settled ₱${parsedAmount.toFixed(2)} successfully!`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('Failed to save payment:', err);
+      Alert.alert('Error', 'Failed to record payment. Please try again.');
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  const fromInitial = fromUser?.name ? fromUser.name[0].toUpperCase() : '?';
+  const toInitial = toUser?.name ? toUser.name[0].toUpperCase() : '?';
+  const settleLabel = `${fromUserId === '1' ? 'You' : fromUser?.name} pay ${toUserId === '1' ? 'You' : toUser?.name}`;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatarRow}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>M</Text>
+            <Text style={styles.avatarText}>{fromInitial}</Text>
           </View>
           <Ionicons name="arrow-forward" size={24} color={Colors.textSecondary} />
           <View style={[styles.avatar, { backgroundColor: Colors.primary }]}>
-            <Text style={styles.avatarText}>Y</Text>
+            <Text style={styles.avatarText}>{toInitial}</Text>
           </View>
         </View>
-        <Text style={styles.settleLabel}>Mike pays You</Text>
+        <Text style={styles.settleLabel}>{settleLabel}</Text>
       </View>
 
       <View style={styles.amountSection}>
-        <Text style={styles.currencySymbol}>$</Text>
+        <Text style={styles.currencySymbol}>₱</Text>
         <TextInput
           style={styles.amountInput}
           value={payAmount}
