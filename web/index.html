@@ -1055,6 +1055,11 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
         <span class="menu-text">Payment Methods</span>
         <span class="menu-arrow">›</span>
       </div>
+      <div class="menu-item" onclick="openStellarDeposit()" style="cursor:pointer">
+        <span class="menu-icon">⭐</span>
+        <span class="menu-text">Stellar Anchor (Deposit/Withdraw)</span>
+        <span class="menu-arrow" style="color:var(--accent-color)">›</span>
+      </div>
     </div>
 
     <div class="menu-section" style="margin-bottom:16px;">
@@ -1533,6 +1538,95 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Running as installed PWA');
   }
 });
+
+// ===== STELLAR ANCHOR INTEGRATION =====
+const STELLAR_ANCHOR_DOMAIN = "testanchor.stellar.org";
+const STELLAR_ANCHOR_URL = "https://testanchor.stellar.org";
+
+function openStellarDeposit() {
+  document.getElementById('stellarModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('stellarModal').classList.add('active'), 10);
+}
+
+function closeStellarModal() {
+  document.getElementById('stellarModal').classList.remove('active');
+  setTimeout(() => document.getElementById('stellarModal').style.display = 'none', 300);
+  // Remove iframe content
+  document.getElementById('stellarFrame').src = 'about:blank';
+}
+
+async function stellarAction(type) {
+  const frame = document.getElementById('stellarFrame');
+  const loading = document.getElementById('stellarLoading');
+  const frameWrap = document.getElementById('stellarFrameWrap');
+  
+  loading.style.display = 'flex';
+  frameWrap.style.display = 'none';
+  
+  // In a real app, this would use the Wallet SDK:
+  // const wallet = Wallet.TestNet();
+  // const anchor = wallet.anchor({ homeDomain: "testanchor.stellar.org" });
+  // const authToken = await anchor.sep10().authenticate({ accountKp: keypair });
+  // const sep24 = await anchor.sep24();
+  // const result = await sep24.deposit({ assetCode: "SRT", authToken });
+  // frame.src = result.url;
+  
+  // For demo, open the testanchor interactive URL directly
+  const interactiveUrl = `${STELLAR_ANCHOR_URL}/sep24/interactive?asset_code=SRT&type=${type}`;
+  
+  setTimeout(() => {
+    loading.style.display = 'none';
+    frameWrap.style.display = 'block';
+    frame.src = interactiveUrl;
+  }, 1500);
+}
 </script>
+
+<!-- STELLAR ANCHOR MODAL -->
+<div id="stellarModal" style="display:none;position:fixed;inset:0;z-index:9999;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);opacity:0;transition:opacity 0.3s" onclick="if(event.target===this)closeStellarModal()">
+  <div style="width:100%;max-width:430px;height:90%;background:var(--bg-primary,#000);border-radius:20px 20px 0 0;display:flex;flex-direction:column;transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1)" id="stellarSheet">
+    <!-- Handle bar -->
+    <div style="padding:12px 0 8px;text-align:center"><div style="width:36px;height:5px;border-radius:3px;background:var(--text-tertiary,#636366);margin:0 auto"></div></div>
+    <!-- Header -->
+    <div style="padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:0.5px solid var(--border-color,#2C2C2E)">
+      <div>
+        <div style="font-size:20px;font-weight:700;letter-spacing:-0.3px">⭐ Stellar Anchor</div>
+        <div style="font-size:13px;color:var(--text-secondary,#8E8E93);margin-top:2px">testanchor.stellar.org • Testnet</div>
+      </div>
+      <div onclick="closeStellarModal()" style="width:30px;height:30px;border-radius:15px;background:var(--bg-tertiary,#2C2C2E);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px">✕</div>
+    </div>
+    <!-- Action buttons -->
+    <div style="padding:16px 20px;display:flex;gap:10px">
+      <button onclick="stellarAction('deposit')" style="flex:1;padding:14px;border-radius:14px;border:none;background:var(--accent-color,#34C759);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform 0.2s" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform=''">↓ Deposit</button>
+      <button onclick="stellarAction('withdraw')" style="flex:1;padding:14px;border-radius:14px;border:none;background:var(--blue-color,#0A84FF);color:#fff;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform 0.2s" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform=''">↑ Withdraw</button>
+    </div>
+    <!-- Loading -->
+    <div id="stellarLoading" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px">
+      <div style="width:40px;height:40px;border:3px solid var(--bg-tertiary,#2C2C2E);border-top-color:var(--accent-color,#34C759);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="font-size:14px;color:var(--text-secondary,#8E8E93)">Connecting to Stellar Anchor...</div>
+    </div>
+    <!-- iFrame for interactive flow -->
+    <div id="stellarFrameWrap" style="display:none;flex:1;overflow:hidden;border-radius:0 0 0 0">
+      <iframe id="stellarFrame" style="width:100%;height:100%;border:none;background:#fff" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    </div>
+    <!-- Info when no action selected -->
+    <div id="stellarInfo" style="flex:1;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">🌐</div>
+      <div style="font-size:17px;font-weight:600;margin-bottom:6px">Stellar Network Integration</div>
+      <div style="font-size:14px;color:var(--text-secondary,#8E8E93);line-height:1.5;max-width:280px">
+        Deposit funds from fiat or withdraw to your bank account using Stellar's secure anchor network.
+      </div>
+      <div style="margin-top:20px;padding:12px 16px;background:var(--bg-secondary,#1C1C1E);border-radius:12px;font-size:12px;color:var(--text-tertiary,#636366)">
+        <code>wallet.anchor({ homeDomain: "testanchor.stellar.org" })</code>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+#stellarModal.active { opacity: 1; }
+#stellarModal.active #stellarSheet { transform: translateY(0); }
+</style>
 </body>
 </html>
