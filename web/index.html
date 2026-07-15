@@ -2119,44 +2119,131 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e)
   }
 });
 
-// ===== AUTH =====
-function handleLogin() {
+// ===== AUTH (SUPABASE) =====
+const SUPABASE_URL = 'https://dmhqotrkfrhimdqoftil.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_4327cOgn2trcl5CVw7pXiQ_6JifiU3q';
+let currentUser = null;
+
+async function handleLogin() {
   const email = document.getElementById('loginEmail').value;
   const pass = document.getElementById('loginPassword').value;
   if (!email || !pass) { shakeElement(document.querySelector('#loginScreen .btn-primary')); return; }
-  showMainApp(email.split('@')[0]);
+
+  // Try to sign in with Supabase
+  const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ email, password: pass })
+  });
+  const data = await res.json();
+
+  if (data.error || !data.access_token) {
+    // Account doesn't exist — redirect to signup
+    alert('Account not found. Please sign up first.');
+    showSignup();
+    document.getElementById('signupEmail').value = email;
+    return;
+  }
+
+  currentUser = data.user;
+  localStorage.setItem('myshare_token', data.access_token);
+  localStorage.setItem('myshare_user', JSON.stringify(data.user));
+
+  // Check KYC status
+  const kycLevel = data.user?.user_metadata?.kyc_level || 'none';
+  if (kycLevel === 'none') {
+    showMainApp(data.user.user_metadata?.full_name || email.split('@')[0]);
+    setTimeout(() => openKYCModal(), 500); // Prompt KYC after login
+  } else {
+    showMainApp(data.user.user_metadata?.full_name || email.split('@')[0]);
+  }
 }
 
-function handleSignup() {
+async function handleSignup() {
   const name = document.getElementById('signupName').value;
   const email = document.getElementById('signupEmail').value;
   const pass = document.getElementById('signupPassword').value;
   const confirm = document.getElementById('signupConfirm').value;
   if (!name || !email || !pass || !confirm) { shakeElement(document.querySelector('#signupScreen .btn-primary')); return; }
   if (pass !== confirm) { alert('Passwords do not match'); return; }
+  if (pass.length < 6) { alert('Password must be at least 6 characters'); return; }
+
+  // Sign up with Supabase
+  const res = await fetch(SUPABASE_URL + '/auth/v1/signup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    body: JSON.stringify({ email, password: pass, data: { full_name: name, kyc_level: 'none' } })
+  });
+  const data = await res.json();
+
+  if (data.error) {
+    if (data.error.message?.includes('already registered')) {
+      alert('Account already exists. Please sign in.');
+      showLogin();
+      document.getElementById('loginEmail').value = email;
+    } else {
+      alert('Signup failed: ' + (data.error.message || data.msg || 'Unknown error'));
+    }
+    return;
+  }
+
+  currentUser = data.user;
+  localStorage.setItem('myshare_token', data.access_token || '');
+  localStorage.setItem('myshare_user', JSON.stringify(data.user));
+
+  // New user — go to app then immediately open KYC
   showMainApp(name);
+  setTimeout(() => {
+    openKYCModal();
+    alert('Welcome to MyShare! Please complete identity verification to unlock all features.');
+  }, 600);
 }
 
 function signInWithGoogle() {
-  // Redirect to Supabase Google OAuth
-  const supabaseUrl = 'https://dmhqotrkfrhimdqoftil.supabase.co';
   const redirectTo = window.location.origin + window.location.pathname;
-  window.location.href = supabaseUrl + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(redirectTo);
+  window.location.href = SUPABASE_URL + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(redirectTo);
 }
 
 // Check if returning from OAuth redirect
 (function checkOAuthReturn() {
   const hash = window.location.hash;
   if (hash && hash.includes('access_token')) {
-    // User returned from Google OAuth — extract token
     const params = new URLSearchParams(hash.substring(1));
     const accessToken = params.get('access_token');
     if (accessToken) {
-      // Clear the hash
       history.replaceState(null, '', window.location.pathname);
-      // Show app
-      showMainApp('Google User');
+      localStorage.setItem('myshare_token', accessToken);
+      // Fetch user info
+      fetch(SUPABASE_URL + '/auth/v1/user', {
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'apikey': SUPABASE_KEY }
+      }).then(r => r.json()).then(user => {
+        currentUser = user;
+        localStorage.setItem('myshare_user', JSON.stringify(user));
+        const kycLevel = user?.user_metadata?.kyc_level || 'none';
+        showMainApp(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User');
+        if (kycLevel === 'none') {
+          setTimeout(() => {
+            openKYCModal();
+            alert('Welcome! Please complete identity verification.');
+          }, 600);
+        }
+      });
     }
+  }
+})();
+
+// Auto-login if token exists
+(function checkExistingSession() {
+  const token = localStorage.getItem('myshare_token');
+  if (token) {
+    fetch(SUPABASE_URL + '/auth/v1/user', {
+      headers: { 'Authorization': 'Bearer ' + token, 'apikey': SUPABASE_KEY }
+    }).then(r => { if (r.ok) return r.json(); throw new Error('expired'); })
+      .then(user => {
+        currentUser = user;
+        showMainApp(user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User');
+      })
+      .catch(() => { localStorage.removeItem('myshare_token'); localStorage.removeItem('myshare_user'); });
   }
 })();
 
@@ -2185,6 +2272,16 @@ function showMainApp(name) {
 }
 
 function handleLogout() {
+  // Clear Supabase session
+  localStorage.removeItem('myshare_token');
+  localStorage.removeItem('myshare_user');
+  currentUser = null;
+  // Sign out from Supabase
+  fetch(SUPABASE_URL + '/auth/v1/logout', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + (localStorage.getItem('myshare_token') || '') }
+  }).catch(() => {});
+  // Show login screen
   document.getElementById('mainApp').style.display = 'none';
   document.getElementById('loginScreen').classList.add('active');
   document.getElementById('loginEmail').value = '';
