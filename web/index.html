@@ -967,7 +967,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <div class="balance-widget" id="balanceWidget" style="display:none;">
       <div class="label">Total Balance</div>
       <div class="amount" id="balanceAmount">₱0.00</div>
-      <div class="sub">You are owed ₱1,250.00</div>
+      <div class="sub" id="balanceSub">No activity yet</div>
     </div>
 
     <!-- Quick Actions -->
@@ -992,7 +992,7 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 
     <!-- Alert -->
     <div class="alert-banner">
-      ⚠️ <span>Maria owes you ₱350 — overdue by 3 days</span>
+      ⚠️ <span>Complete your verification to start splitting expenses</span>
     </div>
 
     <!-- Stellar Wallet Section -->
@@ -1016,29 +1016,8 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
         <button class="copy-btn" onclick="copyStellarAddress()">Copy</button>
       </div>
       <div class="wallet-txns">
-        <div class="wallet-txn-item">
-          <div class="wallet-txn-icon">↓</div>
-          <div class="wallet-txn-info">
-            <div class="txn-desc">Received from Maria</div>
-            <div class="txn-time">Today, 2:30 PM</div>
-          </div>
-          <div class="wallet-txn-amt" style="color:var(--accent);">+350 SRT</div>
-        </div>
-        <div class="wallet-txn-item">
-          <div class="wallet-txn-icon">↑</div>
-          <div class="wallet-txn-info">
-            <div class="txn-desc">Sent to Carlos</div>
-            <div class="txn-time">Yesterday, 8:15 PM</div>
-          </div>
-          <div class="wallet-txn-amt" style="color:var(--danger);">-180 SRT</div>
-        </div>
-        <div class="wallet-txn-item">
-          <div class="wallet-txn-icon">💳</div>
-          <div class="wallet-txn-info">
-            <div class="txn-desc">Top-up via GCash</div>
-            <div class="txn-time">Jul 13, 10:00 AM</div>
-          </div>
-          <div class="wallet-txn-amt" style="color:var(--accent);">+1,000 SRT</div>
+        <div style="text-align:center;padding:20px;color:var(--text-secondary);font-size:13px;">
+          No transactions yet. Top up your wallet to get started.
         </div>
       </div>
     </div>
@@ -1049,45 +1028,9 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <a onclick="switchTab(1)">See All</a>
     </div>
 
-    <div class="expense-item">
-      <div class="expense-icon">🍕</div>
-      <div class="expense-info">
-        <div class="name">Pizza Night</div>
-        <div class="detail">You and 3 others • Jul 12</div>
-      </div>
-      <div class="expense-amount negative">-₱425</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">🚗</div>
-      <div class="expense-info">
-        <div class="name">Grab Ride</div>
-        <div class="detail">You and Carlos • Jul 11</div>
-      </div>
-      <div class="expense-amount negative">-₱180</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">💰</div>
-      <div class="expense-info">
-        <div class="name">Rent Payment</div>
-        <div class="detail">Maria paid you • Jul 10</div>
-      </div>
-      <div class="expense-amount positive">+₱2,500</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">🛒</div>
-      <div class="expense-info">
-        <div class="name">Grocery Run</div>
-        <div class="detail">You and 2 others • Jul 9</div>
-      </div>
-      <div class="expense-amount negative">-₱650</div>
-    </div>
-    <div class="expense-item">
-      <div class="expense-icon">☕</div>
-      <div class="expense-info">
-        <div class="name">Coffee</div>
-        <div class="detail">You paid for Ana • Jul 8</div>
-      </div>
-      <div class="expense-amount negative">-₱290</div>
+    <div id="expensesList" style="text-align:center;padding:30px 16px;color:var(--text-secondary);font-size:14px;">
+      <div style="font-size:32px;margin-bottom:8px;">📝</div>
+      No expenses yet. Add your first expense to start tracking.
     </div>
   </div>
 </div>
@@ -1237,47 +1180,9 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <h3>Recent Transactions</h3>
       <a>View All</a>
     </div>
-    <div style="padding:0 20px;">
-      <div class="wallet-txn-item">
-        <div class="wallet-txn-icon">↓</div>
-        <div class="wallet-txn-info">
-          <div class="txn-desc">Received from Maria <span class="verified-badge">✓ Verified</span></div>
-          <div class="txn-time">Today, 2:30 PM • Settled group expense</div>
-        </div>
-        <div class="wallet-txn-amt" style="color:var(--accent);">+350 SRT</div>
-      </div>
-      <div class="wallet-txn-item">
-        <div class="wallet-txn-icon">↑</div>
-        <div class="wallet-txn-info">
-          <div class="txn-desc">Sent to Carlos <span class="verified-badge">✓ Verified</span></div>
-          <div class="txn-time">Yesterday, 8:15 PM • Grab ride split</div>
-        </div>
-        <div class="wallet-txn-amt" style="color:var(--danger);">-180 SRT</div>
-      </div>
-      <div class="wallet-txn-item">
-        <div class="wallet-txn-icon">💳</div>
-        <div class="wallet-txn-info">
-          <div class="txn-desc">Top-up via GCash</div>
-          <div class="txn-time">Jul 13, 10:00 AM</div>
-        </div>
-        <div class="wallet-txn-amt" style="color:var(--accent);">+1,000 SRT</div>
-      </div>
-      <div class="wallet-txn-item">
-        <div class="wallet-txn-icon">↑</div>
-        <div class="wallet-txn-info">
-          <div class="txn-desc">Sent to Ana</div>
-          <div class="txn-time">Jul 12, 3:45 PM • Coffee payment</div>
-        </div>
-        <div class="wallet-txn-amt" style="color:var(--danger);">-290 SRT</div>
-      </div>
-      <div class="wallet-txn-item">
-        <div class="wallet-txn-icon">💳</div>
-        <div class="wallet-txn-info">
-          <div class="txn-desc">Top-up via Maya</div>
-          <div class="txn-time">Jul 10, 9:00 AM</div>
-        </div>
-        <div class="wallet-txn-amt" style="color:var(--accent);">+2,000 SRT</div>
-      </div>
+    <div style="padding:20px;text-align:center;color:var(--text-secondary);font-size:13px;">
+      <div style="font-size:28px;margin-bottom:8px;">💳</div>
+      No transactions yet. Top up your wallet to get started.
     </div>
   </div>
 </div>
@@ -1303,44 +1208,44 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;">📋 Monthly Statement</div>
       <div class="statement-row">
         <span class="st-label">Opening Balance</span>
-        <span class="st-value">₱3,200.00</span>
+        <span class="st-value">₱0.00</span>
       </div>
       <div class="statement-divider"></div>
       <div class="statement-row">
         <span class="st-label">Total Inflows</span>
-        <span class="st-value inflow">+₱8,750.00</span>
+        <span class="st-value inflow">+₱0.00</span>
       </div>
       <div class="statement-row">
         <span class="st-label">Total Outflows</span>
-        <span class="st-value outflow">-₱7,699.50</span>
+        <span class="st-value outflow">-₱0.00</span>
       </div>
       <div class="statement-divider"></div>
       <div class="statement-row">
         <span class="st-label">Closing Balance</span>
-        <span class="st-value" style="font-size:16px;">₱4,250.50</span>
+        <span class="st-value" style="font-size:16px;">₱0.00</span>
       </div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Total Spent</div>
-        <div class="stat-value">₱12.4K</div>
-        <div class="stat-change">↑ 8% vs last month</div>
+        <div class="stat-value">₱0</div>
+        <div class="stat-change">No data yet</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">You Are Owed</div>
-        <div class="stat-value">₱3.2K</div>
-        <div class="stat-change">2 pending</div>
+        <div class="stat-value">₱0</div>
+        <div class="stat-change">No pending</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Groups Active</div>
-        <div class="stat-value">4</div>
-        <div class="stat-change">1 new this month</div>
+        <div class="stat-value">0</div>
+        <div class="stat-change">Create your first group</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Transactions</div>
-        <div class="stat-value">28</div>
-        <div class="stat-change">↑ 12% activity</div>
+        <div class="stat-value">0</div>
+        <div class="stat-change">No activity yet</div>
       </div>
     </div>
 
