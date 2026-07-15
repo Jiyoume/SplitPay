@@ -19,8 +19,8 @@ import { createClient, SupabaseClient, User, Session, AuthError } from '@supabas
 
 // ===== CONFIGURATION =====
 // Replace with your Supabase project credentials
-const SUPABASE_URL = 'https://your-project.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key';
+const SUPABASE_URL = 'https://dmhqotrkfrhimdqoftil.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // ===== INITIALIZATION =====
 
