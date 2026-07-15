@@ -49,6 +49,14 @@ export const authService = {
     return data;
   },
 
+  loginWithGoogle: async (email: string, name: string, avatar?: string): Promise<AuthResponse> => {
+    const data = await apiClient.post('/auth/google', { email, name, avatar });
+    if (data.token) {
+      await setToken(data.token);
+    }
+    return data;
+  },
+
   logout: async (): Promise<void> => {
     await clearToken();
   },
