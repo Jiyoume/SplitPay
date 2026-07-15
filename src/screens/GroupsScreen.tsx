@@ -5,7 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  TextInput,
+  Image,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -36,14 +39,14 @@ export default function GroupsScreen() {
   const getGroupStyle = (type: string) => {
     switch (type) {
       case 'family':
-        return { icon: 'heart-outline' as const, color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.08)' };
+        return { icon: 'heart' as const, color: '#FF3B30', bgColor: 'rgba(255, 59, 48, 0.1)' };
       case 'roommates':
-        return { icon: 'home-outline' as const, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.08)' };
+        return { icon: 'home' as const, color: '#34C759', bgColor: 'rgba(52, 199, 89, 0.1)' };
       case 'trip':
-        return { icon: 'airplane-outline' as const, color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.08)' };
+        return { icon: 'airplane' as const, color: '#00C6FF', bgColor: 'rgba(0, 198, 255, 0.1)' };
       case 'friends':
       default:
-        return { icon: 'people-outline' as const, color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.08)' };
+        return { icon: 'people' as const, color: '#0A84FF', bgColor: 'rgba(10, 132, 255, 0.1)' };
     }
   };
 
@@ -57,11 +60,7 @@ export default function GroupsScreen() {
     const groupStyle = getGroupStyle(item.type);
     return (
       <TouchableOpacity
-        style={[
-          styles.groupCard, 
-          { borderLeftColor: getLeftBorderColor(item.balance) },
-          item.balance !== 0 && { borderLeftWidth: 4 }
-        ]}
+        style={styles.groupCard}
         onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
       >
         <View style={[styles.groupIcon, { backgroundColor: groupStyle.bgColor }]}>
@@ -69,18 +68,27 @@ export default function GroupsScreen() {
         </View>
         <View style={styles.groupInfo}>
           <Text style={styles.groupName}>{item.name}</Text>
-          <Text style={styles.groupMeta}>
-            {item.memberCount} members • {item.lastActivity}
-          </Text>
+          <View style={styles.avatarStack}>
+            {[1, 2, 3].map((_, i) => (
+              <View key={i} style={[styles.miniAvatar, { marginLeft: i > 0 ? -8 : 0 }]}>
+                <Ionicons name="person" size={10} color={Colors.textSecondary} />
+              </View>
+            ))}
+            {item.memberCount > 3 && (
+              <View style={[styles.miniAvatar, styles.miniAvatarMore, { marginLeft: -8 }]}>
+                <Text style={styles.miniAvatarMoreText}>+{item.memberCount - 3}</Text>
+              </View>
+            )}
+          </View>
         </View>
         <View style={styles.groupBalance}>
           {item.balance !== 0 ? (
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={styles.balanceLabel}>
-                {item.balance > 0 ? "You're owed" : "You owe"}
+                {item.balance > 0 ? "Owes you" : "You owe"}
               </Text>
               <Text style={[styles.balanceText, { color: item.balance > 0 ? Colors.positive : Colors.negative }]}>
-                {item.balance > 0 ? '+' : '-'}${Math.abs(item.balance).toFixed(2)}
+                {item.balance > 0 ? '+' : '-'}₱{Math.abs(item.balance).toFixed(2)}
               </Text>
             </View>
           ) : (
@@ -94,24 +102,37 @@ export default function GroupsScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color={Colors.textLight} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search groups..."
+            placeholderTextColor={Colors.textLight}
+          />
+        </View>
+      </View>
+
       <FlatList
         data={groups}
         renderItem={renderGroup}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
-        ListHeaderComponent={
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => navigation.navigate('CreateGroup')}
-          >
-            <View style={styles.createIconCircle}>
-              <Ionicons name="add" size={18} color={Colors.primary} />
-            </View>
-            <Text style={styles.createButtonText}>Create New Group</Text>
-          </TouchableOpacity>
-        }
       />
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreateGroup')}
+        activeOpacity={0.8}
+      >
+        <LinearGradient
+          colors={['#0A84FF', '#00C6FF']}
+          style={styles.fabGradient}
+        >
+          <Ionicons name="add" size={32} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -125,31 +146,28 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  createButton: {
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 14,
-    borderRadius: 18,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: 'rgba(5, 150, 105, 0.25)',
-    borderStyle: 'dashed',
+    backgroundColor: Colors.background,
+    paddingHorizontal: 16,
+    height: 44,
+    borderRadius: 22,
     gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  createIconCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  createButtonText: {
+  searchInput: {
+    flex: 1,
     fontSize: 15,
-    color: Colors.primary,
-    fontWeight: '800',
+    color: Colors.text,
   },
   groupCard: {
     flexDirection: 'row',
@@ -159,11 +177,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#F1F5F9',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
     elevation: 1,
   },
   groupIcon: {
@@ -181,12 +199,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.text,
+    marginBottom: 6,
   },
-  groupMeta: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 4,
-    fontWeight: '500',
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniAvatarMore: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: '#FFFFFF',
+  },
+  miniAvatarMoreText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   groupBalance: {
     flexDirection: 'row',
@@ -204,8 +240,25 @@ const styles = StyleSheet.create({
   },
   settledText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: Colors.textLight,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    shadowColor: '#0A84FF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabGradient: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

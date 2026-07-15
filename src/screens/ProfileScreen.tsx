@@ -18,122 +18,87 @@ export default function ProfileScreen() {
     memberSince: 'January 2026',
   };
 
-  const menuItems = [
-    { id: '1', icon: 'settings-outline' as const, label: 'Settings', badge: null },
-    { id: '2', icon: 'notifications-outline' as const, label: 'Notifications', badge: '3' },
-    { id: '3', icon: 'card-outline' as const, label: 'Payment Methods', badge: null },
-    { id: '4', icon: 'shield-checkmark-outline' as const, label: 'Privacy & Security', badge: null },
-    { id: '5', icon: 'help-circle-outline' as const, label: 'Help & Support', badge: null },
-    { id: '6', icon: 'information-circle-outline' as const, label: 'About', badge: null },
+  const menuSections = [
+    {
+      title: 'Payment & Wallet',
+      items: [
+        { id: '1', icon: 'card' as const, label: 'Linked Payment Methods', subtitle: '2 cards • 1 e-wallet' },
+      ]
+    },
+    {
+      title: 'Preferences',
+      items: [
+        { id: '2', icon: 'notifications' as const, label: 'Notification Settings', subtitle: 'Manage your alerts and updates', iconBg: 'rgba(10, 132, 255, 0.1)', iconColor: '#0A84FF' },
+      ]
+    },
+    {
+      title: 'Security',
+      items: [
+        { id: '3', icon: 'shield-checkmark' as const, label: 'Security & Privacy', subtitle: 'Password, biometrics, and privacy', iconBg: 'rgba(52, 199, 89, 0.1)', iconColor: '#34C759' },
+        { id: '4', icon: 'key' as const, label: 'Two-Factor Authentication', subtitle: 'Add an extra layer of security', iconBg: 'rgba(10, 132, 255, 0.1)', iconColor: '#0A84FF' },
+      ]
+    },
+    {
+      title: 'Support & Information',
+      items: [
+        { id: '5', icon: 'help-circle' as const, label: 'Help & Support', subtitle: 'FAQs, contact support', iconBg: 'rgba(10, 132, 255, 0.1)', iconColor: '#0A84FF' },
+        { id: '6', icon: 'information-circle' as const, label: 'About MyShare', subtitle: 'App version 1.2.0', iconBg: 'rgba(52, 199, 89, 0.1)', iconColor: '#34C759' },
+      ]
+    }
   ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Profile Curved Header */}
-      <LinearGradient
-        colors={['#064E3B', '#022C22']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.profileHeader}
-      >
-        <Text style={styles.headerTitleText}>Profile</Text>
-        <TouchableOpacity style={styles.headerSettingsButton}>
-          <Ionicons name="settings-outline" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-        
-        {/* Placeholder for overlapping avatar */}
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user.name.split(' ').map(n => n[0]).join('')}
-            </Text>
+      {/* Profile Header Card */}
+      <View style={styles.profileHeader}>
+        <LinearGradient
+          colors={['#0A84FF', '#00C6FF']}
+          style={styles.avatarGradient}
+        >
+          <Ionicons name="person" size={48} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.userInfoSection}>
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
+          <View style={styles.memberBadge}>
+            <Ionicons name="checkmark-circle" size={14} color="#0A84FF" />
+            <Text style={styles.memberBadgeText}>Premium Member</Text>
           </View>
         </View>
-      </LinearGradient>
-
-      {/* User Information */}
-      <View style={styles.userInfoSection}>
-        <Text style={styles.userName}>{user.name}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
-        <View style={styles.memberBadge}>
-          <Text style={styles.memberBadgeText}>Member since Jan 2026</Text>
-        </View>
+        <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
       </View>
 
-      {/* Stats Card */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>4</Text>
-          <Text style={styles.statLabel}>Groups</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>23</Text>
-          <Text style={styles.statLabel}>Expenses</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>$1,250</Text>
-          <Text style={styles.statLabel}>Total Split</Text>
-        </View>
-      </View>
-
-      {/* Menu Cards */}
-      <Text style={styles.sectionLabel}>Account</Text>
-      <View style={styles.menuCard}>
-        {menuItems.slice(0, 2).map((item, idx) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.menuItem,
-              idx === 1 && { borderBottomWidth: 0 }
-            ]}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons name={item.icon} size={20} color={Colors.primary} />
-            </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            <View style={styles.menuRight}>
-              {item.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.badge}</Text>
+      {/* Menu Sections */}
+      {menuSections.map((section, idx) => (
+        <View key={idx} style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View style={styles.menuCard}>
+            {section.items.map((item, itemIdx) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[
+                  styles.menuItem,
+                  itemIdx === section.items.length - 1 && { borderBottomWidth: 0 }
+                ]}
+              >
+                <View style={[styles.menuIconContainer, item.iconBg && { backgroundColor: item.iconBg }]}>
+                  <Ionicons name={item.icon} size={20} color={item.iconColor || Colors.primary} />
                 </View>
-              )}
-              <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <View style={[styles.menuCard, { marginTop: 16 }]}>
-        {menuItems.slice(2).map((item, idx) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.menuItem,
-              idx === menuItems.slice(2).length - 1 && { borderBottomWidth: 0 }
-            ]}
-          >
-            <View style={styles.menuIconContainer}>
-              <Ionicons name={item.icon} size={20} color={Colors.primary} />
-            </View>
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            <View style={styles.menuRight}>
-              {item.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.badge}</Text>
+                <View style={styles.menuLabelContainer}>
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                  {item.subtitle && <Text style={styles.menuSubtitle}>{item.subtitle}</Text>}
                 </View>
-              )}
-              <Ionicons name="chevron-forward" size={16} color={Colors.textLight} />
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
+                <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ))}
 
       {/* Logout Button */}
       <TouchableOpacity style={styles.logoutButton}>
         <Ionicons name="log-out-outline" size={20} color={Colors.error} />
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -145,191 +110,125 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
+    paddingTop: 60,
     paddingBottom: 40,
   },
   profileHeader: {
-    height: 160,
-    borderBottomLeftRadius: 100,
-    borderBottomRightRadius: 100,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  headerTitleText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: -20,
-  },
-  headerSettingsButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-  },
-  avatarContainer: {
-    position: 'absolute',
-    bottom: -44,
-  },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: '#E6F4EA',
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    padding: 20,
+    borderRadius: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
   },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Colors.primary,
+  avatarGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   userInfoSection: {
-    alignItems: 'center',
-    marginTop: 56,
+    flex: 1,
+    marginLeft: 16,
   },
   userName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.text,
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSecondary,
-    fontWeight: '600',
-    marginTop: 4,
+    fontWeight: '500',
+    marginTop: 2,
   },
   memberBadge: {
-    backgroundColor: 'rgba(5, 150, 105, 0.08)',
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
     marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.12)',
+    gap: 4,
   },
   memberBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: Colors.primary,
   },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    margin: 16,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
-    elevation: 1,
+  sectionContainer: {
+    marginTop: 24,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: Colors.border,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    marginTop: 4,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.textSecondary,
+    color: Colors.text,
     marginLeft: 24,
     marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   menuCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    borderRadius: 20,
+    borderRadius: 24,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.border,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
     elevation: 1,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(5, 150, 105, 0.08)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(10, 132, 255, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuLabel: {
+  menuLabelContainer: {
     flex: 1,
+    marginLeft: 16,
+  },
+  menuLabel: {
     fontSize: 15,
     color: Colors.text,
-    marginLeft: 12,
-    fontWeight: '700',
+    fontWeight: '600',
   },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  badge: {
-    backgroundColor: Colors.error,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
+  menuSubtitle: {
+    fontSize: 13,
+    color: Colors.textLight,
+    marginTop: 2,
   },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 16,
+    margin: 24,
+    marginHorizontal: 16,
     padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    backgroundColor: '#FFF0F0',
+    borderRadius: 24,
     gap: 8,
   },
   logoutText: {
     fontSize: 16,
     color: Colors.error,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 });
 

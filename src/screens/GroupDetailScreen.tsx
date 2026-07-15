@@ -40,67 +40,46 @@ export default function GroupDetailScreen() {
   ];
 
   return (
+    <>
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Summary Card */}
       <LinearGradient
-        colors={['#34D399', '#059669']}
+        colors={['#0A84FF', '#00C6FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.summaryCard}
       >
-        <Text style={styles.groupNameText}>{group.name}</Text>
-        <Text style={styles.totalExpenses}>
-          Total expenses: ${group.totalExpenses.toFixed(2)}
+        <View style={styles.summaryTop}>
+          <Text style={styles.totalExpensesLabel}>Total Expense</Text>
+          <Ionicons name="pie-chart" size={24} color="rgba(255,255,255,0.8)" />
+        </View>
+        <Text style={styles.totalExpensesAmount}>
+          ₱{group.totalExpenses.toFixed(2)}
         </Text>
       </LinearGradient>
 
-      {/* Settle Actions Panel */}
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate('AddExpense', { groupId })}
-        >
-          <LinearGradient
-            colors={['#34D399', '#059669']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.actionBtnGradient}
-          >
-            <Ionicons name="add" size={18} color="#FFFFFF" />
-            <Text style={styles.actionBtnText}>Add Expense</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionBtn}
-          onPress={() => navigation.navigate('SettleUp', { groupId, fromUserId: '3', toUserId: '1', amount: 25.0 })}
-        >
-          <LinearGradient
-            colors={['#60A5FA', '#3B82F6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.actionBtnGradient}
-          >
-            <Ionicons name="wallet-outline" size={18} color="#FFFFFF" />
-            <Text style={styles.actionBtnText}>Settle Up</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
 
       {/* Balances Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Balances</Text>
         {group.members.map((member) => (
           <View key={member.id} style={styles.memberRow}>
-            <View style={[styles.memberAvatar, { backgroundColor: member.balance >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
+            <View style={[styles.memberAvatar, { backgroundColor: member.balance >= 0 ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)' }]}>
               <Text style={[styles.avatarText, { color: member.balance >= 0 ? Colors.positive : Colors.negative }]}>
                 {member.name[0]}
               </Text>
             </View>
             <Text style={styles.memberName}>{member.name}</Text>
-            <Text style={[styles.memberBalance, { color: member.balance >= 0 ? Colors.positive : Colors.negative }]}>
-              {member.balance >= 0 ? 'gets back ' : 'owes '}${Math.abs(member.balance).toFixed(2)}
-            </Text>
+            <View style={styles.memberRight}>
+              <Text style={[styles.memberBalance, { color: member.balance >= 0 ? Colors.positive : Colors.negative }]}>
+                {member.balance >= 0 ? 'Gets back ' : 'Owes '}₱{Math.abs(member.balance).toFixed(2)}
+              </Text>
+              <View style={[styles.statusPill, { backgroundColor: member.balance >= 0 ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 149, 0, 0.1)' }]}>
+                <Text style={[styles.statusPillText, { color: member.balance >= 0 ? Colors.positive : Colors.warning }]}>
+                  {member.balance >= 0 ? 'Paid' : 'Pending'}
+                </Text>
+              </View>
+            </View>
           </View>
         ))}
       </View>
@@ -111,17 +90,31 @@ export default function GroupDetailScreen() {
         {expenses.map((expense) => (
           <View key={expense.id} style={styles.expenseItem}>
             <View style={styles.expenseIcon}>
-              <Ionicons name="receipt-outline" size={18} color={Colors.primary} />
+              <Text style={styles.avatarText}>{expense.paidBy[0]}</Text>
             </View>
             <View style={styles.expenseInfo}>
               <Text style={styles.expenseDesc}>{expense.description}</Text>
-              <Text style={styles.expenseMeta}>Paid by {expense.paidBy} • {expense.date}</Text>
+              <Text style={styles.expenseMeta}>{expense.paidBy} • {expense.date}</Text>
             </View>
-            <Text style={styles.expenseAmount}>${expense.amount.toFixed(2)}</Text>
+            <Text style={styles.expenseAmount}>₱{expense.amount.toFixed(2)}</Text>
           </View>
         ))}
       </View>
     </ScrollView>
+    <View style={styles.bottomBar}>
+      <TouchableOpacity
+        style={styles.requestButton}
+        onPress={() => navigation.navigate('SettleUp', { groupId, fromUserId: '3', toUserId: '1', amount: 25.0 })}
+      >
+        <LinearGradient
+          colors={['#0A84FF', '#00C6FF']}
+          style={styles.requestButtonGradient}
+        >
+          <Text style={styles.requestButtonText}>Request Payment</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+    </>
   );
 }
 
@@ -137,55 +130,30 @@ const styles = StyleSheet.create({
     padding: 24,
     margin: 16,
     borderRadius: 24,
-    alignItems: 'center',
-    shadowColor: Colors.primary,
+    shadowColor: '#0A84FF',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
   },
-  groupNameText: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 6,
-    letterSpacing: 0.5,
+  summaryTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  totalExpenses: {
+  totalExpensesLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.85)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  actions: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionBtn: {
-    flex: 1,
-    height: 48,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  actionBtnGradient: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  actionBtnText: {
+  totalExpensesAmount: {
+    fontSize: 32,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+    letterSpacing: -1,
   },
   section: {
     paddingHorizontal: 16,
@@ -231,9 +199,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
   },
+  memberRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
   memberBalance: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   expenseItem: {
     flexDirection: 'row',
@@ -277,6 +259,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: Colors.text,
+  },
+  bottomBar: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    paddingBottom: 32,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  requestButton: {
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  requestButtonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  requestButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
   },
 });
 

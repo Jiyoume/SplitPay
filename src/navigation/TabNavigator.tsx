@@ -7,10 +7,12 @@ import GroupsScreen from '../screens/GroupsScreen';
 import ActivityScreen from '../screens/ActivityScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { Colors } from '../constants/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export type TabParamList = {
   Home: undefined;
   Groups: undefined;
+  Pay: undefined;
   Activity: undefined;
   Profile: undefined;
 };
@@ -31,8 +33,12 @@ export default function TabNavigator() {
             case 'Groups':
               iconName = focused ? 'people' : 'people-outline';
               break;
+            case 'Pay':
+              // Managed by custom tabBarButton
+              iconName = 'wallet';
+              break;
             case 'Activity':
-              iconName = focused ? 'list' : 'list-outline';
+              iconName = focused ? 'pulse' : 'pulse-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -46,15 +52,14 @@ export default function TabNavigator() {
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textSecondary,
         tabBarLabelStyle: {
-          fontWeight: '700',
-          fontSize: 11,
+          fontWeight: '600',
+          fontSize: 10,
           marginTop: -4,
-          marginBottom: 4,
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,
         },
         tabBarStyle: {
           backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: Colors.border,
+          borderTopWidth: 0,
           height: Platform.OS === 'ios' ? 88 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           shadowColor: '#000',
@@ -90,15 +95,23 @@ export default function TabNavigator() {
         options={({ navigation }) => ({
           headerTitle: () => (
             <View style={styles.headerLeftContainer}>
-              <View style={styles.logoCircle}>
-                <Ionicons name="wallet" size={16} color={Colors.primary} />
+              <View style={styles.logoGradientContainer}>
+                <LinearGradient
+                  colors={[Colors.primary, Colors.accent]}
+                  style={styles.logoGradient}
+                >
+                  <Text style={styles.logoIconText}>M</Text>
+                  <View style={styles.logoInnerP}>
+                    <Text style={styles.logoInnerPText}>P</Text>
+                  </View>
+                </LinearGradient>
               </View>
-              <Text style={styles.logoText}>SplitPay</Text>
+              <Text style={styles.logoText}>My<Text style={{color: Colors.secondary}}>Share</Text></Text>
             </View>
           ),
           headerRight: () => (
             <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={22} color={Colors.text} />
+              <Ionicons name="notifications-outline" size={24} color={Colors.text} />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
           ),
@@ -112,17 +125,39 @@ export default function TabNavigator() {
           headerRight: () => (
             <View style={styles.headerRightRow}>
               <TouchableOpacity style={styles.headerIconButton}>
-                <Ionicons name="search-outline" size={22} color={Colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerIconButton}
-                onPress={() => navigation.navigate('CreateGroup')}
-              >
-                <Ionicons name="add" size={26} color={Colors.text} />
+                <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+                <View style={styles.notificationBadge} />
               </TouchableOpacity>
             </View>
           ),
         })}
+      />
+      <Tab.Screen
+        name="Pay"
+        component={View} // Dummy component, handled by button press
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            // In a real app this might open a modal or AddExpense screen
+          },
+        })}
+        options={{
+          tabBarLabel: 'Pay',
+          tabBarButton: (props) => (
+            <TouchableOpacity
+              {...props}
+              style={styles.payButtonContainer}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[Colors.primary, Colors.accent]}
+                style={styles.payButton}
+              >
+                <Text style={styles.payButtonText}>P</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ),
+        }}
       />
       <Tab.Screen
         name="Activity"
@@ -130,10 +165,12 @@ export default function TabNavigator() {
         options={{
           title: 'Activity',
           headerRight: () => (
-            <TouchableOpacity style={styles.activityDropdown}>
-              <Text style={styles.dropdownText}>All Groups</Text>
-              <Ionicons name="chevron-down" size={14} color={Colors.primary} />
-            </TouchableOpacity>
+            <View style={styles.headerRightRow}>
+              <TouchableOpacity style={styles.headerIconButton}>
+                <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+                <View style={styles.notificationBadge} />
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -142,7 +179,7 @@ export default function TabNavigator() {
         component={ProfileScreen}
         options={{
           title: 'Profile',
-          headerShown: false, // Hidden standard header to render customized background
+          headerShown: false,
         }}
       />
     </Tab.Navigator>
@@ -154,18 +191,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginLeft: -8, // Offset the default header spacing
+    marginLeft: 0,
   },
-  logoCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.primaryLight,
+  logoGradientContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  logoGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  logoIconText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  logoInnerP: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    backgroundColor: '#fff',
+    borderRadius: 7,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  logoInnerPText: {
+    color: Colors.primary,
+    fontSize: 9,
+    fontWeight: '800',
+  },
   logoText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: Colors.text,
     letterSpacing: -0.5,
@@ -173,53 +237,54 @@ const styles = StyleSheet.create({
   notificationButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   notificationBadge: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 8,
+    right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    backgroundColor: Colors.error,
   },
   headerRightRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   headerIconButton: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  activityDropdown: {
-    flexDirection: 'row',
+  payButtonContainer: {
+    top: -20,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(5, 150, 105, 0.15)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0A84FF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
-  dropdownText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.primary,
+  payButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  payButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '800',
   },
 });

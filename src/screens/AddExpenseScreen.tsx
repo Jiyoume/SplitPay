@@ -44,135 +44,103 @@ export default function AddExpenseScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Amount Section Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Amount</Text>
-        <View style={styles.amountSection}>
-          <View style={styles.amountInputContainer}>
-            <Text style={styles.currencySymbol}>$</Text>
-            <TextInput
-              style={styles.amountInput}
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0.00"
-              placeholderTextColor={Colors.textLight}
-              keyboardType="decimal-pad"
-            />
-          </View>
-          <View style={styles.amountIconCircle}>
-            <Text style={styles.amountIconText}>$</Text>
-          </View>
-        </View>
+      <Text style={styles.headerTitle}>Add Expense</Text>
+
+      {/* Expense Title Input */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Expense Title</Text>
+        <TextInput
+          style={styles.textInput}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="e.g., Dinner at McDonald's"
+          placeholderTextColor={Colors.textLight}
+        />
       </View>
 
-      {/* Description Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Description</Text>
-        <View style={styles.inputContainer}>
+      {/* Amount Input */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Amount</Text>
+        <View style={styles.amountInputContainer}>
+          <Text style={styles.currencySymbol}>₱</Text>
           <TextInput
-            style={styles.input}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="What's this expense for?"
+            style={styles.amountInput}
+            value={amount}
+            onChangeText={setAmount}
+            placeholder="0.00"
             placeholderTextColor={Colors.textLight}
+            keyboardType="decimal-pad"
           />
-          <Ionicons name="document-text-outline" size={20} color={Colors.textSecondary} />
         </View>
       </View>
 
-      {/* Group Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Group</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-          {groups.map((group) => {
-            const isSelected = selectedGroup === group.id;
-            return (
-              <TouchableOpacity
-                key={group.id}
-                style={[
-                  styles.groupPill,
-                  isSelected ? styles.groupPillSelected : styles.groupPillUnselected
-                ]}
-                onPress={() => setSelectedGroup(group.id)}
-              >
-                <Text
-                  style={[
-                    styles.groupPillText,
-                    isSelected ? styles.groupPillTextSelected : styles.groupPillTextUnselected
-                  ]}
-                >
-                  {group.name}
-                </Text>
-                {isSelected && <Ionicons name="chevron-forward" size={14} color={Colors.primary} style={{ marginLeft: 4 }} />}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+      {/* Category Dropdown (Mock) */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Category</Text>
+        <TouchableOpacity style={styles.dropdownInput}>
+          <Text style={styles.dropdownText}>Food and Dining</Text>
+          <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
       </View>
 
-      {/* Category Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Category</Text>
-        <View style={styles.categoryGrid}>
-          {EXPENSE_CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
-            return (
-              <TouchableOpacity
-                key={cat.id}
-                style={[
-                  styles.categoryItem,
-                  isSelected ? styles.categorySelected : styles.categoryUnselected
-                ]}
-                onPress={() => setSelectedCategory(cat.id)}
-              >
-                <View style={[
-                  styles.categoryIconCircle,
-                  isSelected ? styles.categoryIconCircleSelected : styles.categoryIconCircleUnselected
-                ]}>
-                  <Ionicons
-                    name={cat.icon as keyof typeof Ionicons.glyphMap}
-                    size={20}
-                    color={isSelected ? Colors.primary : Colors.textSecondary}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    isSelected ? styles.categoryLabelSelected : styles.categoryLabelUnselected
-                  ]}
-                  numberOfLines={1}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+      {/* Date Picker (Mock) */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Date</Text>
+        <TouchableOpacity style={styles.dropdownInput}>
+          <Text style={styles.dropdownText}>12 Jun 2026</Text>
+          <Ionicons name="calendar-outline" size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Group Dropdown (Mock) */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Group</Text>
+        <TouchableOpacity style={styles.dropdownInput}>
+          <Text style={styles.dropdownText}>Baguio Trip</Text>
+          <Ionicons name="chevron-down" size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Participants */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Participants</Text>
+        <View style={styles.participantsContainer}>
+          {[1, 2, 3].map((_, i) => (
+            <View key={i} style={[styles.avatarStackItem, { marginLeft: i > 0 ? -12 : 0 }]}>
+              <Ionicons name="person" size={16} color={Colors.textSecondary} />
+            </View>
+          ))}
+          <TouchableOpacity style={[styles.avatarStackItem, styles.addParticipantBtn, { marginLeft: -12 }]}>
+            <Ionicons name="add" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Split Method Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Split Method</Text>
-        <View style={styles.splitContainer}>
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Split Method</Text>
+        <View style={styles.splitCardsContainer}>
           {[
-            { key: SPLIT_METHODS.EQUAL, label: 'Equal' },
-            { key: SPLIT_METHODS.EXACT, label: 'Exact' },
-            { key: SPLIT_METHODS.PERCENTAGE, label: 'Percentage (%)' },
+            { key: SPLIT_METHODS.EQUAL, label: 'Equal Split', icon: 'pie-chart' },
+            { key: SPLIT_METHODS.EXACT, label: 'Custom', icon: 'options' },
+            { key: SPLIT_METHODS.PERCENTAGE, label: 'Percentage', icon: 'analytics' },
           ].map((method) => {
             const isSelected = splitMethod === method.key;
             return (
               <TouchableOpacity
                 key={method.key}
                 style={[
-                  styles.splitSegment,
-                  isSelected ? styles.splitSegmentSelected : styles.splitSegmentUnselected
+                  styles.splitCard,
+                  isSelected ? styles.splitCardSelected : styles.splitCardUnselected
                 ]}
                 onPress={() => setSplitMethod(method.key)}
               >
+                <Ionicons name={method.icon as any} size={20} color={isSelected ? Colors.primary : Colors.textSecondary} />
                 <Text
                   style={[
-                    styles.splitText,
-                    isSelected ? styles.splitTextSelected : styles.splitTextUnselected
+                    styles.splitCardText,
+                    isSelected ? styles.splitCardTextSelected : styles.splitCardTextUnselected
                   ]}
                 >
                   {method.label}
@@ -183,15 +151,34 @@ export default function AddExpenseScreen() {
         </View>
       </View>
 
+      {/* Note Input */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Note</Text>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Add a note"
+          placeholderTextColor={Colors.textLight}
+        />
+      </View>
+
+      {/* Receipt Upload */}
+      <View style={styles.inputBlock}>
+        <Text style={styles.inputLabel}>Receipt</Text>
+        <TouchableOpacity style={styles.receiptUploadBox}>
+          <Ionicons name="cloud-upload-outline" size={28} color={Colors.primary} />
+          <Text style={styles.receiptUploadText}>Upload receipt</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Bottom Button */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <LinearGradient
-          colors={['#34D399', '#059669']}
+          colors={['#0A84FF', '#00C6FF']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.saveButtonGradient}
         >
-          <Text style={styles.saveButtonText}>Add Expense</Text>
+          <Text style={styles.saveButtonText}>Save Expense</Text>
         </LinearGradient>
       </TouchableOpacity>
     </ScrollView>
@@ -207,197 +194,142 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 40,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
-    elevation: 1,
-  },
-  cardLabel: {
-    fontSize: 12,
+  headerTitle: {
+    fontSize: 24,
     fontWeight: '800',
+    color: Colors.text,
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  inputBlock: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
     color: Colors.textSecondary,
-    marginBottom: 12,
+    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  amountSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  textInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '500',
   },
   amountInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   currencySymbol: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.primary,
+    marginRight: 8,
   },
   amountInput: {
-    fontSize: 36,
+    flex: 1,
+    fontSize: 28,
     fontWeight: '800',
     color: Colors.primary,
-    flex: 1,
-    marginLeft: 4,
     padding: 0,
   },
-  amountIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  amountIconText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  inputContainer: {
+  dropdownInput: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    padding: 0,
-  },
-  chipScroll: {
-    flexDirection: 'row',
-  },
-  groupPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-  },
-  groupPillSelected: {
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
-    borderColor: 'rgba(5, 150, 105, 0.15)',
-  },
-  groupPillUnselected: {
-    backgroundColor: '#F8F9FC',
-    borderColor: Colors.border,
-  },
-  groupPillText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  groupPillTextSelected: {
-    color: Colors.primary,
-  },
-  groupPillTextUnselected: {
-    color: Colors.textSecondary,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  categoryItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 16,
-    width: '23%',
-    borderWidth: 1,
-  },
-  categorySelected: {
-    backgroundColor: 'rgba(5, 150, 105, 0.08)',
-    borderColor: 'rgba(5, 150, 105, 0.15)',
-  },
-  categoryUnselected: {
     backgroundColor: '#FFFFFF',
-    borderColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    padding: 16,
   },
-  categoryIconCircle: {
+  dropdownText: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: '600',
+  },
+  participantsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarStackItem: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 6,
   },
-  categoryIconCircleSelected: {
-    backgroundColor: 'rgba(5, 150, 105, 0.1)',
+  addParticipantBtn: {
+    backgroundColor: Colors.primary,
   },
-  categoryIconCircleUnselected: {
-    backgroundColor: '#F8F9FC',
-  },
-  categoryLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  categoryLabelSelected: {
-    color: Colors.primary,
-  },
-  categoryLabelUnselected: {
-    color: Colors.textSecondary,
-  },
-  splitContainer: {
+  splitCardsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F8F9FC',
-    borderRadius: 14,
-    padding: 4,
-    gap: 4,
+    gap: 8,
   },
-  splitSegment: {
+  splitCard: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
   },
-  splitSegmentSelected: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 2,
+  splitCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(10, 132, 255, 0.05)',
   },
-  splitSegmentUnselected: {
-    backgroundColor: 'transparent',
+  splitCardUnselected: {
+    borderColor: Colors.border,
   },
-  splitText: {
+  splitCardText: {
     fontSize: 13,
     fontWeight: '700',
   },
-  splitTextSelected: {
+  splitCardTextSelected: {
     color: Colors.primary,
   },
-  splitTextUnselected: {
+  splitCardTextUnselected: {
     color: Colors.textSecondary,
   },
+  receiptUploadBox: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: Colors.border,
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  receiptUploadText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
   saveButton: {
-    borderRadius: 18,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
-    marginTop: 8,
-    marginBottom: 20,
-    height: 52,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 4,
+    marginTop: 16,
   },
   saveButtonGradient: {
     flex: 1,

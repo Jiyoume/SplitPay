@@ -4,6 +4,8 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/colors';
@@ -19,6 +21,8 @@ interface ActivityItem {
 }
 
 export default function ActivityScreen() {
+  const [activeFilter, setActiveFilter] = React.useState('All');
+  const filters = ['All', 'Sent', 'Received', 'Pending'];
   const activities: ActivityItem[] = [
     { id: '1', type: 'expense_added', description: 'added "Dinner at restaurant"', userName: 'You', groupName: 'Apartment 4B', amount: 85.0, date: 'Today, 7:30 PM' },
     { id: '2', type: 'payment_made', description: 'paid Sarah', userName: 'Mike', groupName: 'Apartment 4B', amount: 25.0, date: 'Today, 3:15 PM' },
@@ -56,7 +60,7 @@ export default function ActivityScreen() {
           {/* Timeline node icon */}
           <View style={[
             styles.iconNode, 
-            { backgroundColor: `${icon.color}15`, borderColor: '#FFFFFF' }
+            { backgroundColor: `${icon.color}15` }
           ]}>
             <Ionicons name={icon.name} size={16} color={icon.color} />
           </View>
@@ -73,7 +77,12 @@ export default function ActivityScreen() {
             </Text>
           </View>
           {item.amount && (
-            <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
+            <Text style={[
+              styles.amount,
+              item.type === 'payment_made' ? styles.amountPositive : styles.amountNegative
+            ]}>
+              {item.type === 'payment_made' ? '+' : '-'}₱{item.amount.toFixed(2)}
+            </Text>
           )}
         </View>
       </View>
@@ -82,6 +91,27 @@ export default function ActivityScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Filter Chips */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
+          {filters.map((filter) => (
+            <TouchableOpacity
+              key={filter}
+              style={[
+                styles.filterChip,
+                activeFilter === filter && styles.filterChipActive
+              ]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Text style={[
+                styles.filterText,
+                activeFilter === filter && styles.filterTextActive
+              ]}>{filter}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
       <FlatList
         data={activities}
         renderItem={({ item, index }) => renderActivity({ item, index })}
@@ -107,6 +137,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  filterContainer: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
+  },
   list: {
     padding: 16,
     paddingBottom: 40,
@@ -131,19 +191,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.border,
   },
   iconNode: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 3,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
-    marginTop: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    zIndex: 2,
+    backgroundColor: '#FFFFFF',
   },
   activityCard: {
     flex: 1,
@@ -151,16 +206,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 20,
+    marginLeft: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
     elevation: 1,
-    marginLeft: 4,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   activityContent: {
     flex: 1,
@@ -182,8 +236,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   amount: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
+    color: Colors.text,
+  },
+  amountPositive: {
+    color: Colors.success,
+  },
+  amountNegative: {
     color: Colors.text,
   },
   emptyState: {
