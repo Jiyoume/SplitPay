@@ -370,3 +370,37 @@ export async function scanReceipt(
     throw error;
   }
 }
+
+/**
+ * Pure JavaScript parser that extracts structured values from raw OCR text.
+ * Safe to run in React Native (Hermes) without DOM dependencies.
+ */
+export function parseRawOCRText(text: string): ReceiptOCRResult {
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  const vendor = parseVendor(lines);
+  const date = parseDate(text);
+  const items = parseLineItems(lines);
+  const totals = parseTotals(text);
+  const category = inferCategory(vendor.name, items);
+
+  return {
+    id: `rcpt_${Date.now()}`,
+    scannedAt: new Date().toISOString(),
+    confidence: (vendor.confidence + date.confidence) / 2,
+    rawText: text,
+    vendor,
+    date,
+    items,
+    subtotal: totals.subtotal,
+    tax: {
+      amount: totals.tax,
+      rate: totals.taxRate,
+      type: totals.taxRate === 0.12 ? 'VAT' : 'sales_tax',
+    },
+    serviceCharge: totals.serviceCharge,
+    discount: totals.discount,
+    total: totals.total || items.reduce((sum, i) => sum + i.totalPrice, 0),
+    currency: 'PHP',
+    category,
+  };
+}

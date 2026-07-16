@@ -5,73 +5,13 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import GradientButton from '../components/GradientButton';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+import { parseRawOCRText } from '../services/ocrService';
 
 export default function ScanReceiptScreen() {
   const navigation = useNavigation();
   const [status, setStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
   const [progress, setProgress] = useState(0);
   const [extractedData, setExtractedData] = useState<any>(null);
-
-  const parseReceiptText = (text: string) => {
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
-    // 1. Try to find vendor name
-    let vendor = 'Unknown Vendor';
-    const commonVendors = ['jollibee', 'starbucks', 'mcdonald', 'kfc', 'sm supermarket', 'savemore', 'puregold', '7-eleven', 'grab', 'foodpanda', 'mercalco', 'pldt'];
-    for (const line of lines.slice(0, 5)) {
-      const lowerLine = line.toLowerCase();
-      const match = commonVendors.find(v => lowerLine.includes(v));
-      if (match) {
-        vendor = line;
-        break;
-      }
-    }
-    if (vendor === 'Unknown Vendor' && lines.length > 0) {
-      vendor = lines[0];
-    }
-
-    // 2. Try to find total
-    let total = 0;
-    const priceRegex = /(?:total|amount|due|pay|net|php|₱).*\b([0-9,]+\.[0-9]{2})\b/i;
-    for (const line of lines) {
-      const match = line.match(priceRegex);
-      if (match) {
-        const val = parseFloat(match[1].replace(/,/g, ''));
-        if (val > total) {
-          total = val;
-        }
-      }
-    }
-
-    // Fallback search for decimal numbers
-    if (total === 0) {
-      const allNumbers = text.match(/\b\d+\.\d{2}\b/g);
-      if (allNumbers) {
-        const numbers = allNumbers.map(n => parseFloat(n)).filter(n => n < 100000);
-        if (numbers.length > 0) {
-          total = Math.max(...numbers);
-        }
-      }
-    }
-
-    // Category detection Heuristics
-    let category = 'food';
-    const lowerText = text.toLowerCase();
-    if (lowerText.includes('supermarket') || lowerText.includes('grocery') || lowerText.includes('groceries') || lowerText.includes('savemore') || lowerText.includes('puregold')) {
-      category = 'groceries';
-    } else if (lowerText.includes('taxi') || lowerText.includes('grab') || lowerText.includes('fare') || lowerText.includes('flight') || lowerText.includes('trip') || lowerText.includes('gas') || lowerText.includes('shell') || lowerText.includes('petron')) {
-      category = 'travel';
-    } else if (lowerText.includes('electric') || lowerText.includes('water') || lowerText.includes('internet') || lowerText.includes('bill') || lowerText.includes('meralco') || lowerText.includes('pldt') || lowerText.includes('globe')) {
-      category = 'utilities';
-    }
-
-    return {
-      vendor: vendor.substring(0, 40),
-      total,
-      category,
-      date: new Date().toISOString().split('T')[0],
-    };
-  };
 
   const performOCR = async (base64Data: string) => {
     setStatus('scanning');
@@ -105,8 +45,13 @@ export default function ScanReceiptScreen() {
       const text = result.ParsedResults[0].ParsedText;
       console.log('Extracted OCR Text:', text);
       
-      const parsed = parseReceiptText(text);
-      setExtractedData(parsed);
+      const parsed = parseRawOCRText(text);
+      setExtractedData({
+        vendor: parsed.vendor.name,
+        total: parsed.total,
+        category: parsed.category,
+        date: typeof parsed.date === 'object' ? (parsed.date as any).value : parsed.date,
+      });
       setProgress(100);
       setStatus('done');
     } catch (err: any) {
