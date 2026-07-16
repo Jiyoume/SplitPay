@@ -5,11 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
@@ -18,97 +20,82 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
 
-  // Mock data for demonstration
-  const totalBalance = 125.5;
-  const youOwe = 45.0;
-  const youAreOwed = 170.5;
+  const totalBalance = 1245.50;
+  const changePercent = 12.5;
 
-  const recentActivity = [
-    { id: '1', description: 'Dinner at restaurant', amount: 85.0, group: 'Apartment 4B', date: 'Today, 7:30 PM' },
-    { id: '2', description: 'Groceries', amount: 42.5, group: 'Family Expenses', date: 'Yesterday' },
-    { id: '3', description: 'Movie tickets', amount: 30.0, group: 'Weekend Trip', date: '2 days ago' },
+  const quickActions = [
+    { id: 'add', label: 'Add Expense', icon: 'add' as const, route: 'AddExpense' },
+    { id: 'split', label: 'Split Bill', icon: 'people' as const, route: 'CreateGroup' },
+    { id: 'request', label: 'Request', icon: 'arrow-down' as const, route: 'SettleUp' },
+    { id: 'scan', label: 'Scan', icon: 'scan' as const, route: 'AddExpense' },
   ];
 
-  const getActivityStyle = (desc: string) => {
-    const d = desc.toLowerCase();
-    if (d.includes('dinner') || d.includes('restaurant')) {
-      return { icon: 'restaurant-outline' as const, color: '#10B981', bgColor: 'rgba(16, 185, 129, 0.1)' };
-    }
-    if (d.includes('groceries')) {
-      return { icon: 'basket-outline' as const, color: '#3B82F6', bgColor: 'rgba(59, 130, 246, 0.1)' };
-    }
-    return { icon: 'ticket-outline' as const, color: '#EC4899', bgColor: 'rgba(236, 72, 153, 0.1)' };
-  };
+  const recentActivity = [
+    { id: '1', title: 'Dinner with friends', splitText: 'Split 4 ways', amount: -45.60, date: 'Today', icon: 'people', bgColor: '#E6F4EA', iconColor: '#10B981' },
+    { id: '2', title: 'Netflix Subscription', splitText: 'Split 2 ways', amount: -8.99, date: 'May 20', icon: 'logo-youtube', bgColor: '#FCE8E8', iconColor: '#EF4444' },
+    { id: '3', title: 'Weekend Trip', splitText: 'Split 5 ways', amount: -120.00, date: 'May 18', icon: 'airplane', bgColor: '#E8F0FE', iconColor: '#2F6BFF' },
+    { id: '4', title: 'Groceries', splitText: 'Split 3 ways', amount: -67.35, date: 'May 17', icon: 'bag-handle', bgColor: '#FEF3C7', iconColor: '#F59E0B' },
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Balance Summary Card */}
-      <LinearGradient
-        colors={['#34D399', '#059669']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.balanceCard}
-      >
-        <View style={styles.balanceCardHeader}>
-          <Text style={styles.balanceTitle}>Total Balance</Text>
-          <TouchableOpacity style={styles.moreButton}>
-            <Ionicons name="ellipsis-horizontal" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.balanceAmount}>
-          {totalBalance >= 0 ? '+' : ''}${Math.abs(totalBalance).toFixed(2)}
-        </Text>
-        <View style={styles.balanceRow}>
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>You owe</Text>
-            <Text style={[styles.balanceValue, { color: '#FF8A8A' }]}>
-              ${youOwe.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.balanceDivider} />
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>You are owed</Text>
-            <Text style={[styles.balanceValue, { color: '#A7F3D0' }]}>
-              ${youAreOwed.toFixed(2)}
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
+      
+      {/* Header Greeting */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Hello, Alex 👋</Text>
+        <Text style={styles.headline}>Share smarter. Live better.</Text>
+        <Text style={styles.subHeadline}>Track, split and share expenses{'\n'}seamlessly.</Text>
+      </View>
 
-      {/* Quick Actions */}
+      {/* Liquid Glass Balance Card */}
+      <View style={styles.cardContainer}>
+        <View style={styles.cardGlow} />
+        <BlurView intensity={Platform.OS === 'ios' ? 80 : 100} tint="light" style={styles.balanceCard}>
+          <View style={styles.balanceContent}>
+            <View>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Text style={styles.balanceAmount}>₱{totalBalance.toLocaleString('en-US', {minimumFractionDigits: 2})}</Text>
+              
+              <View style={styles.statsRow}>
+                <Text style={styles.statsText}>-vs last month</Text>
+                <View style={styles.pillContainer}>
+                  <Ionicons name="caret-up" size={12} color={Colors.success} />
+                  <Text style={styles.pillText}>{changePercent}%</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* Chart Graphic Mockup */}
+            <View style={styles.chartGraphic}>
+               <LinearGradient colors={['rgba(47, 107, 255, 0.1)', 'rgba(0, 209, 255, 0.1)']} style={styles.chartBg} />
+               <View style={styles.bars}>
+                 <LinearGradient colors={['#2F6BFF', '#2F6BFF']} style={[styles.bar, {height: 24}]} />
+                 <LinearGradient colors={['#2F6BFF', '#00D1FF']} style={[styles.bar, {height: 48}]} />
+                 <LinearGradient colors={['#10B981', '#34D399']} style={[styles.bar, {height: 36}]} />
+               </View>
+            </View>
+          </View>
+        </BlurView>
+      </View>
+
+      {/* Quick Actions Row */}
       <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('AddExpense', {})}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.1)', borderColor: 'rgba(16, 185, 129, 0.15)' }]}>
-            <Ionicons name="add" size={26} color="#10B981" />
-          </View>
-          <Text style={styles.actionLabel}>Add Expense</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('CreateGroup')}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.1)', borderColor: 'rgba(139, 92, 246, 0.15)' }]}>
-            <Ionicons name="people" size={22} color="#8B5CF6" />
-          </View>
-          <Text style={styles.actionLabel}>New Group</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.actionButton}
-          onPress={() => {
-            // Settle up from Home
-            navigation.navigate('MainTabs', { screen: 'Groups' } as any);
-          }}
-        >
-          <View style={[styles.actionIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.15)' }]}>
-            <Ionicons name="card-outline" size={22} color="#3B82F6" />
-          </View>
-          <Text style={styles.actionLabel}>Settle Up</Text>
-        </TouchableOpacity>
+        {quickActions.map((action) => (
+          <TouchableOpacity 
+            key={action.id} 
+            style={styles.actionItem}
+            onPress={() => {
+              if(action.route === 'CreateGroup') navigation.navigate('CreateGroup');
+              else if(action.route === 'AddExpense') navigation.navigate('AddExpense', {});
+              else navigation.navigate('MainTabs', { screen: 'Groups' } as any);
+            }}
+          >
+            <View style={styles.actionIconContainer}>
+              <Ionicons name={action.icon} size={24} color={Colors.primary} />
+            </View>
+            <Text style={styles.actionLabel}>{action.label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Recent Activity */}
@@ -116,25 +103,49 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Activity' } as any)}>
-            <Text style={styles.viewAllText}>View all</Text>
+            <Text style={styles.viewAllText}>See all</Text>
           </TouchableOpacity>
         </View>
-        {recentActivity.map((item) => {
-          const actStyle = getActivityStyle(item.description);
-          return (
-            <View key={item.id} style={styles.activityCard}>
-              <View style={[styles.activityIcon, { backgroundColor: actStyle.bgColor }]}>
-                <Ionicons name={actStyle.icon} size={20} color={actStyle.color} />
-              </View>
-              <View style={styles.activityInfo}>
-                <Text style={styles.activityDescription}>{item.description}</Text>
-                <Text style={styles.activityMeta}>{item.group} • {item.date}</Text>
-              </View>
-              <Text style={styles.activityAmount}>${item.amount.toFixed(2)}</Text>
+
+        {recentActivity.map((item) => (
+          <View key={item.id} style={styles.activityRow}>
+            <View style={[styles.activityIconWrapper, { backgroundColor: item.bgColor }]}>
+              <Ionicons name={item.icon as any} size={20} color={item.iconColor} />
             </View>
-          );
-        })}
+            <View style={styles.activityDetails}>
+              <Text style={styles.activityTitle}>{item.title}</Text>
+              <Text style={styles.activitySubtitle}>{item.splitText}</Text>
+            </View>
+            <View style={styles.activityAmounts}>
+              <Text style={styles.activityAmountBold}>
+                {item.amount < 0 ? '-' : '+'}₱{Math.abs(item.amount).toFixed(2)}
+              </Text>
+              <Text style={styles.activityDate}>{item.date}</Text>
+            </View>
+          </View>
+        ))}
       </View>
+
+      {/* Promo Banner */}
+      <View style={styles.promoContainer}>
+        <LinearGradient
+          colors={['rgba(47,107,255,0.08)', 'rgba(0,209,255,0.15)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.promoBanner}
+        >
+          <View style={styles.promoTextContainer}>
+            <Text style={styles.promoTitle}>Smart sharing, made simple</Text>
+            <Text style={styles.promoDesc}>Invite friends and start sharing expenses effortlessly.</Text>
+          </View>
+          {/* Decorative shapes for promo */}
+          <View style={styles.promoGraphic}>
+             <Ionicons name="people-circle" size={54} color={Colors.primary} style={{opacity: 0.8}} />
+             <Ionicons name="sparkles" size={24} color={Colors.secondary} style={{position: 'absolute', top: -10, right: -10}} />
+          </View>
+        </LinearGradient>
+      </View>
+
     </ScrollView>
   );
 }
@@ -145,113 +156,168 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   content: {
+    paddingTop: 16,
     paddingBottom: 40,
   },
-  balanceCard: {
-    margin: 16,
-    padding: 24,
-    borderRadius: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
+  header: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
-  balanceCardHeader: {
+  greeting: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  headline: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.text,
+    fontStyle: 'italic',
+    marginBottom: 6,
+    letterSpacing: -0.5,
+  },
+  subHeadline: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  cardContainer: {
+    marginHorizontal: 24,
+    marginBottom: 32,
+    position: 'relative',
+  },
+  cardGlow: {
+    position: 'absolute',
+    top: -10,
+    left: -10,
+    right: -10,
+    bottom: -10,
+    backgroundColor: 'rgba(0, 209, 255, 0.15)',
+    borderRadius: 36,
+    transform: [{ scale: 0.95 }],
+    ...Platform.select({
+      ios: {
+        shadowColor: Colors.secondary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+    }),
+  },
+  balanceCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    padding: 24,
+    ...Platform.select({
+      android: {
+        elevation: 4,
+        backgroundColor: '#FFFFFF',
+      },
+    }),
+  },
+  balanceContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-  },
-  moreButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  balanceTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: 'rgba(255, 255, 255, 0.85)',
-    textTransform: 'none',
-    letterSpacing: 0.2,
-  },
-  balanceAmount: {
-    fontSize: 38,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 20,
-    letterSpacing: -0.5,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingVertical: 14,
-    borderRadius: 18,
-  },
-  balanceItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  balanceDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   balanceLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginBottom: 4,
+    fontSize: 13,
+    color: Colors.textSecondary,
     fontWeight: '600',
+    marginBottom: 8,
   },
-  balanceValue: {
-    fontSize: 18,
+  balanceAmount: {
+    fontSize: 34,
     fontWeight: '800',
+    color: Colors.black,
+    letterSpacing: -1,
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statsText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  pillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+    gap: 2,
+  },
+  pillText: {
+    fontSize: 12,
+    color: Colors.success,
+    fontWeight: '700',
+  },
+  chartGraphic: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    overflow: 'hidden',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    padding: 8,
+  },
+  chartBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  bars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  bar: {
+    width: 8,
+    borderRadius: 4,
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginVertical: 12,
-    gap: 12,
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
-  actionButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+  actionItem: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    width: '22%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
     elevation: 2,
   },
-  actionIconCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1,
+  actionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   actionLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '600',
     color: Colors.text,
-    fontWeight: '700',
     textAlign: 'center',
   },
   section: {
-    paddingHorizontal: 16,
-    marginTop: 16,
+    paddingHorizontal: 24,
+    marginBottom: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -263,54 +329,84 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.text,
-    letterSpacing: -0.2,
   },
   viewAllText: {
     fontSize: 14,
+    fontWeight: '600',
     color: Colors.primary,
-    fontWeight: '700',
   },
-  activityCard: {
+  activityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 18,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.01,
-    shadowRadius: 6,
-    elevation: 1,
+    marginBottom: 20,
   },
-  activityIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+  activityIconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 16,
   },
-  activityInfo: {
+  activityDetails: {
     flex: 1,
   },
-  activityDescription: {
+  activityTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: Colors.text,
+    marginBottom: 4,
   },
-  activityMeta: {
-    fontSize: 12,
+  activitySubtitle: {
+    fontSize: 13,
     color: Colors.textSecondary,
-    marginTop: 4,
-    fontWeight: '500',
   },
-  activityAmount: {
-    fontSize: 16,
+  activityAmounts: {
+    alignItems: 'flex-end',
+  },
+  activityAmountBold: {
+    fontSize: 15,
     fontWeight: '800',
     color: Colors.text,
+    marginBottom: 4,
   },
+  activityDate: {
+    fontSize: 12,
+    color: Colors.textLight,
+  },
+  promoContainer: {
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
+  promoBanner: {
+    flexDirection: 'row',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 209, 255, 0.2)',
+  },
+  promoTextContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  promoTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontStyle: 'italic',
+    color: Colors.text,
+    marginBottom: 6,
+  },
+  promoDesc: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+  },
+  promoGraphic: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  }
 });
-

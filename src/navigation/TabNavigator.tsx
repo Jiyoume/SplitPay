@@ -97,7 +97,7 @@ export default function TabNavigator() {
             <View style={styles.headerLeftContainer}>
               <View style={styles.logoGradientContainer}>
                 <LinearGradient
-                  colors={[Colors.primary, Colors.accent]}
+                  colors={Colors.gradientPrimary}
                   style={styles.logoGradient}
                 >
                   <Text style={styles.logoIconText}>M</Text>
@@ -111,7 +111,7 @@ export default function TabNavigator() {
           ),
           headerRight: () => (
             <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={24} color={Colors.text} />
+              <Ionicons name="notifications-outline" size={24} color={Colors.primary} />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
           ),
@@ -150,10 +150,12 @@ export default function TabNavigator() {
               activeOpacity={0.8}
             >
               <LinearGradient
-                colors={[Colors.primary, Colors.accent]}
+                colors={Colors.gradientPrimary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={styles.payButton}
               >
-                <Text style={styles.payButtonText}>P</Text>
+                <Text style={styles.payButtonText}>₱</Text>
               </LinearGradient>
             </TouchableOpacity>
           ),
@@ -265,26 +267,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#0A84FF',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        shadowColor: Colors.secondary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
       },
       android: {
-        elevation: 6,
+        elevation: 8,
       },
     }),
   },
   payButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   payButtonText: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '800',
   },
 });
