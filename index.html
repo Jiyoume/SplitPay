@@ -2775,33 +2775,72 @@ function startFaceDetection(video) {
       } catch(e) {}
     }, 200);
   } else {
-    // Fallback: no FaceDetector API — show manual capture button
-    // Cannot auto-detect face without API, so user taps when ready
-    guide.style.borderColor = '#FFB800'; guide.style.borderStyle = 'solid';
-    status.textContent = 'Align your face in the oval, then tap the circle to capture';
+    // Fallback: use canvas analysis to detect face presence
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    canvas.width = 160; canvas.height = 120;
+    let facePresent = false;
+    let checkCount = 0;
+
+    guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
+    status.textContent = 'Detecting face...';
     updateProgress(0);
 
-    // Show a manual capture button
-    const progressWrap = document.getElementById('selfieProgressWrap');
-    progressWrap.style.cursor = 'pointer';
-    progressWrap.onclick = () => {
-      // Animate progress then capture
-      let count = 0;
-      const timer = setInterval(() => {
-        count += 5;
-        updateProgress(count);
-        if (count < 30) status.textContent = 'Verifying... ' + count + '%';
-        else if (count < 70) status.textContent = 'Analyzing face... ' + count + '%';
-        else if (count < 100) status.textContent = 'Almost done... ' + count + '%';
-        if (count >= 100) {
-          clearInterval(timer);
-          status.textContent = '✅ Captured!';
-          captured = true;
-          setTimeout(() => captureSelfie(), 300);
+    faceDetectionInterval = setInterval(() => {
+      if (captured) return;
+      ctx.drawImage(video, 0, 0, 160, 120);
+
+      // Analyze center region for skin-tone colors (face detection heuristic)
+      const imgData = ctx.getImageData(40, 20, 80, 80);
+      let skinPixels = 0;
+      let totalPixels = 0;
+
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
+        totalPixels++;
+        // Skin tone detection (works for various skin colors)
+        if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 15 && Math.abs(r - b) > 15) {
+          skinPixels++;
         }
-      }, 80);
-    };
-    document.getElementById('selfieProgressText').textContent = 'TAP';
+      }
+
+      const skinRatio = skinPixels / totalPixels;
+
+      // Face detected if >20% skin-tone pixels in center region
+      if (skinRatio > 0.20) {
+        stableCount++;
+        facePresent = true;
+        const pct = Math.min(100, (stableCount / stableRequired) * 100);
+        updateProgress(pct);
+        guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
+
+        if (pct < 25) status.textContent = 'Face detected — hold still...';
+        else if (pct < 50) status.textContent = 'Recognizing... ' + Math.round(pct) + '%';
+        else if (pct < 75) status.textContent = 'Verifying face... ' + Math.round(pct) + '%';
+        else if (pct < 100) status.textContent = 'Almost done... ' + Math.round(pct) + '%';
+
+        if (stableCount >= stableRequired && !captured) {
+          captured = true;
+          status.textContent = '✅ Face recognized — captured!';
+          updateProgress(100);
+          setTimeout(() => captureSelfie(), 500);
+        }
+      } else {
+        stableCount = Math.max(0, stableCount - 3);
+        facePresent = false;
+        updateProgress(Math.max(0, (stableCount / stableRequired) * 100));
+        guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
+        
+        checkCount++;
+        if (checkCount > 50 && !facePresent) {
+          // After 10 seconds with no face detected — show prompt
+          status.textContent = '⚠️ No face detected. Please position your face within the oval.';
+          guide.style.borderColor = '#FF453A'; guide.style.borderStyle = 'dashed';
+        } else {
+          status.textContent = 'Position your face within the oval';
+        }
+      }
+    }, 200);
   }
 }
 
