@@ -17,7 +17,7 @@ export type RootStackParamList = {
   Onboarding: undefined;
   SignIn: undefined;
   MainTabs: undefined;
-  AddExpense: { groupId?: string };
+  AddExpense: { groupId?: string; title?: string; amount?: string; category?: string };
   GroupDetail: { groupId: string };
   CreateGroup: undefined;
   SettleUp: { groupId: string; fromUserId: string; toUserId: string; amount: number };

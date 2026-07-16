@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, Radii, Spacing } from '../constants/theme';
@@ -20,6 +20,7 @@ import { getUserGroupsWithBalances, saveExpense, saveGroup, getAllUsers } from '
 import { Expense } from '../models/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type AddExpenseRouteProp = RouteProp<RootStackParamList, 'AddExpense'>;
 
 const SPLIT_OPTIONS = [
   { key: SPLIT_METHODS.EQUAL, label: 'Equal', icon: 'git-compare-outline' as const },
@@ -29,6 +30,7 @@ const SPLIT_OPTIONS = [
 
 export default function AddExpenseScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<AddExpenseRouteProp>();
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -39,6 +41,14 @@ export default function AddExpenseScreen() {
   const [note, setNote] = useState('');
   const [groups, setGroups] = useState<any[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (route.params) {
+      if (route.params.title) setTitle(route.params.title);
+      if (route.params.amount) setAmount(route.params.amount);
+      if (route.params.category) setSelectedCategory(route.params.category);
+    }
+  }, [route.params]);
 
   useEffect(() => {
     async function loadGroups() {

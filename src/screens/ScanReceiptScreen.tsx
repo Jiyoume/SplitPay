@@ -27,8 +27,19 @@ export default function ScanReceiptScreen() {
   };
 
   const handleUseData = () => {
-    Alert.alert('Applied!', 'Receipt data applied to expense form.');
-    navigation.goBack();
+    Alert.alert('Applied!', 'Receipt data applied to expense form.', [
+      {
+        text: 'OK',
+        onPress: () => {
+          // Navigate to AddExpense screen with the extracted data
+          navigation.navigate('AddExpense' as any, {
+            title: 'Jollibee - SM Megamall',
+            amount: '1214.08',
+            category: 'food',
+          });
+        }
+      }
+    ]);
   };
 
   if (status === 'idle') {
