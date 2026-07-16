@@ -1672,41 +1672,80 @@ function applyOCRData() {
     <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Complete your KYC to unlock full wallet features and higher limits.</div>
     
     <div class="input-group">
-      <label>Full Name <span class="kyc-field-status">✅</span></label>
-      <input type="text" placeholder="Juan Dela Cruz" value="Juan Dela Cruz" id="kycFullName">
+      <label>Full Name</label>
+      <input type="text" placeholder="Juan Dela Cruz" id="kycFullName">
     </div>
     <div class="input-group">
-      <label>Email Address <span class="kyc-field-status">✅</span></label>
-      <input type="email" placeholder="your@email.com" value="juan@email.com" id="kycEmail">
+      <label>Email Address</label>
+      <input type="email" placeholder="your@email.com" id="kycEmail">
     </div>
     <div class="input-group">
-      <label>Phone Number <span class="kyc-field-status">✅</span></label>
-      <input type="tel" placeholder="+63 9XX XXX XXXX" value="+63 917 123 4567" id="kycPhone">
+      <label>Phone Number</label>
+      <input type="tel" placeholder="+63 9XX XXX XXXX" id="kycPhone">
     </div>
     <div class="input-group">
-      <label>Birthday <span class="kyc-field-status">⏳ processing</span></label>
-      <input type="date" value="1995-03-15" id="kycBirthday">
+      <label>Birthday</label>
+      <input type="date" id="kycBirthday">
     </div>
+
+    <!-- Address Section (Philippine hierarchy) -->
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">📍 Address</div>
+    <div class="input-group">
+      <label>Region</label>
+      <select id="kycRegion" onchange="loadProvinces()">
+        <option value="">Select Region...</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Province</label>
+      <select id="kycProvince" onchange="loadCities()">
+        <option value="">Select Province...</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>City / Municipality</label>
+      <select id="kycCity" onchange="loadBarangays()">
+        <option value="">Select City...</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Barangay</label>
+      <select id="kycBarangay">
+        <option value="">Select Barangay...</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label>Street Address</label>
+      <input type="text" placeholder="House/Unit No., Street Name" id="kycStreet">
+    </div>
+    <div class="input-group">
+      <label>Zip Code</label>
+      <input type="text" placeholder="0000" id="kycZipCode" maxlength="4" inputmode="numeric">
+    </div>
+
+    <!-- ID Section -->
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">🪪 Government ID</div>
     <div class="input-group">
       <label>ID Type</label>
       <select id="kycIdType">
         <option value="">Select ID type...</option>
+        <option value="philsys">Philippine National ID (PhilSys)</option>
         <option value="passport">Passport</option>
-        <option value="drivers_license">Driver's License</option>
-        <option value="national_id">Philippine National ID</option>
-        <option value="sss">SSS ID</option>
+        <option value="drivers_license">Driver's License (LTO)</option>
+        <option value="sss">SSS / UMID</option>
         <option value="philhealth">PhilHealth ID</option>
-        <option value="voters">Voter's ID</option>
+        <option value="voters">Voter's ID (COMELEC)</option>
         <option value="postal">Postal ID</option>
+        <option value="prc">PRC ID</option>
       </select>
     </div>
     <div class="input-group">
-      <label>ID Number <span class="kyc-field-status">⏳ processing</span></label>
+      <label>ID Number</label>
       <input type="text" placeholder="Enter ID number" id="kycIdNumber">
     </div>
 
     <!-- Document Upload -->
-    <label style="display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Document Uploads</label>
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">📄 Document Uploads</div>
     <div class="kyc-upload-btns">
       <label class="kyc-upload-btn" id="kycIdFrontBtn">
         📸 ID Front
@@ -2430,6 +2469,63 @@ function copyStellarAddress() {
 // ===== KYC FUNCTIONS =====
 function openKYCModal() {
   openModal('kycModal');
+  loadRegions(); // Load Philippine regions on open
+}
+
+// ===== PHILIPPINE ADDRESS API (PSGC) =====
+const PSGC_API = 'https://psgc.gitlab.io/api';
+
+async function loadRegions() {
+  const sel = document.getElementById('kycRegion');
+  if (sel.options.length > 1) return; // Already loaded
+  try {
+    const res = await fetch(PSGC_API + '/regions/');
+    const data = await res.json();
+    data.sort((a,b) => a.name.localeCompare(b.name));
+    data.forEach(r => { const opt = document.createElement('option'); opt.value = r.code; opt.textContent = r.name; sel.appendChild(opt); });
+  } catch(e) { console.error('Failed to load regions:', e); }
+}
+
+async function loadProvinces() {
+  const regionCode = document.getElementById('kycRegion').value;
+  const sel = document.getElementById('kycProvince');
+  sel.innerHTML = '<option value="">Select Province...</option>';
+  document.getElementById('kycCity').innerHTML = '<option value="">Select City...</option>';
+  document.getElementById('kycBarangay').innerHTML = '<option value="">Select Barangay...</option>';
+  if (!regionCode) return;
+  try {
+    const res = await fetch(PSGC_API + '/regions/' + regionCode + '/provinces/');
+    const data = await res.json();
+    data.sort((a,b) => a.name.localeCompare(b.name));
+    data.forEach(p => { const opt = document.createElement('option'); opt.value = p.code; opt.textContent = p.name; sel.appendChild(opt); });
+  } catch(e) { console.error('Failed to load provinces:', e); }
+}
+
+async function loadCities() {
+  const provinceCode = document.getElementById('kycProvince').value;
+  const sel = document.getElementById('kycCity');
+  sel.innerHTML = '<option value="">Select City...</option>';
+  document.getElementById('kycBarangay').innerHTML = '<option value="">Select Barangay...</option>';
+  if (!provinceCode) return;
+  try {
+    const res = await fetch(PSGC_API + '/provinces/' + provinceCode + '/cities-municipalities/');
+    const data = await res.json();
+    data.sort((a,b) => a.name.localeCompare(b.name));
+    data.forEach(c => { const opt = document.createElement('option'); opt.value = c.code; opt.textContent = c.name; sel.appendChild(opt); });
+  } catch(e) { console.error('Failed to load cities:', e); }
+}
+
+async function loadBarangays() {
+  const cityCode = document.getElementById('kycCity').value;
+  const sel = document.getElementById('kycBarangay');
+  sel.innerHTML = '<option value="">Select Barangay...</option>';
+  if (!cityCode) return;
+  try {
+    const res = await fetch(PSGC_API + '/cities-municipalities/' + cityCode + '/barangays/');
+    const data = await res.json();
+    data.sort((a,b) => a.name.localeCompare(b.name));
+    data.forEach(b => { const opt = document.createElement('option'); opt.value = b.code; opt.textContent = b.name; sel.appendChild(opt); });
+  } catch(e) { console.error('Failed to load barangays:', e); }
 }
 
 function handleKYCUpload(event, type) {
