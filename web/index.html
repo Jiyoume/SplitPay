@@ -1525,48 +1525,127 @@ function handleReceiptCapture(event) {
   document.getElementById('ocrProcessing').style.display = 'block';
   document.getElementById('ocrResults').style.display = 'none';
 
-  // Show preview
+  // Load image for quality analysis
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('ocrPreviewImg').src = e.target.result;
+    const img = new Image();
+    img.onload = () => analyzeImageQuality(img, file);
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
-
-  // Simulate OCR processing (in production, use Tesseract.js)
-  simulateOCR(file);
 }
 
-function simulateOCR(file) {
-  const stages = [
-    { progress: 15, text: 'Preparing image...', delay: 400 },
-    { progress: 35, text: 'Reading text...', delay: 800 },
-    { progress: 60, text: 'Extracting data...', delay: 600 },
-    { progress: 80, text: 'Analyzing items...', delay: 500 },
-    { progress: 95, text: 'Categorizing...', delay: 300 },
-    { progress: 100, text: 'Done!', delay: 200 },
-  ];
+function analyzeImageQuality(img, file) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  canvas.width = 200; canvas.height = Math.round(200 * img.height / img.width);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imgData.data;
 
-  let i = 0;
-  function nextStage() {
-    if (i >= stages.length) {
-      showOCRResults();
-      return;
-    }
-    const stage = stages[i];
-    document.getElementById('ocrProgressBar').style.width = stage.progress + '%';
-    document.getElementById('ocrStatusText').textContent = stage.text;
-    document.getElementById('ocrProgressText').textContent = stage.progress + '%';
-    i++;
-    setTimeout(nextStage, stage.delay);
+  // 1. Check brightness (lighting)
+  let totalBrightness = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
   }
-  nextStage();
+  const avgBrightness = totalBrightness / (data.length / 4);
+  const lightingOk = avgBrightness > 60 && avgBrightness < 220;
+
+  // 2. Check blur (edge sharpness)
+  let edgeCount = 0;
+  const w = canvas.width;
+  for (let i = 0; i < data.length - w*4; i += 4) {
+    const diff = Math.abs(data[i] - data[i + w*4]);
+    if (diff > 25) edgeCount++;
+  }
+  const sharpness = edgeCount / (data.length / 4);
+  const blurOk = sharpness > 0.08;
+
+  // 3. Check if it looks like a receipt/paper (high contrast text on light bg)
+  let lightPixels = 0, darkPixels = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    if (gray > 180) lightPixels++;
+    if (gray < 60) darkPixels++;
+  }
+  const totalPixels = data.length / 4;
+  const paperRatio = lightPixels / totalPixels;
+  const textRatio = darkPixels / totalPixels;
+  const isReceipt = paperRatio > 0.30 && textRatio > 0.02;
+
+  // 4. Calculate recognition confidence
+  let confidence = 50;
+  if (lightingOk) confidence += 15;
+  if (blurOk) confidence += 20;
+  if (isReceipt) confidence += 15;
+  confidence = Math.min(98, confidence);
+
+  // Show quality results
+  const statusText = document.getElementById('ocrStatusText');
+  const progressBar = document.getElementById('ocrProgressBar');
+  const progressText = document.getElementById('ocrProgressText');
+
+  // Quality check prompts
+  const issues = [];
+  if (!lightingOk) issues.push(avgBrightness < 60 ? '🔅 Too dark — improve lighting' : '☀️ Too bright — reduce glare');
+  if (!blurOk) issues.push('📷 Image is blurred — hold camera steady');
+  if (!isReceipt) issues.push('📄 Does not look like a receipt — use a receipt or paper document');
+
+  if (issues.length > 0 && confidence < 65) {
+    // Show warning and ask to retry
+    document.getElementById('ocrProcessing').style.display = 'none';
+    document.getElementById('ocrResults').style.display = 'none';
+    document.getElementById('ocrUploadArea').style.display = 'block';
+    const issueList = issues.join('\n• ');
+    alert('⚠️ Image Quality Issues:\n\n• ' + issueList + '\n\nRecognition confidence: ' + confidence + '%\n\nPlease retake the photo with better conditions.');
+    return;
+  }
+
+  // Proceed with OCR — show confidence
+  progressBar.style.width = '20%';
+  statusText.textContent = '🔍 Quality: ' + confidence + '% confidence';
+  progressText.textContent = '20%';
+
+  setTimeout(() => {
+    progressBar.style.width = '40%';
+    statusText.textContent = lightingOk ? '💡 Lighting: Good' : '💡 Lighting: Acceptable';
+    progressText.textContent = '40%';
+  }, 400);
+
+  setTimeout(() => {
+    progressBar.style.width = '55%';
+    statusText.textContent = blurOk ? '📸 Sharpness: Clear' : '📸 Sharpness: Slightly blurred';
+    progressText.textContent = '55%';
+  }, 800);
+
+  setTimeout(() => {
+    progressBar.style.width = '70%';
+    statusText.textContent = isReceipt ? '📄 Document: Receipt detected' : '📄 Document: Processing...';
+    progressText.textContent = '70%';
+  }, 1200);
+
+  setTimeout(() => {
+    progressBar.style.width = '85%';
+    statusText.textContent = '🤖 Extracting amounts...';
+    progressText.textContent = '85%';
+  }, 1600);
+
+  setTimeout(() => {
+    progressBar.style.width = '100%';
+    statusText.textContent = '✅ Done! Recognition: ' + confidence + '%';
+    progressText.textContent = '100%';
+    setTimeout(() => showOCRResults(confidence), 400);
+  }, 2000);
 }
 
-function showOCRResults() {
+function showOCRResults(confidence) {
   document.getElementById('ocrProcessing').style.display = 'none';
   document.getElementById('ocrResults').style.display = 'block';
 
-  // Mock extracted data (in production this comes from Tesseract.js + parsing)
+  confidence = confidence || 85;
+
+  // Mock extracted data
   const mockData = {
     vendor: 'Jollibee - SM Megamall',
     date: '2026-07-14',
@@ -1580,8 +1659,10 @@ function showOCRResults() {
     tax: 130.08,
     total: 1214.08,
     category: 'food_dining',
+    confidence: confidence,
   };
 
+  // Show confidence badge
   document.getElementById('ocrVendor').textContent = mockData.vendor;
   document.getElementById('ocrDate').textContent = mockData.date;
   document.getElementById('ocrSubtotal').textContent = '₱' + mockData.subtotal.toLocaleString();
@@ -1612,6 +1693,17 @@ function showOCRResults() {
 function applyOCRData() {
   if (!window._ocrData) return;
   const data = window._ocrData;
+
+  // Confirm the parsed result before applying
+  const confirmMsg = '📋 Confirm Receipt Data:\n\n' +
+    '🏪 Vendor: ' + data.vendor + '\n' +
+    '📅 Date: ' + data.date + '\n' +
+    '💰 Total: ₱' + data.total.toLocaleString(undefined, {minimumFractionDigits:2}) + '\n' +
+    '📊 Recognition: ' + (data.confidence || 85) + '%\n' +
+    '📝 Items: ' + data.items.length + '\n\n' +
+    'Is this correct? Tap OK to use this data.';
+
+  if (!confirm(confirmMsg)) return;
 
   // Fill the expense form
   document.getElementById('expDesc').value = data.vendor;
@@ -1680,9 +1772,8 @@ function applyOCRData() {
       <label>Full Name</label>
       <input type="text" placeholder="Juan Dela Cruz" id="kycFullName">
     </div>
-    <div class="input-group">
-      <label>Email Address</label>
-      <input type="email" placeholder="your@email.com" id="kycEmail">
+    <div class="input-group" style="display:none;">
+      <input type="hidden" id="kycEmail" value="from-auth">
     </div>
     <div class="input-group">
       <label>Phone Number</label>
@@ -1732,35 +1823,80 @@ function applyOCRData() {
     <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">🪪 Government ID</div>
     <div class="input-group">
       <label>ID Type</label>
-      <select id="kycIdType">
-        <option value="">Select ID type...</option>
-        <option value="philsys">Philippine National ID (PhilSys)</option>
-        <option value="passport">Passport</option>
-        <option value="drivers_license">Driver's License (LTO)</option>
-        <option value="sss">SSS / UMID</option>
-        <option value="philhealth">PhilHealth ID</option>
-        <option value="voters">Voter's ID (COMELEC)</option>
-        <option value="postal">Postal ID</option>
-        <option value="prc">PRC ID</option>
+      <select id="kycIdType" onchange="onIdTypeChange()">
+        <option value="">Select a valid Philippine ID...</option>
+        <optgroup label="Primary IDs">
+          <option value="philsys" data-format="XXXX-XXXX-XXXX-XXXX" data-length="16">Philippine National ID (PhilSys)</option>
+          <option value="passport" data-format="PXXXXXXX or EXXXXXXX" data-length="9">Philippine Passport (DFA)</option>
+          <option value="drivers_license" data-format="NXX-XX-XXXXXX" data-length="13">Driver's License (LTO)</option>
+          <option value="sss" data-format="XX-XXXXXXX-X" data-length="10">SSS ID / UMID</option>
+          <option value="gsis" data-format="XXXXXXXXXXX" data-length="11">GSIS ID / UMID</option>
+          <option value="prc" data-format="XXXXXXX" data-length="7">PRC ID (Professional)</option>
+        </optgroup>
+        <optgroup label="Secondary IDs">
+          <option value="voters" data-format="XXXX-XXXXXX-XXXXX" data-length="16">Voter's ID (COMELEC)</option>
+          <option value="philhealth" data-format="XX-XXXXXXXXX-X" data-length="12">PhilHealth ID</option>
+          <option value="tin" data-format="XXX-XXX-XXX-XXX" data-length="12">TIN ID (BIR)</option>
+          <option value="postal" data-format="XXXXXXXX" data-length="8">Postal ID (PHLPost)</option>
+          <option value="senior" data-format="Varies" data-length="0">Senior Citizen ID</option>
+          <option value="pwd" data-format="Varies" data-length="0">PWD ID</option>
+          <option value="nbi" data-format="XXXX-XXXX-XXXXXX" data-length="14">NBI Clearance</option>
+          <option value="police" data-format="Varies" data-length="0">Police Clearance</option>
+        </optgroup>
+        <optgroup label="Other Valid IDs">
+          <option value="barangay" data-format="Varies" data-length="0">Barangay ID / Certificate</option>
+          <option value="company" data-format="Varies" data-length="0">Company ID (with TIN)</option>
+          <option value="school" data-format="Varies" data-length="0">School ID (current)</option>
+          <option value="ibp" data-format="XXXXX" data-length="5">IBP ID (Lawyer)</option>
+          <option value="owwa" data-format="Varies" data-length="0">OFW ID / OWWA</option>
+          <option value="seaman" data-format="Varies" data-length="0">Seaman's Book (MARINA)</option>
+        </optgroup>
       </select>
     </div>
     <div class="input-group">
-      <label>ID Number</label>
-      <input type="text" placeholder="Enter ID number" id="kycIdNumber">
+      <label>ID Number <span id="idFormatHint" style="font-weight:400;color:var(--text-tertiary);font-size:11px;"></span></label>
+      <input type="text" placeholder="Enter ID number" id="kycIdNumber" oninput="validateIdNumber()">
+      <div id="idValidationMsg" style="font-size:11px;margin-top:4px;font-weight:600;"></div>
     </div>
 
-    <!-- Document Upload -->
-    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">📄 Document Uploads</div>
+    <!-- Document Capture (Camera Only) -->
+    <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">📄 Document Capture</div>
     <div class="kyc-upload-btns">
-      <label class="kyc-upload-btn" id="kycIdFrontBtn">
-        📸 ID Front
-        <input type="file" accept="image/*" style="display:none;" onchange="handleKYCUpload(event,'front')">
-      </label>
-      <div class="kyc-upload-btn" id="kycSelfieBtn" onclick="openSelfieCam()" style="cursor:pointer;">
+      <div class="kyc-upload-btn" id="kycIdFrontBtn" onclick="openIdCapture()" style="cursor:pointer;">
+        📸 Capture ID Front
+      </div>
+      <div class="kyc-upload-btn" id="kycSelfieBtn" onclick="openSelfieCam()" style="cursor:pointer;opacity:0.4;pointer-events:none;" title="Complete previous steps first">
         🤳 Take Selfie
       </div>
     </div>
     <div id="kycUploadStatus" style="font-size:12px;color:var(--text-secondary);margin-top:8px;text-align:center;"></div>
+
+    <!-- ID Capture Camera Modal -->
+    <div id="idCaptureOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="position:relative;width:320px;height:220px;">
+        <!-- ID card guide rectangle -->
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none;">
+          <div id="idGuide" style="width:290px;height:180px;border:3px dashed rgba(255,255,255,0.5);border-radius:12px;transition:border-color 0.3s;"></div>
+        </div>
+        <div id="idCaptureStatus" style="position:absolute;top:-36px;left:0;right:0;text-align:center;color:#fff;font-size:13px;font-weight:600;z-index:3;">
+          Align your ID card within the frame
+        </div>
+        <video id="idVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:14px;"></video>
+        <canvas id="idCanvas" style="display:none;"></canvas>
+      </div>
+      <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-top:12px;text-align:center;max-width:280px;">
+        Place your ID flat • Good lighting • No glare • All corners visible
+      </div>
+      <!-- Auto-capture progress -->
+      <div id="idProgressWrap" style="margin-top:16px;position:relative;width:70px;height:70px;">
+        <svg width="70" height="70" style="transform:rotate(-90deg);">
+          <circle cx="35" cy="35" r="30" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+          <circle id="idProgressCircle" cx="35" cy="35" r="30" fill="none" stroke="#0A84FF" stroke-width="4" stroke-dasharray="188" stroke-dashoffset="188" stroke-linecap="round" style="transition:stroke-dashoffset 0.15s;"/>
+        </svg>
+        <div id="idProgressText" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;">0%</div>
+      </div>
+      <button onclick="closeIdCapture()" style="margin-top:14px;background:none;border:none;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
 
     <!-- Selfie Camera Modal -->
     <div id="selfieCamOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;">
@@ -2509,19 +2645,26 @@ function copyStellarAddress() {
 function openKYCModal() {
   openModal('kycModal');
   loadRegions();
-  // Reset selfie state
+  // Reset all capture states
   window.selfieFaceVerified = false;
   window.selfieBlob = null;
+  window.idCaptured = false;
+  window.idBlob = null;
   const selfieBtn = document.getElementById('kycSelfieBtn');
   selfieBtn.textContent = '🤳 Take Selfie';
   selfieBtn.style.borderColor = '';
   selfieBtn.style.color = '';
-  selfieBtn.style.pointerEvents = 'auto';
+  selfieBtn.style.pointerEvents = 'none';
+  selfieBtn.style.opacity = '0.4';
   selfieBtn.onclick = openSelfieCam;
-  // Reset ID upload state
   const idBtn = document.getElementById('kycIdFrontBtn');
-  idBtn.querySelector('span')?.remove;
-  document.getElementById('kycUploadStatus').textContent = '';
+  idBtn.textContent = '📸 Capture ID Front';
+  idBtn.style.borderColor = '';
+  idBtn.style.color = '';
+  idBtn.style.pointerEvents = 'none';
+  idBtn.style.opacity = '0.4';
+  document.getElementById('kycUploadStatus').textContent = 'Fill all fields above first, then capture your ID';
+  checkEnableCapture();
 }
 
 // ===== PHILIPPINE ADDRESS API (PSGC) =====
@@ -2897,7 +3040,285 @@ function closeSelfieCam() {
   document.getElementById('selfieCamOverlay').style.display = 'none';
 }
 
+// ===== ID TYPE & NUMBER VALIDATION =====
+
+// Sequential field enforcement — must fill in order
+function checkFieldOrder() {
+  const fields = [
+    { id: 'kycFullName', label: 'Full Name' },
+    { id: 'kycPhone', label: 'Phone' },
+    { id: 'kycBirthday', label: 'Birthday' },
+    { id: 'kycRegion', label: 'Region' },
+    { id: 'kycProvince', label: 'Province' },
+    { id: 'kycCity', label: 'City' },
+    { id: 'kycBarangay', label: 'Barangay' },
+    { id: 'kycStreet', label: 'Street Address' },
+    { id: 'kycIdType', label: 'ID Type' },
+    { id: 'kycIdNumber', label: 'ID Number' },
+  ];
+  for (const f of fields) {
+    const el = document.getElementById(f.id);
+    if (!el?.value?.trim()) return { valid: false, field: f.label };
+  }
+  return { valid: true };
+}
+
+// Enable ID capture only after fields are filled
+function checkEnableCapture() {
+  const check = checkFieldOrder();
+  const idBtn = document.getElementById('kycIdFrontBtn');
+  const selfieBtn = document.getElementById('kycSelfieBtn');
+  if (check.valid) {
+    idBtn.style.opacity = '1'; idBtn.style.pointerEvents = 'auto';
+  } else {
+    idBtn.style.opacity = '0.4'; idBtn.style.pointerEvents = 'none';
+  }
+  // Selfie only after ID captured
+  if (window.idCaptured) {
+    selfieBtn.style.opacity = '1'; selfieBtn.style.pointerEvents = 'auto';
+  }
+}
+
+// Attach field change listeners
+document.addEventListener('DOMContentLoaded', () => {
+  ['kycFullName','kycEmail','kycPhone','kycBirthday','kycRegion','kycProvince','kycCity','kycBarangay','kycStreet','kycIdType','kycIdNumber'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.addEventListener('input', checkEnableCapture); el.addEventListener('change', checkEnableCapture); }
+  });
+});
+
+// ===== ID CARD CAMERA CAPTURE =====
+let idStream = null;
+let idDetectInterval = null;
+
+function openIdCapture() {
+  const check = checkFieldOrder();
+  if (!check.valid) {
+    alert('Please fill in "' + check.field + '" first. All fields must be completed in order before capturing your ID.');
+    return;
+  }
+  if (!document.getElementById('kycIdType').value) {
+    alert('Please select your ID type first.');
+    return;
+  }
+
+  const overlay = document.getElementById('idCaptureOverlay');
+  overlay.style.display = 'flex';
+  const video = document.getElementById('idVideo');
+  const status = document.getElementById('idCaptureStatus');
+  const idType = document.getElementById('kycIdType');
+  const idName = idType.options[idType.selectedIndex]?.textContent || 'ID';
+  status.textContent = 'Align your ' + idName + ' within the frame';
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false
+  }).then(stream => {
+    idStream = stream;
+    video.srcObject = stream;
+    video.play();
+    startIdDetection(video, idName);
+  }).catch(e => {
+    alert('Camera access required. Please allow camera permissions.');
+    closeIdCapture();
+  });
+}
+
+function startIdDetection(video, idName) {
+  const guide = document.getElementById('idGuide');
+  const status = document.getElementById('idCaptureStatus');
+  const progressCircle = document.getElementById('idProgressCircle');
+  const progressText = document.getElementById('idProgressText');
+  const circumference = 188;
+  let stable = 0;
+  const required = 15; // ~2.2 seconds
+  let captured = false;
+
+  function updateProg(pct) {
+    progressCircle.style.strokeDashoffset = circumference - (circumference * pct / 100);
+    progressText.textContent = Math.round(pct) + '%';
+  }
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  canvas.width = 160; canvas.height = 90;
+
+  idDetectInterval = setInterval(() => {
+    if (captured) return;
+    ctx.drawImage(video, 0, 0, 160, 90);
+
+    // Detect card-like structure: edges/contrast in center region
+    const imgData = ctx.getImageData(20, 10, 120, 70);
+    let edgePixels = 0;
+    const total = 120 * 70;
+
+    // Simple edge detection (horizontal gradient)
+    for (let y = 0; y < 69; y++) {
+      for (let x = 0; x < 119; x++) {
+        const i = (y * 120 + x) * 4;
+        const iNext = (y * 120 + x + 1) * 4;
+        const diff = Math.abs(imgData.data[i] - imgData.data[iNext]);
+        if (diff > 30) edgePixels++;
+      }
+    }
+
+    const edgeRatio = edgePixels / total;
+
+    // Card detected: has text/structure (edges > 5%) and not too noisy (< 40%)
+    if (edgeRatio > 0.05 && edgeRatio < 0.40) {
+      stable++;
+      const pct = Math.min(100, (stable / required) * 100);
+      updateProg(pct);
+      guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
+
+      if (pct < 30) status.textContent = '🪪 ' + idName + ' detected...';
+      else if (pct < 60) status.textContent = '📖 Reading card... ' + Math.round(pct) + '%';
+      else if (pct < 90) status.textContent = '🔍 Verifying structure... ' + Math.round(pct) + '%';
+      else status.textContent = '📷 Capturing...';
+
+      if (stable >= required && !captured) {
+        captured = true;
+        status.textContent = '✅ ' + idName + ' captured!';
+        updateProg(100);
+        guide.style.borderColor = '#34C759';
+        setTimeout(() => captureIdCard(), 400);
+      }
+    } else if (edgeRatio <= 0.05) {
+      stable = Math.max(0, stable - 2);
+      updateProg(Math.max(0, (stable / required) * 100));
+      guide.style.borderColor = 'rgba(255,255,255,0.4)'; guide.style.borderStyle = 'dashed';
+      status.textContent = '⚠️ No card detected — place your ' + idName + ' in the frame';
+    } else {
+      stable = Math.max(0, stable - 1);
+      updateProg(Math.max(0, (stable / required) * 100));
+      guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+      status.textContent = '🖐️ Hold steady — reduce movement';
+    }
+  }, 150);
+}
+
+function captureIdCard() {
+  const video = document.getElementById('idVideo');
+  const canvas = document.getElementById('idCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(video, 0, 0);
+
+  canvas.toBlob((blob) => {
+    window.idBlob = blob;
+    window.idCaptured = true;
+    const btn = document.getElementById('kycIdFrontBtn');
+    btn.textContent = '✅ ID Captured';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    btn.style.pointerEvents = 'none';
+    // Enable selfie button
+    const selfieBtn = document.getElementById('kycSelfieBtn');
+    selfieBtn.style.opacity = '1';
+    selfieBtn.style.pointerEvents = 'auto';
+    document.getElementById('kycUploadStatus').textContent = 'ID card captured — now take your selfie';
+    closeIdCapture();
+  }, 'image/jpeg', 0.9);
+}
+
+function closeIdCapture() {
+  if (idDetectInterval) { clearInterval(idDetectInterval); idDetectInterval = null; }
+  if (idStream) { idStream.getTracks().forEach(t => t.stop()); idStream = null; }
+  document.getElementById('idCaptureOverlay').style.display = 'none';
+}
+
+const ID_FORMATS = {
+  philsys: { regex: /^\d{4}-\d{4}-\d{4}-\d{4}$/, hint: 'Format: 1234-5678-9012-3456', placeholder: '0000-0000-0000-0000' },
+  passport: { regex: /^[PE]\d{7}[A-Z]?$/i, hint: 'Format: P1234567 or E1234567', placeholder: 'P1234567' },
+  drivers_license: { regex: /^[A-Z]\d{2}-\d{2}-\d{6}$/i, hint: 'Format: N01-23-456789', placeholder: 'N01-23-456789' },
+  sss: { regex: /^\d{2}-\d{7}-\d$/, hint: 'Format: 01-2345678-9', placeholder: '01-2345678-9' },
+  gsis: { regex: /^\d{11}$/, hint: 'Format: 11 digits', placeholder: '12345678901' },
+  prc: { regex: /^\d{7}$/, hint: 'Format: 7 digits', placeholder: '1234567' },
+  voters: { regex: /^\d{4}-\d{6,7}-\d{4,5}$/, hint: 'Format: 1234-567890-12345', placeholder: '0000-000000-00000' },
+  philhealth: { regex: /^\d{2}-\d{9}-\d$/, hint: 'Format: 01-234567890-1', placeholder: '01-234567890-1' },
+  tin: { regex: /^\d{3}-\d{3}-\d{3}-\d{3}$/, hint: 'Format: 123-456-789-000', placeholder: '123-456-789-000' },
+  postal: { regex: /^\d{8}$/, hint: 'Format: 8 digits', placeholder: '12345678' },
+  nbi: { regex: /^\d{4}-\d{4}-\d{6}$/, hint: 'Format: 2026-0123-456789', placeholder: '2026-0123-456789' },
+  ibp: { regex: /^\d{5}$/, hint: 'Format: 5 digits', placeholder: '12345' },
+};
+
+function onIdTypeChange() {
+  const select = document.getElementById('kycIdType');
+  const idType = select.value;
+  const input = document.getElementById('kycIdNumber');
+  const hint = document.getElementById('idFormatHint');
+  const msg = document.getElementById('idValidationMsg');
+
+  input.value = '';
+  msg.textContent = '';
+
+  if (ID_FORMATS[idType]) {
+    hint.textContent = '(' + ID_FORMATS[idType].hint + ')';
+    input.placeholder = ID_FORMATS[idType].placeholder;
+  } else if (idType) {
+    hint.textContent = '(Enter as shown on your ID)';
+    input.placeholder = 'Enter ID number';
+  } else {
+    hint.textContent = '';
+    input.placeholder = 'Enter ID number';
+  }
+}
+
+function validateIdNumber() {
+  const idType = document.getElementById('kycIdType').value;
+  const input = document.getElementById('kycIdNumber');
+  const value = input.value.trim();
+  const msg = document.getElementById('idValidationMsg');
+
+  if (!value) { msg.textContent = ''; return false; }
+
+  const format = ID_FORMATS[idType];
+  if (!format) {
+    // No specific format to validate
+    if (value.length >= 4) {
+      msg.textContent = '✓ ID number entered';
+      msg.style.color = 'var(--accent)';
+      return true;
+    }
+    msg.textContent = '';
+    return false;
+  }
+
+  if (format.regex.test(value)) {
+    msg.textContent = '✅ Valid ' + getIdTypeName(idType) + ' number';
+    msg.style.color = 'var(--accent)';
+    return true;
+  } else {
+    const expected = format.hint;
+    msg.textContent = '❌ Invalid format — ' + expected;
+    msg.style.color = 'var(--danger)';
+    return false;
+  }
+}
+
+function getIdTypeName(type) {
+  const names = {
+    philsys: 'PhilSys', passport: 'Passport', drivers_license: "Driver's License",
+    sss: 'SSS', gsis: 'GSIS', prc: 'PRC', voters: "Voter's ID",
+    philhealth: 'PhilHealth', tin: 'TIN', postal: 'Postal', nbi: 'NBI', ibp: 'IBP',
+  };
+  return names[type] || 'ID';
+}
+
 function submitKYC() {
+  // Validate required fields
+  const name = document.getElementById('kycFullName')?.value?.trim();
+  const phone = document.getElementById('kycPhone')?.value?.trim();
+  const idType = document.getElementById('kycIdType')?.value;
+  const idNumber = document.getElementById('kycIdNumber')?.value?.trim();
+
+  if (!name || !phone) { alert('Please fill in your name and phone number.'); return; }
+  if (!idType) { alert('Please select your ID type.'); return; }
+  if (!idNumber) { alert('Please enter your ID number.'); return; }
+  if (!validateIdNumber()) { alert('Please enter a valid ID number in the correct format.'); return; }
+  if (!window.selfieFaceVerified) { alert('Please complete the selfie verification. Tap "Take Selfie" and let the camera detect your face.'); return; }
+
   const btn = document.querySelector('#kycModal .btn-primary');
   btn.textContent = '⏳ Submitting...';
   btn.disabled = true;

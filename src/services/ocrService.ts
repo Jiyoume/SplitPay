@@ -252,14 +252,32 @@ function parseTotals(text: string): { subtotal: number; tax: number; taxRate?: n
     return match ? parseFloat(match[1].replace(/[,\s]/g, '')) : 0;
   };
 
-  const total = findAmount(/(?:total|grand\s*total|amount\s*due)[:\s]*P?\s*(\d+[.,]?\d*)/i);
-  const subtotal = findAmount(/(?:subtotal|sub\s*total|sub-total)[:\s]*P?\s*(\d+[.,]?\d*)/i);
-  const tax = findAmount(/(?:vat|tax|vat\s*\d+%)[:\s]*P?\s*(\d+[.,]?\d*)/i);
-  const discount = findAmount(/(?:discount|disc|less)[:\s]*-?P?\s*(\d+[.,]?\d*)/i);
-  const serviceCharge = findAmount(/(?:service\s*charge|sc)[:\s]*P?\s*(\d+[.,]?\d*)/i);
+  // Parse totals line-by-line for accuracy (avoids "Subtotal" matching "Total")
+  let total = 0, subtotal = 0, tax = 0, discount = 0, serviceCharge = 0;
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const l = line.trim();
+    let m;
+    if ((m = l.match(/^(?:grand\s*total|total\s*amount|amount\s*due)[:\s]*(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) ||
+        (m = l.match(/^total[:\s]+(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i))) {
+      total = parseFloat(m[1].replace(/,/g, ''));
+    }
+    if (m = l.match(/^(?:subtotal|sub[\s-]total)[:\s]*(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) {
+      subtotal = parseFloat(m[1].replace(/,/g, ''));
+    }
+    if (m = l.match(/^(?:vat|tax)\s*\d*%?\s+(\d[\d,]*\.\d{2})/i)) {
+      tax = parseFloat(m[1].replace(/,/g, ''));
+    }
+    if (m = l.match(/^(?:discount|disc|less|promo)[:\s]*-?(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) {
+      discount = parseFloat(m[1].replace(/,/g, ''));
+    }
+    if (m = l.match(/^(?:service\s*charge|sc|svc)[:\s]*(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) {
+      serviceCharge = parseFloat(m[1].replace(/,/g, ''));
+    }
+  }
 
   // Detect VAT rate
-  const vatRateMatch = text.match(/vat\s*(\d+)%/i);
+  const vatRateMatch = text.match(/vat\s*(\d+)\s*%/i);
   const taxRate = vatRateMatch ? parseInt(vatRateMatch[1]) / 100 : undefined;
 
   return {
@@ -279,15 +297,15 @@ function inferCategory(vendorName: string, items: ReceiptLineItem[]): ExpenseCat
   const text = (vendorName + ' ' + items.map(i => i.name).join(' ')).toLowerCase();
   
   const categoryPatterns: [ExpenseCategory, RegExp][] = [
-    ['food_dining', /restaurant|cafe|coffee|diner|grill|kitchen|pizza|burger|chicken|jollibee|mcdo|kfc|mang inasal|chowking/i],
-    ['groceries', /grocery|supermarket|sm|robinsons|puregold|metro|savemore|7-?eleven|mini\s*stop/i],
-    ['transport', /grab|uber|taxi|gas|fuel|petron|shell|caltex|parking|toll|lrt|mrt|bus|jeep/i],
-    ['utilities', /electric|meralco|water|maynilad|internet|pldt|globe|smart|converge|wifi/i],
-    ['entertainment', /cinema|movie|netflix|spotify|games|concert|bar|club|karaoke/i],
-    ['shopping', /mall|uniqlo|h&m|zara|lazada|shopee|department|hardware/i],
-    ['healthcare', /pharmacy|mercury|watsons|hospital|clinic|doctor|dental|medical/i],
-    ['travel', /hotel|airbnb|airline|cebu\s*pac|airasia|booking|resort|inn/i],
-    ['education', /school|tuition|books|university|college|course|training/i],
+    ['utilities', /\b(electric|meralco|water|maynilad|internet|pldt|globe\s*telecom|smart\s*comm|converge|wifi|manila\s*water)\b/i],
+    ['transport', /\b(grab|uber|taxi|gas\s*station|fuel|petron|shell|caltex|parking|toll|lrt|mrt|bus|jeep|angkas)\b/i],
+    ['healthcare', /\b(pharmacy|mercury\s*drug|watsons|hospital|clinic|doctor|dental|medical|generika)\b/i],
+    ['food_dining', /\b(restaurant|cafe|coffee|diner|grill|kitchen|pizza|burger|chicken|jollibee|mcdo|mcdonald|kfc|mang\s*inasal|chowking|greenwich|shakey|yellow\s*cab|starbucks|tim\s*hortons)\b/i],
+    ['groceries', /\b(grocery|supermarket|sm\s*supermarket|sm\s*hypermarket|robinsons\s*supermarket|puregold|metro\s*mart|savemore|7-?eleven|mini\s*stop|alfamart|landers|s&r)\b/i],
+    ['entertainment', /\b(cinema|movie|netflix|spotify|games|concert|bar|club|karaoke|sm\s*cinema)\b/i],
+    ['shopping', /\b(mall|uniqlo|h&m|zara|lazada|shopee|department|hardware|ace|handyman|national\s*book)\b/i],
+    ['travel', /\b(hotel|airbnb|airline|cebu\s*pac|airasia|booking|resort|inn|agoda|trivago)\b/i],
+    ['education', /\b(school|tuition|books|university|college|course|training|review\s*center)\b/i],
   ];
 
   for (const [category, pattern] of categoryPatterns) {
