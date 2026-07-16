@@ -1777,10 +1777,14 @@ function applyOCRData() {
       <div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:16px;text-align:center;max-width:260px;">
         Keep your face centered • Good lighting • Remove glasses/mask
       </div>
-      <!-- Capture button -->
-      <button id="selfieCaptureBtn" onclick="captureSelfie()" style="margin-top:20px;width:70px;height:70px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;position:relative;transition:all 0.2s;" disabled>
-        <div style="width:54px;height:54px;border-radius:50%;background:#fff;margin:auto;transition:transform 0.2s;"></div>
-      </button>
+      <!-- Auto-capture progress ring -->
+      <div id="selfieProgressWrap" style="margin-top:20px;position:relative;width:80px;height:80px;">
+        <svg width="80" height="80" style="transform:rotate(-90deg);">
+          <circle cx="40" cy="40" r="35" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="5"/>
+          <circle id="selfieProgressCircle" cx="40" cy="40" r="35" fill="none" stroke="#34C759" stroke-width="5" stroke-dasharray="220" stroke-dashoffset="220" stroke-linecap="round" style="transition:stroke-dashoffset 0.2s;"/>
+        </svg>
+        <div id="selfieProgressText" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">0%</div>
+      </div>
       <!-- Cancel -->
       <button onclick="closeSelfieCam()" style="margin-top:16px;background:none;border:none;color:rgba(255,255,255,0.7);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;">Cancel</button>
     </div>
@@ -2621,8 +2625,6 @@ async function openSelfieCam() {
   const overlay = document.getElementById('selfieCamOverlay');
   overlay.style.display = 'flex';
   const video = document.getElementById('selfieVideo');
-  const captureBtn = document.getElementById('selfieCaptureBtn');
-  captureBtn.disabled = true;
 
   try {
     selfieStream = await navigator.mediaDevices.getUserMedia({
@@ -2631,24 +2633,41 @@ async function openSelfieCam() {
     });
     video.srcObject = selfieStream;
 
-    // Start face detection
-    startFaceDetection(video, captureBtn);
+    // Start face detection with auto-capture
+    startFaceDetection(video);
   } catch(e) {
     alert('Camera access denied. Please allow camera permissions.');
     closeSelfieCam();
   }
 }
 
-function startFaceDetection(video, captureBtn) {
+function startFaceDetection(video) {
   const guide = document.getElementById('faceGuide');
   const status = document.getElementById('selfieStatus');
-  let faceDetected = false;
+  const progressCircle = document.getElementById('selfieProgressCircle');
+  const progressText = document.getElementById('selfieProgressText');
+  const circumference = 220; // 2 * PI * 35
   let stableCount = 0;
+  const stableRequired = 20; // ~4 seconds at 200ms intervals
+  let captured = false;
 
-  // Use FaceDetector API if available, otherwise use canvas brightness detection
+  function updateProgress(pct) {
+    const offset = circumference - (circumference * pct / 100);
+    progressCircle.style.strokeDashoffset = offset;
+    progressText.textContent = Math.round(pct) + '%';
+    if (pct >= 100) {
+      progressCircle.style.stroke = '#34C759';
+    } else if (pct > 50) {
+      progressCircle.style.stroke = '#34C759';
+    } else if (pct > 0) {
+      progressCircle.style.stroke = '#FFB800';
+    }
+  }
+
   if ('FaceDetector' in window) {
     const detector = new FaceDetector({ maxDetectedFaces: 1, fastMode: true });
     faceDetectionInterval = setInterval(async () => {
+      if (captured) return;
       try {
         const faces = await detector.detect(video);
         if (faces.length > 0) {
@@ -2657,56 +2676,81 @@ function startFaceDetection(video, captureBtn) {
           const videoH = video.videoHeight;
           const faceRatio = (face.width * face.height) / (videoW * videoH);
 
-          // Face must be 8-40% of frame (within range)
           if (faceRatio > 0.08 && faceRatio < 0.40) {
             stableCount++;
-            guide.style.borderColor = '#34C759';
-            guide.style.borderStyle = 'solid';
-            status.textContent = stableCount >= 5 ? '✅ Face detected — tap to capture' : 'Hold still...';
-            if (stableCount >= 5) { captureBtn.disabled = false; }
+            const pct = Math.min(100, (stableCount / stableRequired) * 100);
+            updateProgress(pct);
+            guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
+
+            if (pct < 30) status.textContent = 'Face detected — hold still...';
+            else if (pct < 60) status.textContent = 'Stay stable... ' + Math.round(pct) + '%';
+            else if (pct < 90) status.textContent = 'Almost there... ' + Math.round(pct) + '%';
+            else if (pct < 100) status.textContent = 'Capturing...';
+
+            if (stableCount >= stableRequired && !captured) {
+              captured = true;
+              status.textContent = '✅ Captured!';
+              updateProgress(100);
+              setTimeout(() => captureSelfie(), 300);
+            }
           } else if (faceRatio <= 0.08) {
-            stableCount = 0; guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
-            status.textContent = 'Move closer'; captureBtn.disabled = true;
+            stableCount = Math.max(0, stableCount - 3);
+            updateProgress((stableCount / stableRequired) * 100);
+            guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+            status.textContent = 'Move closer to the camera';
           } else {
-            stableCount = 0; guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
-            status.textContent = 'Move further away'; captureBtn.disabled = true;
+            stableCount = Math.max(0, stableCount - 3);
+            updateProgress((stableCount / stableRequired) * 100);
+            guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+            status.textContent = 'Move further away';
           }
         } else {
-          stableCount = 0; guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
-          status.textContent = 'Position your face within the oval'; captureBtn.disabled = true;
+          stableCount = Math.max(0, stableCount - 2);
+          updateProgress((stableCount / stableRequired) * 100);
+          guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
+          status.textContent = 'Position your face within the oval';
         }
       } catch(e) {}
-    }, 300);
+    }, 200);
   } else {
-    // Fallback: simple brightness/motion detection for browsers without FaceDetector
+    // Fallback for browsers without FaceDetector
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 160; canvas.height = 120;
     let prevBrightness = 0;
 
     faceDetectionInterval = setInterval(() => {
+      if (captured) return;
       ctx.drawImage(video, 0, 0, 160, 120);
-      const imgData = ctx.getImageData(40, 20, 80, 80); // Center region
+      const imgData = ctx.getImageData(40, 20, 80, 80);
       let brightness = 0;
-      for (let i = 0; i < imgData.data.length; i += 16) {
-        brightness += imgData.data[i]; // Sample red channel
-      }
+      for (let i = 0; i < imgData.data.length; i += 16) brightness += imgData.data[i];
       brightness /= (imgData.data.length / 16);
-
-      // Detect presence by center brightness change (face = varying brightness)
       const diff = Math.abs(brightness - prevBrightness);
       prevBrightness = brightness;
 
-      if (brightness > 50 && brightness < 200 && diff < 30) {
+      if (brightness > 50 && brightness < 200 && diff < 20) {
         stableCount++;
+        const pct = Math.min(100, (stableCount / stableRequired) * 100);
+        updateProgress(pct);
         guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
-        status.textContent = stableCount >= 10 ? '✅ Ready — tap to capture' : 'Hold still...';
-        if (stableCount >= 10) captureBtn.disabled = false;
+
+        if (pct < 30) status.textContent = 'Detecting face — hold still...';
+        else if (pct < 60) status.textContent = 'Stay stable... ' + Math.round(pct) + '%';
+        else if (pct < 90) status.textContent = 'Almost there... ' + Math.round(pct) + '%';
+        else if (pct < 100) status.textContent = 'Capturing...';
+
+        if (stableCount >= stableRequired && !captured) {
+          captured = true;
+          status.textContent = '✅ Captured!';
+          updateProgress(100);
+          setTimeout(() => captureSelfie(), 300);
+        }
       } else {
         stableCount = Math.max(0, stableCount - 2);
+        updateProgress((stableCount / stableRequired) * 100);
         guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
         status.textContent = 'Position your face within the oval';
-        if (stableCount < 5) captureBtn.disabled = true;
       }
     }, 200);
   }
