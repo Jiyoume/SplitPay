@@ -1219,8 +1219,8 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     <div style="height:44px;"></div>
     <div class="profile-header">
       <div class="avatar">JD</div>
-      <div class="name" id="profileName">Juan Dela Cruz</div>
-      <div class="email" id="profileEmail">juan@email.com</div>
+      <div class="name" id="profileName"></div>
+      <div class="email" id="profileEmail"></div>
       <div class="sync-indicator" style="justify-content:center;margin-top:8px;" id="profileSyncStatus">
         <span class="sync-dot online"></span>
         <span>Last synced: Never</span>
@@ -2142,17 +2142,20 @@ function showMainApp(name, userData) {
   
   if (name) {
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    document.querySelector('.avatar').textContent = initials || 'JD';
+    document.querySelector('.avatar').textContent = initials || '?';
     document.getElementById('profileName').textContent = name;
   }
+
+  // Set email from currentUser (Supabase auth)
+  const email = currentUser?.email || currentUser?.user_metadata?.email || '';
+  document.getElementById('profileEmail').textContent = email;
 
   // Load cached data if available
   const data = userData || JSON.parse(localStorage.getItem('myshare_data') || 'null');
   if (data) {
-    // Update profile email display if exists
+    // Override email from database profile if available
     if (data.profile?.email) {
-      const emailEl = document.getElementById('profileEmail');
-      if (emailEl) emailEl.textContent = data.profile.email;
+      document.getElementById('profileEmail').textContent = data.profile.email;
     }
     // Update KYC badge
     if (data.profile?.kyc_level && data.profile.kyc_level !== 'none') {
