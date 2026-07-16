@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import GradientButton from '../components/GradientButton';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 
@@ -9,33 +10,167 @@ export default function ScanReceiptScreen() {
   const navigation = useNavigation();
   const [status, setStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
   const [progress, setProgress] = useState(0);
+  const [extractedData, setExtractedData] = useState<any>(null);
 
-  const simulateScan = () => {
+  const parseReceiptText = (text: string) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // 1. Try to find vendor name
+    let vendor = 'Unknown Vendor';
+    const commonVendors = ['jollibee', 'starbucks', 'mcdonald', 'kfc', 'sm supermarket', 'savemore', '7-eleven', 'grab', 'foodpanda', 'mercalco', 'pldt'];
+    for (const line of lines.slice(0, 5)) {
+      const lowerLine = line.toLowerCase();
+      const match = commonVendors.find(v => lowerLine.includes(v));
+      if (match) {
+        vendor = line;
+        break;
+      }
+    }
+    if (vendor === 'Unknown Vendor' && lines.length > 0) {
+      vendor = lines[0];
+    }
+
+    // 2. Try to find total
+    let total = 0;
+    const priceRegex = /(?:total|amount|due|pay|cash|php|₱|net)\s*[:=]?\s*([0-9,]+\.[0-9]{2})/i;
+    for (const line of lines) {
+      const match = line.match(priceRegex);
+      if (match) {
+        const val = parseFloat(match[1].replace(/,/g, ''));
+        if (val > total) {
+          total = val;
+        }
+      }
+    }
+
+    // Fallback search for decimal numbers
+    if (total === 0) {
+      const allNumbers = text.match(/\b\d+\.\d{2}\b/g);
+      if (allNumbers) {
+        const numbers = allNumbers.map(n => parseFloat(n)).filter(n => n < 100000);
+        if (numbers.length > 0) {
+          total = Math.max(...numbers);
+        }
+      }
+    }
+
+    // Category detection Heuristics
+    let category = 'food';
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('supermarket') || lowerText.includes('grocery') || lowerText.includes('groceries') || lowerText.includes('savemore') || lowerText.includes('puregold')) {
+      category = 'groceries';
+    } else if (lowerText.includes('taxi') || lowerText.includes('grab') || lowerText.includes('fare') || lowerText.includes('flight') || lowerText.includes('trip') || lowerText.includes('gas') || lowerText.includes('shell') || lowerText.includes('petron')) {
+      category = 'travel';
+    } else if (lowerText.includes('electric') || lowerText.includes('water') || lowerText.includes('internet') || lowerText.includes('bill') || lowerText.includes('meralco') || lowerText.includes('pldt') || lowerText.includes('globe')) {
+      category = 'utilities';
+    }
+
+    return {
+      vendor: vendor.substring(0, 40),
+      total,
+      category,
+      date: new Date().toISOString().split('T')[0],
+    };
+  };
+
+  const performOCR = async (base64Data: string) => {
     setStatus('scanning');
-    setProgress(0);
-    const steps = [15, 35, 60, 80, 95, 100];
-    let i = 0;
-    const timer = setInterval(() => {
-      if (i >= steps.length) {
-        clearInterval(timer);
-        setStatus('done');
+    setProgress(15);
+    
+    try {
+      setProgress(40);
+      const formData = new FormData();
+      formData.append('base64Image', base64Data);
+      formData.append('apikey', 'K87878888888957');
+      formData.append('language', 'eng');
+      formData.append('isOverlayRequired', 'false');
+
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+
+      setProgress(75);
+      const result = await response.json();
+      setProgress(90);
+
+      if (result.IsErroredOnProcessing || !result.ParsedResults || result.ParsedResults.length === 0) {
+        const errorMsg = result.ErrorMessage?.[0] || 'OCR API error';
+        throw new Error(errorMsg);
+      }
+
+      const text = result.ParsedResults[0].ParsedText;
+      console.log('Extracted OCR Text:', text);
+      
+      const parsed = parseReceiptText(text);
+      setExtractedData(parsed);
+      setProgress(100);
+      setStatus('done');
+    } catch (err: any) {
+      console.error('OCR Processing error:', err);
+      Alert.alert('OCR Failed', err?.message || 'Could not parse the receipt image. Please try again.');
+      setStatus('idle');
+    }
+  };
+
+  const pickImage = async (useCamera: boolean) => {
+    try {
+      let permissionResult;
+      if (useCamera) {
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      } else {
+        permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
+
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Denied', `We need ${useCamera ? 'camera' : 'gallery'} permissions to scan receipts.`);
         return;
       }
-      setProgress(steps[i]);
-      i++;
-    }, 500);
+
+      const pickerResult = useCamera 
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+            base64: true,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.8,
+            base64: true,
+          });
+
+      if (pickerResult.canceled) {
+        return;
+      }
+
+      const asset = pickerResult.assets[0];
+      if (asset.base64) {
+        const base64Data = `data:image/jpeg;base64,${asset.base64}`;
+        await performOCR(base64Data);
+      } else {
+        Alert.alert('Error', 'Could not load image data.');
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to pick image.');
+    }
   };
 
   const handleUseData = () => {
+    if (!extractedData) return;
     Alert.alert('Applied!', 'Receipt data applied to expense form.', [
       {
         text: 'OK',
         onPress: () => {
-          // Navigate to AddExpense screen with the extracted data
           navigation.navigate('AddExpense' as any, {
-            title: 'Jollibee - SM Megamall',
-            amount: '1214.08',
-            category: 'food',
+            title: extractedData.vendor,
+            amount: extractedData.total.toString(),
+            category: extractedData.category,
           });
         }
       }
@@ -50,8 +185,8 @@ export default function ScanReceiptScreen() {
           <View style={s.iconCircle}><Ionicons name="camera-outline" size={44} color={Palette.accent} /></View>
           <Text style={s.title}>Scan a Receipt</Text>
           <Text style={s.desc}>Take a photo or upload from gallery.{'\n'}AI will extract vendor, items, and total.</Text>
-          <GradientButton title="Open Camera" onPress={simulateScan} style={{ width: '100%', marginBottom: Spacing.md }} />
-          <TouchableOpacity style={s.galleryBtn} onPress={simulateScan}>
+          <GradientButton title="Open Camera" onPress={() => pickImage(true)} style={{ width: '100%', marginBottom: Spacing.md }} />
+          <TouchableOpacity style={s.galleryBtn} onPress={() => pickImage(false)}>
             <Ionicons name="images-outline" size={20} color={Palette.textPrimary} />
             <Text style={s.galleryBtnText}>Choose from Gallery</Text>
           </TouchableOpacity>
@@ -74,7 +209,6 @@ export default function ScanReceiptScreen() {
     );
   }
 
-  // Done
   return (
     <View style={s.container}>
       <Header onBack={() => navigation.goBack()} />
@@ -84,20 +218,18 @@ export default function ScanReceiptScreen() {
             <Ionicons name="checkmark-circle" size={16} color={Palette.positive} />
             <Text style={s.successText}>Data extracted successfully</Text>
           </View>
-          <View style={s.resultRow}><Text style={s.resultLabel}>Vendor</Text><Text style={s.resultValue}>Jollibee - SM Megamall</Text></View>
-          <View style={s.resultRow}><Text style={s.resultLabel}>Date</Text><Text style={s.resultValue}>2026-07-14</Text></View>
-          <View style={s.resultRow}><Text style={s.resultLabel}>Items</Text><Text style={s.resultValue}>4 items</Text></View>
-          <View style={s.resultRow}><Text style={s.resultLabel}>Subtotal</Text><Text style={s.resultValue}>{peso(1084)}</Text></View>
-          <View style={s.resultRow}><Text style={s.resultLabel}>VAT (12%)</Text><Text style={s.resultValue}>{peso(130.08)}</Text></View>
+          <View style={s.resultRow}><Text style={s.resultLabel}>Vendor</Text><Text style={s.resultValue}>{extractedData?.vendor}</Text></View>
+          <View style={s.resultRow}><Text style={s.resultLabel}>Date</Text><Text style={s.resultValue}>{extractedData?.date}</Text></View>
+          <View style={s.resultRow}><Text style={s.resultLabel}>Category</Text><Text style={s.resultValue}>{extractedData?.category}</Text></View>
           <View style={[s.resultRow, s.totalRow]}>
             <Text style={s.totalLabel}>Total</Text>
-            <Text style={s.totalValue}>{peso(1214.08)}</Text>
+            <Text style={s.totalValue}>{peso(extractedData?.total || 0)}</Text>
           </View>
         </View>
 
         <View style={s.aiCard}>
           <Text style={s.aiTitle}>🤖 AI Split Suggestion</Text>
-          <Text style={s.aiText}>Equal Split — With 4 members: {peso(303.52)} each</Text>
+          <Text style={s.aiText}>This amount will be split equally among your group members.</Text>
         </View>
 
         <View style={s.actions}>
