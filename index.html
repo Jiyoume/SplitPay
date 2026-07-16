@@ -2764,7 +2764,7 @@ function startFaceDetection(video) {
   } else {
     // Fallback for browsers without FaceDetector
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     canvas.width = 160; canvas.height = 120;
     let prevBrightness = 0;
 
@@ -2810,7 +2810,7 @@ function captureSelfie() {
   const canvas = document.getElementById('selfieCanvas');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.translate(canvas.width, 0);
   ctx.scale(-1, 1); // Mirror
   ctx.drawImage(video, 0, 0);
