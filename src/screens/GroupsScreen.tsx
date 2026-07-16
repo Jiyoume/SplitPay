@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,37 +8,47 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, Radii, Spacing } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { GroupCard } from '../components';
+import { getUserGroupsWithBalances } from '../services/localDatabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-interface GroupItem {
-  id: string;
-  name: string;
-  emoji: string;
-  members: string[];
-  balance: number;
-  unpaidCount: number;
-}
-
-const GROUPS: GroupItem[] = [
-  { id: '1', name: 'Apartment 4B', emoji: '🏠', members: ['You', 'Sarah Cruz', 'Mike Tan'], balance: 2250.0, unpaidCount: 1 },
-  { id: '2', name: 'Family Expenses', emoji: '👨‍👩‍👧', members: ['You', 'Mom', 'Dad', 'Ana Reyes', 'Ben Reyes'], balance: -1500.0, unpaidCount: 2 },
-  { id: '3', name: 'Weekend Trip', emoji: '✈️', members: ['You', 'Alex Reyes', 'Sarah Cruz', 'Mike Tan'], balance: 4025.0, unpaidCount: 3 },
-  { id: '4', name: 'Office Lunch', emoji: '🍜', members: ['You', 'Alex Reyes', 'Sarah Cruz', 'Mike Tan', 'Ben Reyes', 'Ana Reyes'], balance: 0, unpaidCount: 0 },
-];
 
 export default function GroupsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
+  const [groups, setGroups] = useState<any[]>([]);
 
-  const filteredGroups = GROUPS.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
+  useFocusEffect(
+    useCallback(() => {
+      async function loadGroups() {
+        try {
+          const list = await getUserGroupsWithBalances('me');
+          setGroups(list);
+        } catch (err) {
+          console.error('Failed to load groups in GroupsScreen:', err);
+        }
+      }
+      loadGroups();
+    }, [])
+  );
+
+  const getGroupEmoji = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'roommates': return '🏠';
+      case 'family': return '👨‍👩‍👧';
+      case 'trip': return '✈️';
+      case 'friends': return '👥';
+      default: return '📦';
+    }
+  };
+
+  const filteredGroups = groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <View style={styles.container}>
@@ -46,16 +56,19 @@ export default function GroupsScreen() {
         data={filteredGroups}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <GroupCard
-            name={item.name}
-            emoji={item.emoji}
-            members={item.members}
-            balance={item.balance}
-            unpaidCount={item.unpaidCount}
-            onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
-          />
-        )}
+        renderItem={({ item }) => {
+          const memberNames = item.members.map((m: any) => m.id === 'me' ? 'You' : m.name);
+          return (
+            <GroupCard
+              name={item.name}
+              emoji={getGroupEmoji(item.type)}
+              members={memberNames}
+              balance={item.userBalance}
+              unpaidCount={item.unpaidCount}
+              onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
+            />
+          );
+        }}
         ListHeaderComponent={
           <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
             <Text style={styles.title}>Groups</Text>

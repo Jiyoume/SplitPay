@@ -1,28 +1,49 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Logo from '../components/Logo';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
+import { getUserNetBalance, getRecentExpenses } from '../services/localDatabase';
+import { Expense } from '../models/types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Mock data for demonstration
-const totalBalance = 24850.0;
-const balanceChangePct = 12.5;
-
-const recentActivity = [
-  { id: '1', icon: 'restaurant-outline' as const, title: 'Dinner at Marina Bay', splitCount: 4, date: 'Today', amount: -850.0 },
-  { id: '2', icon: 'cart-outline' as const, title: 'Groceries at SM', splitCount: 3, date: 'Yesterday', amount: 620.0 },
-  { id: '3', icon: 'film-outline' as const, title: 'Movie Night', splitCount: 5, date: '2 days ago', amount: -350.0 },
-];
-
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const [balance, setBalance] = useState(0);
+  const [activities, setActivities] = useState<Expense[]>([]);
+
+  useFocusEffect(
+    useCallback(() => {
+      async function loadData() {
+        try {
+          const userBalance = await getUserNetBalance('me');
+          const recent = await getRecentExpenses('me', 5);
+          setBalance(userBalance);
+          setActivities(recent);
+        } catch (err) {
+          console.error('Failed to load local DB data in HomeScreen:', err);
+        }
+      }
+      loadData();
+    }, [])
+  );
+
+  const getCategoryIcon = (category?: string) => {
+    switch (category?.toLowerCase()) {
+      case 'food_dining':
+      case 'food': return 'restaurant-outline' as const;
+      case 'groceries': return 'cart-outline' as const;
+      case 'travel': return 'airplane-outline' as const;
+      case 'utilities': return 'flash-outline' as const;
+      default: return 'card-outline' as const;
+    }
+  };
 
   const quickActions = [
     { id: 'add', label: 'Add Expense', icon: 'add-circle-outline' as const, onPress: () => navigation.navigate('AddExpense', {}) },
@@ -49,10 +70,10 @@ export default function HomeScreen() {
             <Text style={styles.balanceLabel}>Total Balance</Text>
             <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
           </View>
-          <Text style={styles.balanceAmount}>{peso(totalBalance)}</Text>
+          <Text style={styles.balanceAmount}>{peso(balance)}</Text>
           <View style={styles.changePill}>
             <Ionicons name="trending-up" size={12} color={Palette.positive} />
-            <Text style={styles.changePillText}>+{balanceChangePct}% vs last month</Text>
+            <Text style={styles.changePillText}>+12.5% vs last month</Text>
           </View>
         </TouchableOpacity>
 
@@ -71,20 +92,33 @@ export default function HomeScreen() {
         {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          {recentActivity.map((item) => (
-            <View key={item.id} style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Ionicons name={item.icon} size={20} color={Palette.accent} />
-              </View>
-              <View style={styles.activityInfo}>
-                <Text style={styles.activityTitle}>{item.title}</Text>
-                <Text style={styles.activityMeta}>Split {item.splitCount} ways · {item.date}</Text>
-              </View>
-              <Text style={[styles.activityAmount, { color: item.amount >= 0 ? Palette.positive : Palette.negative }]}>
-                {peso(item.amount, { sign: true })}
-              </Text>
-            </View>
-          ))}
+          {activities.length === 0 ? (
+            <Text style={{ color: Palette.textSecondary, fontSize: 13, textAlign: 'center', marginVertical: 20 }}>No recent expenses.</Text>
+          ) : (
+            activities.map((item) => {
+              const isPaidByMe = item.paidBy === 'me';
+              const displayAmount = isPaidByMe 
+                ? item.amount - (item.splits?.find(s => s.userId === 'me')?.amount || 0) // what others owe me
+                : -(item.splits?.find(s => s.userId === 'me')?.amount || 0); // what I owe
+              
+              const relativeDate = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+              return (
+                <View key={item.id} style={styles.activityItem}>
+                  <View style={styles.activityIcon}>
+                    <Ionicons name={getCategoryIcon(item.category)} size={20} color={Palette.accent} />
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityTitle}>{item.description}</Text>
+                    <Text style={styles.activityMeta}>Split {item.splits?.length || 0} ways · {relativeDate}</Text>
+                  </View>
+                  <Text style={[styles.activityAmount, { color: displayAmount >= 0 ? Palette.positive : Palette.negative }]}>
+                    {peso(displayAmount, { sign: true })}
+                  </Text>
+                </View>
+              );
+            })
+          )}
         </View>
 
         {/* Promo Banner */}

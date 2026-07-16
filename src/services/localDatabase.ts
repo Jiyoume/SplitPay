@@ -24,6 +24,140 @@ let db: SQLite.SQLiteDatabase;
 export async function initLocalDatabase(): Promise<void> {
   db = await SQLite.openDatabaseAsync('ambagko.db');
   await createTables();
+  await seedDatabase();
+}
+
+async function seedDatabase(): Promise<void> {
+  const userCount = await db.getFirstAsync<any>('SELECT COUNT(*) as count FROM users');
+  if (userCount && userCount.count > 0) {
+    // Already seeded
+    return;
+  }
+
+  console.log('Seeding SQLite database with mock data...');
+
+  // Seed Users
+  await db.runAsync("INSERT INTO users (id, name, email, avatar) VALUES ('me', 'Alex Reyes', 'alex.reyes@email.com', null)");
+  await db.runAsync("INSERT INTO users (id, name, email, avatar) VALUES ('user1', 'Sarah Cruz', 'sarah.cruz@email.com', null)");
+  await db.runAsync("INSERT INTO users (id, name, email, avatar) VALUES ('user2', 'Mike Tan', 'mike.tan@email.com', null)");
+  await db.runAsync("INSERT INTO users (id, name, email, avatar) VALUES ('user3', 'Mom', 'mom@email.com', null)");
+  await db.runAsync("INSERT INTO users (id, name, email, avatar) VALUES ('user4', 'Dad', 'dad@email.com', null)");
+
+  // Seed Groups
+  await db.runAsync("INSERT INTO groups_table (id, name, description, type, createdBy, totalExpenses) VALUES ('group1', 'Apartment 4B', 'Monthly rent & utilities', 'roommates', 'me', 850.0)");
+  await db.runAsync("INSERT INTO groups_table (id, name, description, type, createdBy, totalExpenses) VALUES ('group2', 'Family Expenses', 'Daily grocery & bills', 'family', 'user3', 620.0)");
+  await db.runAsync("INSERT INTO groups_table (id, name, description, type, createdBy, totalExpenses) VALUES ('group3', 'Weekend Trip', 'Baguio getaway', 'trip', 'me', 350.0)");
+  await db.runAsync("INSERT INTO groups_table (id, name, description, type, createdBy, totalExpenses) VALUES ('group4', 'Office Lunch', 'Friday food splits', 'friends', 'me', 0.0)");
+
+  // Seed Group Members
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group1', 'me')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group1', 'user1')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group1', 'user2')");
+
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group2', 'me')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group2', 'user3')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group2', 'user4')");
+
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group3', 'me')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group3', 'user1')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group3', 'user2')");
+
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group4', 'me')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group4', 'user1')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group4', 'user2')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group4', 'user3')");
+  await db.runAsync("INSERT INTO group_members (groupId, userId) VALUES ('group4', 'user4')");
+
+  // Seed Expenses
+  // Dinner at Marina Bay (group1) - 850 PHP, paid by me, split equally among 3 members
+  const date1 = new Date().toISOString();
+  await db.runAsync("INSERT INTO expenses (id, groupId, description, amount, paidBy, splitMethod, date) VALUES ('exp1', 'group1', 'Dinner at Marina Bay', 850.0, 'me', 'equal', ?)", [date1]);
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp1', 'me', 283.33, 1)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp1', 'user1', 283.33, 0)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp1', 'user2', 283.33, 0)");
+
+  // Groceries at SM (group2) - 620 PHP, paid by Mom (user3), split equally among 3 members
+  const date2 = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // Yesterday
+  await db.runAsync("INSERT INTO expenses (id, groupId, description, amount, paidBy, splitMethod, date) VALUES ('exp2', 'group2', 'Groceries at SM', 620.0, 'user3', 'equal', ?)", [date2]);
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp2', 'me', 206.66, 0)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp2', 'user3', 206.66, 1)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp2', 'user4', 206.66, 0)");
+
+  // Movie Night (group3) - 350 PHP, paid by me, split equally among 3 members
+  const date3 = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(); // 2 days ago
+  await db.runAsync("INSERT INTO expenses (id, groupId, description, amount, paidBy, splitMethod, date) VALUES ('exp3', 'group3', 'Movie Night', 350.0, 'me', 'equal', ?)", [date3]);
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp3', 'me', 116.66, 1)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp3', 'user1', 116.66, 0)");
+  await db.runAsync("INSERT INTO expense_splits (expenseId, userId, amount, isPaid) VALUES ('exp3', 'user2', 116.66, 0)");
+}
+
+export async function getUserNetBalance(userId: string): Promise<number> {
+  const paidResult = await db.getFirstAsync<any>('SELECT SUM(amount) as total FROM expenses WHERE paidBy = ?', [userId]);
+  const totalPaid = paidResult?.total || 0;
+
+  const shareResult = await db.getFirstAsync<any>('SELECT SUM(amount) as total FROM expense_splits WHERE userId = ?', [userId]);
+  const totalShare = shareResult?.total || 0;
+
+  const receivedResult = await db.getFirstAsync<any>('SELECT SUM(amount) as total FROM payments WHERE toUserId = ?', [userId]);
+  const totalReceived = receivedResult?.total || 0;
+
+  const sentResult = await db.getFirstAsync<any>('SELECT SUM(amount) as total FROM payments WHERE fromUserId = ?', [userId]);
+  const totalSent = sentResult?.total || 0;
+
+  return (totalPaid - totalShare) - totalReceived + totalSent;
+}
+
+export async function getGroupBalanceForUser(groupId: string, userId: string): Promise<number> {
+  const paidResult = await db.getFirstAsync<any>(
+    'SELECT SUM(amount) as total FROM expenses WHERE groupId = ? AND paidBy = ?', 
+    [groupId, userId]
+  );
+  const totalPaid = paidResult?.total || 0;
+
+  const shareResult = await db.getFirstAsync<any>(
+    'SELECT SUM(es.amount) as total FROM expense_splits es JOIN expenses e ON es.expenseId = e.id WHERE e.groupId = ? AND es.userId = ?', 
+    [groupId, userId]
+  );
+  const totalShare = shareResult?.total || 0;
+
+  const receivedResult = await db.getFirstAsync<any>(
+    'SELECT SUM(amount) as total FROM payments WHERE groupId = ? AND toUserId = ?', 
+    [groupId, userId]
+  );
+  const totalReceived = receivedResult?.total || 0;
+
+  const sentResult = await db.getFirstAsync<any>(
+    'SELECT SUM(amount) as total FROM payments WHERE groupId = ? AND fromUserId = ?', 
+    [groupId, userId]
+  );
+  const totalSent = sentResult?.total || 0;
+
+  return (totalPaid - totalShare) - totalReceived + totalSent;
+}
+
+export async function getUnpaidExpensesCountForUser(groupId: string, userId: string): Promise<number> {
+  const result = await db.getFirstAsync<any>(
+    'SELECT COUNT(*) as count FROM expense_splits es JOIN expenses e ON es.expenseId = e.id WHERE e.groupId = ? AND es.userId = ? AND es.isPaid = 0',
+    [groupId, userId]
+  );
+  return result?.count || 0;
+}
+
+export async function getUserGroupsWithBalances(userId: string): Promise<(Group & { userBalance: number; unpaidCount: number })[]> {
+  const groups = await db.getAllAsync<any>(
+    `SELECT g.* FROM groups_table g JOIN group_members gm ON g.id = gm.groupId WHERE gm.userId = ? ORDER BY g.updatedAt DESC`,
+    [userId]
+  );
+
+  for (const group of groups) {
+    group.userBalance = await getGroupBalanceForUser(group.id, userId);
+    group.unpaidCount = await getUnpaidExpensesCountForUser(group.id, userId);
+    group.members = await db.getAllAsync<any>(
+      'SELECT u.* FROM users u JOIN group_members gm ON u.id = gm.userId WHERE gm.groupId = ?', 
+      [group.id]
+    );
+  }
+  return groups;
 }
 
 async function createTables(): Promise<void> {

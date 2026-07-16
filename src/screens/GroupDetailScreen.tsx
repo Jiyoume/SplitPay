@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { GradientButton, StatusPill, BalanceSummary, ExpenseCard, MemberAvatar } from '../components';
+import { getGroup, getGroupExpenses, getGroupBalanceForUser } from '../services/localDatabase';
+import { Group, Expense } from '../models/types';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -26,25 +29,60 @@ export default function GroupDetailScreen() {
   const { groupId } = route.params;
   const insets = useSafeAreaInsets();
   const [showAllExpenses, setShowAllExpenses] = useState(false);
+  const [group, setGroup] = useState<any>(null);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const group = {
-    id: groupId,
-    name: 'Apartment 4B',
-    emoji: '🏠',
-    dateRange: 'Jul 1 – Jul 15, 2026',
-    members: [
-      { id: '1', name: 'You', balance: 2250.0 },
-      { id: '2', name: 'Sarah Cruz', balance: -1000.0 },
-      { id: '3', name: 'Mike Tan', balance: -1250.0 },
-    ],
+  useFocusEffect(
+    useCallback(() => {
+      async function loadGroupDetails() {
+        try {
+          const g = await getGroup(groupId);
+          if (g) {
+            const exps = await getGroupExpenses(groupId);
+            
+            // Calculate balances for each member
+            const membersWithBalances = await Promise.all(
+              g.members.map(async (m: any) => ({
+                id: m.id,
+                name: m.id === 'me' ? 'You' : m.name,
+                balance: await getGroupBalanceForUser(groupId, m.id),
+              }))
+            );
+
+            setGroup({
+              ...g,
+              members: membersWithBalances,
+            });
+            setExpenses(exps);
+          }
+        } catch (err) {
+          console.error('Failed to load group details:', err);
+        } finally {
+          setLoading(false);
+        }
+      }
+      loadGroupDetails();
+    }, [groupId])
+  );
+
+  if (loading || !group) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Palette.background }}>
+        <ActivityIndicator size="large" color="#2F6BFF" />
+      </View>
+    );
+  }
+
+  const getGroupEmoji = (type?: string) => {
+    switch (type?.toLowerCase()) {
+      case 'roommates': return '🏠';
+      case 'family': return '👨‍👩‍👧';
+      case 'trip': return '✈️';
+      case 'friends': return '👥';
+      default: return '📦';
+    }
   };
-
-  const expenses = [
-    { id: '1', description: 'Electricity bill', amount: 6000.0, paidBy: 'You', date: 'Jul 10', category: 'utilities' },
-    { id: '2', description: 'Groceries', amount: 4250.0, paidBy: 'Sarah Cruz', date: 'Jul 8', category: 'groceries' },
-    { id: '3', description: 'Internet', amount: 3250.0, paidBy: 'Mike Tan', date: 'Jul 5', category: 'utilities' },
-    { id: '4', description: 'Cleaning supplies', amount: 1600.0, paidBy: 'You', date: 'Jul 3', category: 'shopping' },
-  ];
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const equalShare = totalExpenses / group.members.length;
@@ -52,7 +90,7 @@ export default function GroupDetailScreen() {
   const visibleAvatars = group.members.slice(0, MAX_VISIBLE_AVATARS);
   const avatarOverflow = group.members.length - visibleAvatars.length;
 
-  const pendingMember = group.members.find((m) => m.balance < 0);
+  const pendingMember = group.members.find((m: any) => m.balance < 0);
 
   return (
     <ScrollView style={styles.container}>
@@ -64,9 +102,9 @@ export default function GroupDetailScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={Palette.white} />
         </TouchableOpacity>
-        <Text style={styles.coverEmoji}>{group.emoji}</Text>
+        <Text style={styles.coverEmoji}>{getGroupEmoji(group.type)}</Text>
         <Text style={styles.groupName}>{group.name}</Text>
-        <Text style={styles.dateRange}>{group.dateRange}</Text>
+        <Text style={styles.dateRange}>Created on {new Date(group.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
         <View style={styles.avatarRow}>
           {visibleAvatars.map((member, i) => (
             <View key={member.id} style={[styles.avatarWrap, i > 0 && styles.avatarOverlap]}>
@@ -92,16 +130,21 @@ export default function GroupDetailScreen() {
             </TouchableOpacity>
           )}
         </View>
-        {visibleExpenses.map((expense) => (
-          <ExpenseCard
-            key={expense.id}
-            description={expense.description}
-            amount={expense.amount}
-            paidBy={expense.paidBy}
-            date={expense.date}
-            category={expense.category}
-          />
-        ))}
+        {visibleExpenses.map((expense) => {
+          const payer = group.members.find((m: any) => m.id === expense.paidBy);
+          const payerName = payer ? (payer.id === 'me' ? 'You' : payer.name) : 'You';
+          const formattedDate = new Date(expense.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          return (
+            <ExpenseCard
+              key={expense.id}
+              description={expense.description}
+              amount={expense.amount}
+              paidBy={payerName}
+              date={formattedDate}
+              category={expense.category}
+            />
+          );
+        })}
       </View>
 
       <View style={styles.section}>
