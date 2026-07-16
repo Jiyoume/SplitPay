@@ -1727,21 +1727,40 @@ function applyOCRData() {
     <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">🪪 Government ID</div>
     <div class="input-group">
       <label>ID Type</label>
-      <select id="kycIdType">
-        <option value="">Select ID type...</option>
-        <option value="philsys">Philippine National ID (PhilSys)</option>
-        <option value="passport">Passport</option>
-        <option value="drivers_license">Driver's License (LTO)</option>
-        <option value="sss">SSS / UMID</option>
-        <option value="philhealth">PhilHealth ID</option>
-        <option value="voters">Voter's ID (COMELEC)</option>
-        <option value="postal">Postal ID</option>
-        <option value="prc">PRC ID</option>
+      <select id="kycIdType" onchange="onIdTypeChange()">
+        <option value="">Select a valid Philippine ID...</option>
+        <optgroup label="Primary IDs">
+          <option value="philsys" data-format="XXXX-XXXX-XXXX-XXXX" data-length="16">Philippine National ID (PhilSys)</option>
+          <option value="passport" data-format="PXXXXXXX or EXXXXXXX" data-length="9">Philippine Passport (DFA)</option>
+          <option value="drivers_license" data-format="NXX-XX-XXXXXX" data-length="13">Driver's License (LTO)</option>
+          <option value="sss" data-format="XX-XXXXXXX-X" data-length="10">SSS ID / UMID</option>
+          <option value="gsis" data-format="XXXXXXXXXXX" data-length="11">GSIS ID / UMID</option>
+          <option value="prc" data-format="XXXXXXX" data-length="7">PRC ID (Professional)</option>
+        </optgroup>
+        <optgroup label="Secondary IDs">
+          <option value="voters" data-format="XXXX-XXXXXX-XXXXX" data-length="16">Voter's ID (COMELEC)</option>
+          <option value="philhealth" data-format="XX-XXXXXXXXX-X" data-length="12">PhilHealth ID</option>
+          <option value="tin" data-format="XXX-XXX-XXX-XXX" data-length="12">TIN ID (BIR)</option>
+          <option value="postal" data-format="XXXXXXXX" data-length="8">Postal ID (PHLPost)</option>
+          <option value="senior" data-format="Varies" data-length="0">Senior Citizen ID</option>
+          <option value="pwd" data-format="Varies" data-length="0">PWD ID</option>
+          <option value="nbi" data-format="XXXX-XXXX-XXXXXX" data-length="14">NBI Clearance</option>
+          <option value="police" data-format="Varies" data-length="0">Police Clearance</option>
+        </optgroup>
+        <optgroup label="Other Valid IDs">
+          <option value="barangay" data-format="Varies" data-length="0">Barangay ID / Certificate</option>
+          <option value="company" data-format="Varies" data-length="0">Company ID (with TIN)</option>
+          <option value="school" data-format="Varies" data-length="0">School ID (current)</option>
+          <option value="ibp" data-format="XXXXX" data-length="5">IBP ID (Lawyer)</option>
+          <option value="owwa" data-format="Varies" data-length="0">OFW ID / OWWA</option>
+          <option value="seaman" data-format="Varies" data-length="0">Seaman's Book (MARINA)</option>
+        </optgroup>
       </select>
     </div>
     <div class="input-group">
-      <label>ID Number</label>
-      <input type="text" placeholder="Enter ID number" id="kycIdNumber">
+      <label>ID Number <span id="idFormatHint" style="font-weight:400;color:var(--text-tertiary);font-size:11px;"></span></label>
+      <input type="text" placeholder="Enter ID number" id="kycIdNumber" oninput="validateIdNumber()">
+      <div id="idValidationMsg" style="font-size:11px;margin-top:4px;font-weight:600;"></div>
     </div>
 
     <!-- Document Upload -->
@@ -2892,7 +2911,100 @@ function closeSelfieCam() {
   document.getElementById('selfieCamOverlay').style.display = 'none';
 }
 
+// ===== ID TYPE & NUMBER VALIDATION =====
+
+const ID_FORMATS = {
+  philsys: { regex: /^\d{4}-\d{4}-\d{4}-\d{4}$/, hint: 'Format: 1234-5678-9012-3456', placeholder: '0000-0000-0000-0000' },
+  passport: { regex: /^[PE]\d{7}[A-Z]?$/i, hint: 'Format: P1234567 or E1234567', placeholder: 'P1234567' },
+  drivers_license: { regex: /^[A-Z]\d{2}-\d{2}-\d{6}$/i, hint: 'Format: N01-23-456789', placeholder: 'N01-23-456789' },
+  sss: { regex: /^\d{2}-\d{7}-\d$/, hint: 'Format: 01-2345678-9', placeholder: '01-2345678-9' },
+  gsis: { regex: /^\d{11}$/, hint: 'Format: 11 digits', placeholder: '12345678901' },
+  prc: { regex: /^\d{7}$/, hint: 'Format: 7 digits', placeholder: '1234567' },
+  voters: { regex: /^\d{4}-\d{6,7}-\d{4,5}$/, hint: 'Format: 1234-567890-12345', placeholder: '0000-000000-00000' },
+  philhealth: { regex: /^\d{2}-\d{9}-\d$/, hint: 'Format: 01-234567890-1', placeholder: '01-234567890-1' },
+  tin: { regex: /^\d{3}-\d{3}-\d{3}-\d{3}$/, hint: 'Format: 123-456-789-000', placeholder: '123-456-789-000' },
+  postal: { regex: /^\d{8}$/, hint: 'Format: 8 digits', placeholder: '12345678' },
+  nbi: { regex: /^\d{4}-\d{4}-\d{6}$/, hint: 'Format: 2026-0123-456789', placeholder: '2026-0123-456789' },
+  ibp: { regex: /^\d{5}$/, hint: 'Format: 5 digits', placeholder: '12345' },
+};
+
+function onIdTypeChange() {
+  const select = document.getElementById('kycIdType');
+  const idType = select.value;
+  const input = document.getElementById('kycIdNumber');
+  const hint = document.getElementById('idFormatHint');
+  const msg = document.getElementById('idValidationMsg');
+
+  input.value = '';
+  msg.textContent = '';
+
+  if (ID_FORMATS[idType]) {
+    hint.textContent = '(' + ID_FORMATS[idType].hint + ')';
+    input.placeholder = ID_FORMATS[idType].placeholder;
+  } else if (idType) {
+    hint.textContent = '(Enter as shown on your ID)';
+    input.placeholder = 'Enter ID number';
+  } else {
+    hint.textContent = '';
+    input.placeholder = 'Enter ID number';
+  }
+}
+
+function validateIdNumber() {
+  const idType = document.getElementById('kycIdType').value;
+  const input = document.getElementById('kycIdNumber');
+  const value = input.value.trim();
+  const msg = document.getElementById('idValidationMsg');
+
+  if (!value) { msg.textContent = ''; return false; }
+
+  const format = ID_FORMATS[idType];
+  if (!format) {
+    // No specific format to validate
+    if (value.length >= 4) {
+      msg.textContent = '✓ ID number entered';
+      msg.style.color = 'var(--accent)';
+      return true;
+    }
+    msg.textContent = '';
+    return false;
+  }
+
+  if (format.regex.test(value)) {
+    msg.textContent = '✅ Valid ' + getIdTypeName(idType) + ' number';
+    msg.style.color = 'var(--accent)';
+    return true;
+  } else {
+    const expected = format.hint;
+    msg.textContent = '❌ Invalid format — ' + expected;
+    msg.style.color = 'var(--danger)';
+    return false;
+  }
+}
+
+function getIdTypeName(type) {
+  const names = {
+    philsys: 'PhilSys', passport: 'Passport', drivers_license: "Driver's License",
+    sss: 'SSS', gsis: 'GSIS', prc: 'PRC', voters: "Voter's ID",
+    philhealth: 'PhilHealth', tin: 'TIN', postal: 'Postal', nbi: 'NBI', ibp: 'IBP',
+  };
+  return names[type] || 'ID';
+}
+
 function submitKYC() {
+  // Validate required fields
+  const name = document.getElementById('kycFullName')?.value?.trim();
+  const email = document.getElementById('kycEmail')?.value?.trim();
+  const phone = document.getElementById('kycPhone')?.value?.trim();
+  const idType = document.getElementById('kycIdType')?.value;
+  const idNumber = document.getElementById('kycIdNumber')?.value?.trim();
+
+  if (!name || !email || !phone) { alert('Please fill in your name, email, and phone number.'); return; }
+  if (!idType) { alert('Please select your ID type.'); return; }
+  if (!idNumber) { alert('Please enter your ID number.'); return; }
+  if (!validateIdNumber()) { alert('Please enter a valid ID number in the correct format.'); return; }
+  if (!window.selfieFaceVerified) { alert('Please complete the selfie verification. Tap "Take Selfie" and let the camera detect your face.'); return; }
+
   const btn = document.querySelector('#kycModal .btn-primary');
   btn.textContent = '⏳ Submitting...';
   btn.disabled = true;
