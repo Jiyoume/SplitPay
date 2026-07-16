@@ -32,7 +32,7 @@ export default function ScanReceiptScreen() {
 
     // 2. Try to find total
     let total = 0;
-    const priceRegex = /(?:total|amount|due|pay|cash|php|₱|net)\s*[:=]?\s*([0-9,]+\.[0-9]{2})/i;
+    const priceRegex = /(?:total|amount|due|pay|net|php|₱).*\b([0-9,]+\.[0-9]{2})\b/i;
     for (const line of lines) {
       const match = line.match(priceRegex);
       if (match) {
