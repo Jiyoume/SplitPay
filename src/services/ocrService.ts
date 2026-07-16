@@ -258,7 +258,7 @@ function parseTotals(text: string): { subtotal: number; tax: number; taxRate?: n
   for (const line of lines) {
     const l = line.trim();
     let m;
-    if ((m = l.match(/^(?:grand\s*total|total\s*amount|amount\s*due)[:\s]*(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) ||
+    if ((m = l.match(/^(?:grand\s*total|total\s*(?:amount|bill|current\s*bill|charges)|amount\s*due|current\s*charges|total\s*amount\s*due)[:\s]*(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i)) ||
         (m = l.match(/^total[:\s]+(?:P|₱|PHP)?\s*(\d[\d,]*\.?\d*)/i))) {
       total = parseFloat(m[1].replace(/,/g, ''));
     }
