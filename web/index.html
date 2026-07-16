@@ -2637,10 +2637,10 @@ async function openSelfieCam() {
     input.onchange = (e) => {
       if (e.target.files[0]) {
         window.selfieBlob = e.target.files[0];
-        document.getElementById('kycSelfieBtn').textContent = '✅ Selfie Captured';
-        document.getElementById('kycSelfieBtn').style.borderColor = 'var(--accent)';
-        document.getElementById('kycSelfieBtn').style.color = 'var(--accent)';
-        document.getElementById('kycUploadStatus').textContent = 'Selfie captured successfully';
+        document.getElementById('kycSelfieBtn').textContent = '📷 Selfie Uploaded';
+        document.getElementById('kycSelfieBtn').style.borderColor = 'var(--warning)';
+        document.getElementById('kycSelfieBtn').style.color = 'var(--warning)';
+        document.getElementById('kycUploadStatus').textContent = 'Selfie uploaded — face verification pending review';
       }
     };
     input.click();
@@ -2682,7 +2682,7 @@ async function openSelfieCam() {
           window.selfieBlob = ev.target.files[0];
           document.getElementById('kycSelfieBtn').textContent = '✅ Selfie Captured';
           document.getElementById('kycSelfieBtn').style.borderColor = 'var(--accent)';
-          document.getElementById('kycUploadStatus').textContent = 'Selfie uploaded successfully';
+          document.getElementById('kycUploadStatus').textContent = 'Selfie uploaded — face verification pending review';
         }
       };
       input.click();
@@ -2818,11 +2818,14 @@ function captureSelfie() {
   // Convert to blob
   canvas.toBlob((blob) => {
     window.selfieBlob = blob;
-    // Update UI
+    window.selfieFaceVerified = true;
+    // Update UI — only shows "face verified" when captured by camera detection
     const btn = document.getElementById('kycSelfieBtn');
-    btn.textContent = '✅ Selfie Captured';
+    btn.textContent = '✅ Face Verified';
     btn.style.borderColor = 'var(--accent)';
     btn.style.color = 'var(--accent)';
+    btn.onclick = null; // Disable re-trigger
+    btn.style.pointerEvents = 'none';
     document.getElementById('kycUploadStatus').textContent = 'Selfie captured successfully — face verified ✓';
     closeSelfieCam();
   }, 'image/jpeg', 0.85);
