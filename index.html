@@ -2503,7 +2503,20 @@ function copyStellarAddress() {
 // ===== KYC FUNCTIONS =====
 function openKYCModal() {
   openModal('kycModal');
-  loadRegions(); // Load Philippine regions on open
+  loadRegions();
+  // Reset selfie state
+  window.selfieFaceVerified = false;
+  window.selfieBlob = null;
+  const selfieBtn = document.getElementById('kycSelfieBtn');
+  selfieBtn.textContent = '🤳 Take Selfie';
+  selfieBtn.style.borderColor = '';
+  selfieBtn.style.color = '';
+  selfieBtn.style.pointerEvents = 'auto';
+  selfieBtn.onclick = openSelfieCam;
+  // Reset ID upload state
+  const idBtn = document.getElementById('kycIdFrontBtn');
+  idBtn.querySelector('span')?.remove;
+  document.getElementById('kycUploadStatus').textContent = '';
 }
 
 // ===== PHILIPPINE ADDRESS API (PSGC) =====
