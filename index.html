@@ -2623,8 +2623,33 @@ let faceDetectionInterval = null;
 
 async function openSelfieCam() {
   const overlay = document.getElementById('selfieCamOverlay');
-  overlay.style.display = 'flex';
   const video = document.getElementById('selfieVideo');
+  const status = document.getElementById('selfieStatus');
+
+  // Check if camera API is available
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Camera not supported on this browser. Please use Chrome or Safari on mobile.');
+    // Fallback to file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'user';
+    input.onchange = (e) => {
+      if (e.target.files[0]) {
+        window.selfieBlob = e.target.files[0];
+        document.getElementById('kycSelfieBtn').textContent = '✅ Selfie Captured';
+        document.getElementById('kycSelfieBtn').style.borderColor = 'var(--accent)';
+        document.getElementById('kycSelfieBtn').style.color = 'var(--accent)';
+        document.getElementById('kycUploadStatus').textContent = 'Selfie captured successfully';
+      }
+    };
+    input.click();
+    return;
+  }
+
+  // Show overlay first
+  overlay.style.display = 'flex';
+  status.textContent = 'Requesting camera access...';
 
   try {
     selfieStream = await navigator.mediaDevices.getUserMedia({
@@ -2632,12 +2657,36 @@ async function openSelfieCam() {
       audio: false
     });
     video.srcObject = selfieStream;
+    await video.play();
+    status.textContent = 'Position your face within the oval';
 
     // Start face detection with auto-capture
     startFaceDetection(video);
   } catch(e) {
-    alert('Camera access denied. Please allow camera permissions.');
-    closeSelfieCam();
+    console.error('Camera error:', e.name, e.message);
+    overlay.style.display = 'none';
+    
+    if (e.name === 'NotAllowedError') {
+      alert('Camera permission denied. Please allow camera access in your browser settings and try again.');
+    } else if (e.name === 'NotFoundError') {
+      alert('No camera found. Please use a device with a front camera.');
+    } else if (e.name === 'NotReadableError') {
+      alert('Camera is in use by another app. Please close other camera apps and try again.');
+    } else {
+      alert('Camera error: ' + e.message + '\n\nFalling back to file upload.');
+      // Fallback
+      const input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*'; input.capture = 'user';
+      input.onchange = (ev) => {
+        if (ev.target.files[0]) {
+          window.selfieBlob = ev.target.files[0];
+          document.getElementById('kycSelfieBtn').textContent = '✅ Selfie Captured';
+          document.getElementById('kycSelfieBtn').style.borderColor = 'var(--accent)';
+          document.getElementById('kycUploadStatus').textContent = 'Selfie uploaded successfully';
+        }
+      };
+      input.click();
+    }
   }
 }
 
