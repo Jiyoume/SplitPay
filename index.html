@@ -1751,12 +1751,39 @@ function applyOCRData() {
         📸 ID Front
         <input type="file" accept="image/*" style="display:none;" onchange="handleKYCUpload(event,'front')">
       </label>
-      <label class="kyc-upload-btn" id="kycSelfieBtn">
-        🤳 Selfie
-        <input type="file" accept="image/*" capture="user" style="display:none;" onchange="handleKYCUpload(event,'selfie')">
-      </label>
+      <div class="kyc-upload-btn" id="kycSelfieBtn" onclick="openSelfieCam()" style="cursor:pointer;">
+        🤳 Take Selfie
+      </div>
     </div>
     <div id="kycUploadStatus" style="font-size:12px;color:var(--text-secondary);margin-top:8px;text-align:center;"></div>
+
+    <!-- Selfie Camera Modal -->
+    <div id="selfieCamOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="position:relative;width:280px;height:360px;">
+        <!-- Face guide oval -->
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none;">
+          <div id="faceGuide" style="width:200px;height:260px;border:3px dashed rgba(255,255,255,0.5);border-radius:50%;transition:border-color 0.3s;"></div>
+        </div>
+        <!-- Status text -->
+        <div id="selfieStatus" style="position:absolute;top:-40px;left:0;right:0;text-align:center;color:#fff;font-size:14px;font-weight:600;z-index:3;">
+          Position your face within the oval
+        </div>
+        <!-- Video feed -->
+        <video id="selfieVideo" autoplay playsinline style="width:100%;height:100%;object-fit:cover;border-radius:20px;transform:scaleX(-1);"></video>
+        <!-- Canvas for capture -->
+        <canvas id="selfieCanvas" style="display:none;"></canvas>
+      </div>
+      <!-- Instructions -->
+      <div style="color:rgba(255,255,255,0.7);font-size:12px;margin-top:16px;text-align:center;max-width:260px;">
+        Keep your face centered • Good lighting • Remove glasses/mask
+      </div>
+      <!-- Capture button -->
+      <button id="selfieCaptureBtn" onclick="captureSelfie()" style="margin-top:20px;width:70px;height:70px;border-radius:50%;border:4px solid #fff;background:transparent;cursor:pointer;position:relative;transition:all 0.2s;" disabled>
+        <div style="width:54px;height:54px;border-radius:50%;background:#fff;margin:auto;transition:transform 0.2s;"></div>
+      </button>
+      <!-- Cancel -->
+      <button onclick="closeSelfieCam()" style="margin-top:16px;background:none;border:none;color:rgba(255,255,255,0.7);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit;">Cancel</button>
+    </div>
 
     <button class="btn btn-primary btn-full" onclick="submitKYC()" style="margin-top:16px;">Submit Verification</button>
     <div style="text-align:center;font-size:11px;color:var(--text-tertiary);margin-top:10px;">🔒 Your data is encrypted and stored securely</div>
@@ -2579,12 +2606,139 @@ function autoFillZipCode() {
 function handleKYCUpload(event, type) {
   const file = event.target.files[0];
   if (!file) return;
-  const btn = type === 'front' ? document.getElementById('kycIdFrontBtn') : document.getElementById('kycSelfieBtn');
-  btn.textContent = type === 'front' ? '✅ ID Uploaded' : '✅ Selfie Taken';
+  const btn = document.getElementById('kycIdFrontBtn');
+  btn.textContent = '✅ ID Uploaded';
   btn.style.borderColor = 'var(--accent)';
   btn.style.color = 'var(--accent)';
-  document.getElementById('kycUploadStatus').textContent = 
-    type === 'front' ? 'ID front photo uploaded successfully' : 'Selfie captured successfully';
+  document.getElementById('kycUploadStatus').textContent = 'ID front photo uploaded successfully';
+}
+
+// ===== SELFIE CAMERA WITH FACE DETECTION =====
+let selfieStream = null;
+let faceDetectionInterval = null;
+
+async function openSelfieCam() {
+  const overlay = document.getElementById('selfieCamOverlay');
+  overlay.style.display = 'flex';
+  const video = document.getElementById('selfieVideo');
+  const captureBtn = document.getElementById('selfieCaptureBtn');
+  captureBtn.disabled = true;
+
+  try {
+    selfieStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    video.srcObject = selfieStream;
+
+    // Start face detection
+    startFaceDetection(video, captureBtn);
+  } catch(e) {
+    alert('Camera access denied. Please allow camera permissions.');
+    closeSelfieCam();
+  }
+}
+
+function startFaceDetection(video, captureBtn) {
+  const guide = document.getElementById('faceGuide');
+  const status = document.getElementById('selfieStatus');
+  let faceDetected = false;
+  let stableCount = 0;
+
+  // Use FaceDetector API if available, otherwise use canvas brightness detection
+  if ('FaceDetector' in window) {
+    const detector = new FaceDetector({ maxDetectedFaces: 1, fastMode: true });
+    faceDetectionInterval = setInterval(async () => {
+      try {
+        const faces = await detector.detect(video);
+        if (faces.length > 0) {
+          const face = faces[0].boundingBox;
+          const videoW = video.videoWidth;
+          const videoH = video.videoHeight;
+          const faceRatio = (face.width * face.height) / (videoW * videoH);
+
+          // Face must be 8-40% of frame (within range)
+          if (faceRatio > 0.08 && faceRatio < 0.40) {
+            stableCount++;
+            guide.style.borderColor = '#34C759';
+            guide.style.borderStyle = 'solid';
+            status.textContent = stableCount >= 5 ? '✅ Face detected — tap to capture' : 'Hold still...';
+            if (stableCount >= 5) { captureBtn.disabled = false; }
+          } else if (faceRatio <= 0.08) {
+            stableCount = 0; guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+            status.textContent = 'Move closer'; captureBtn.disabled = true;
+          } else {
+            stableCount = 0; guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+            status.textContent = 'Move further away'; captureBtn.disabled = true;
+          }
+        } else {
+          stableCount = 0; guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
+          status.textContent = 'Position your face within the oval'; captureBtn.disabled = true;
+        }
+      } catch(e) {}
+    }, 300);
+  } else {
+    // Fallback: simple brightness/motion detection for browsers without FaceDetector
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 160; canvas.height = 120;
+    let prevBrightness = 0;
+
+    faceDetectionInterval = setInterval(() => {
+      ctx.drawImage(video, 0, 0, 160, 120);
+      const imgData = ctx.getImageData(40, 20, 80, 80); // Center region
+      let brightness = 0;
+      for (let i = 0; i < imgData.data.length; i += 16) {
+        brightness += imgData.data[i]; // Sample red channel
+      }
+      brightness /= (imgData.data.length / 16);
+
+      // Detect presence by center brightness change (face = varying brightness)
+      const diff = Math.abs(brightness - prevBrightness);
+      prevBrightness = brightness;
+
+      if (brightness > 50 && brightness < 200 && diff < 30) {
+        stableCount++;
+        guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
+        status.textContent = stableCount >= 10 ? '✅ Ready — tap to capture' : 'Hold still...';
+        if (stableCount >= 10) captureBtn.disabled = false;
+      } else {
+        stableCount = Math.max(0, stableCount - 2);
+        guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
+        status.textContent = 'Position your face within the oval';
+        if (stableCount < 5) captureBtn.disabled = true;
+      }
+    }, 200);
+  }
+}
+
+function captureSelfie() {
+  const video = document.getElementById('selfieVideo');
+  const canvas = document.getElementById('selfieCanvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1); // Mirror
+  ctx.drawImage(video, 0, 0);
+
+  // Convert to blob
+  canvas.toBlob((blob) => {
+    window.selfieBlob = blob;
+    // Update UI
+    const btn = document.getElementById('kycSelfieBtn');
+    btn.textContent = '✅ Selfie Captured';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    document.getElementById('kycUploadStatus').textContent = 'Selfie captured successfully — face verified ✓';
+    closeSelfieCam();
+  }, 'image/jpeg', 0.85);
+}
+
+function closeSelfieCam() {
+  if (faceDetectionInterval) { clearInterval(faceDetectionInterval); faceDetectionInterval = null; }
+  if (selfieStream) { selfieStream.getTracks().forEach(t => t.stop()); selfieStream = null; }
+  document.getElementById('selfieCamOverlay').style.display = 'none';
 }
 
 function submitKYC() {
