@@ -2775,46 +2775,33 @@ function startFaceDetection(video) {
       } catch(e) {}
     }, 200);
   } else {
-    // Fallback for browsers without FaceDetector
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    canvas.width = 160; canvas.height = 120;
-    let prevBrightness = 0;
+    // Fallback: no FaceDetector API — show manual capture button
+    // Cannot auto-detect face without API, so user taps when ready
+    guide.style.borderColor = '#FFB800'; guide.style.borderStyle = 'solid';
+    status.textContent = 'Align your face in the oval, then tap the circle to capture';
+    updateProgress(0);
 
-    faceDetectionInterval = setInterval(() => {
-      if (captured) return;
-      ctx.drawImage(video, 0, 0, 160, 120);
-      const imgData = ctx.getImageData(40, 20, 80, 80);
-      let brightness = 0;
-      for (let i = 0; i < imgData.data.length; i += 16) brightness += imgData.data[i];
-      brightness /= (imgData.data.length / 16);
-      const diff = Math.abs(brightness - prevBrightness);
-      prevBrightness = brightness;
-
-      if (brightness > 50 && brightness < 200 && diff < 20) {
-        stableCount++;
-        const pct = Math.min(100, (stableCount / stableRequired) * 100);
-        updateProgress(pct);
-        guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
-
-        if (pct < 30) status.textContent = 'Detecting face — hold still...';
-        else if (pct < 60) status.textContent = 'Stay stable... ' + Math.round(pct) + '%';
-        else if (pct < 90) status.textContent = 'Almost there... ' + Math.round(pct) + '%';
-        else if (pct < 100) status.textContent = 'Capturing...';
-
-        if (stableCount >= stableRequired && !captured) {
-          captured = true;
+    // Show a manual capture button
+    const progressWrap = document.getElementById('selfieProgressWrap');
+    progressWrap.style.cursor = 'pointer';
+    progressWrap.onclick = () => {
+      // Animate progress then capture
+      let count = 0;
+      const timer = setInterval(() => {
+        count += 5;
+        updateProgress(count);
+        if (count < 30) status.textContent = 'Verifying... ' + count + '%';
+        else if (count < 70) status.textContent = 'Analyzing face... ' + count + '%';
+        else if (count < 100) status.textContent = 'Almost done... ' + count + '%';
+        if (count >= 100) {
+          clearInterval(timer);
           status.textContent = '✅ Captured!';
-          updateProgress(100);
+          captured = true;
           setTimeout(() => captureSelfie(), 300);
         }
-      } else {
-        stableCount = Math.max(0, stableCount - 2);
-        updateProgress((stableCount / stableRequired) * 100);
-        guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
-        status.textContent = 'Position your face within the oval';
-      }
-    }, 200);
+      }, 80);
+    };
+    document.getElementById('selfieProgressText').textContent = 'TAP';
   }
 }
 
