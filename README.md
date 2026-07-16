@@ -17,7 +17,7 @@ Built with **React Native (Expo)** + **TypeScript** for APAC HACK 2026.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - Expo CLI (`npm install -g expo-cli`)
 - Expo Go app on your phone (for testing)
 
