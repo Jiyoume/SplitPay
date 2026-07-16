@@ -1675,9 +1675,8 @@ function applyOCRData() {
       <label>Full Name</label>
       <input type="text" placeholder="Juan Dela Cruz" id="kycFullName">
     </div>
-    <div class="input-group">
-      <label>Email Address</label>
-      <input type="email" placeholder="your@email.com" id="kycEmail">
+    <div class="input-group" style="display:none;">
+      <input type="hidden" id="kycEmail" value="from-auth">
     </div>
     <div class="input-group">
       <label>Phone Number</label>
@@ -2950,7 +2949,6 @@ function closeSelfieCam() {
 function checkFieldOrder() {
   const fields = [
     { id: 'kycFullName', label: 'Full Name' },
-    { id: 'kycEmail', label: 'Email' },
     { id: 'kycPhone', label: 'Phone' },
     { id: 'kycBirthday', label: 'Birthday' },
     { id: 'kycRegion', label: 'Region' },
@@ -3214,12 +3212,11 @@ function getIdTypeName(type) {
 function submitKYC() {
   // Validate required fields
   const name = document.getElementById('kycFullName')?.value?.trim();
-  const email = document.getElementById('kycEmail')?.value?.trim();
   const phone = document.getElementById('kycPhone')?.value?.trim();
   const idType = document.getElementById('kycIdType')?.value;
   const idNumber = document.getElementById('kycIdNumber')?.value?.trim();
 
-  if (!name || !email || !phone) { alert('Please fill in your name, email, and phone number.'); return; }
+  if (!name || !phone) { alert('Please fill in your name and phone number.'); return; }
   if (!idType) { alert('Please select your ID type.'); return; }
   if (!idNumber) { alert('Please enter your ID number.'); return; }
   if (!validateIdNumber()) { alert('Please enter a valid ID number in the correct format.'); return; }
