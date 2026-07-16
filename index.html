@@ -1767,8 +1767,8 @@ function applyOCRData() {
     <div style="font-size:13px;font-weight:700;margin:16px 0 8px;color:var(--text-primary);">📄 Document Uploads</div>
     <div class="kyc-upload-btns">
       <label class="kyc-upload-btn" id="kycIdFrontBtn">
-        📸 ID Front
-        <input type="file" accept="image/*" style="display:none;" onchange="handleKYCUpload(event,'front')">
+        📸 Capture ID Front
+        <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleKYCUpload(event,'front')">
       </label>
       <div class="kyc-upload-btn" id="kycSelfieBtn" onclick="openSelfieCam()" style="cursor:pointer;">
         🤳 Take Selfie
