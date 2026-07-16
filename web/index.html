@@ -2775,72 +2775,88 @@ function startFaceDetection(video) {
       } catch(e) {}
     }, 200);
   } else {
-    // Fallback: use canvas analysis to detect face presence
+    // Fallback: responsive face detection using skin-tone + motion analysis
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    canvas.width = 160; canvas.height = 120;
-    let facePresent = false;
+    canvas.width = 120; canvas.height = 90;
     let checkCount = 0;
+    let lastSkinRatio = 0;
 
     guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
-    status.textContent = 'Detecting face...';
+    status.textContent = 'Looking for your face...';
     updateProgress(0);
 
     faceDetectionInterval = setInterval(() => {
       if (captured) return;
-      ctx.drawImage(video, 0, 0, 160, 120);
+      ctx.drawImage(video, 0, 0, 120, 90);
+      checkCount++;
 
-      // Analyze center region for skin-tone colors (face detection heuristic)
-      const imgData = ctx.getImageData(40, 20, 80, 80);
+      // Analyze oval region (center of frame)
+      const cx = 30, cy = 15, cw = 60, ch = 60;
+      const imgData = ctx.getImageData(cx, cy, cw, ch);
       let skinPixels = 0;
-      let totalPixels = 0;
+      const total = cw * ch;
 
       for (let i = 0; i < imgData.data.length; i += 4) {
         const r = imgData.data[i], g = imgData.data[i+1], b = imgData.data[i+2];
-        totalPixels++;
-        // Skin tone detection (works for various skin colors)
-        if (r > 60 && g > 40 && b > 20 && r > g && r > b && (r - g) > 15 && Math.abs(r - b) > 15) {
-          skinPixels++;
-        }
+        // Broad skin tone detection (lighter and darker skin)
+        const isSkin = (
+          (r > 80 && g > 50 && b > 30 && r > g - 10 && (r - b) > 10 && (r - g) > 5) ||
+          (r > 50 && g > 30 && b > 15 && r > g && r > b && (r - b) > 20)
+        );
+        if (isSkin) skinPixels++;
       }
 
-      const skinRatio = skinPixels / totalPixels;
+      const skinRatio = skinPixels / total;
+      const ratioChange = Math.abs(skinRatio - lastSkinRatio);
+      lastSkinRatio = skinRatio;
 
-      // Face detected if >20% skin-tone pixels in center region
-      if (skinRatio > 0.20) {
+      // Face present: >15% skin pixels AND relatively stable (not moving fast)
+      if (skinRatio > 0.15 && ratioChange < 0.08) {
         stableCount++;
-        facePresent = true;
         const pct = Math.min(100, (stableCount / stableRequired) * 100);
         updateProgress(pct);
         guide.style.borderColor = '#34C759'; guide.style.borderStyle = 'solid';
 
-        if (pct < 25) status.textContent = 'Face detected — hold still...';
-        else if (pct < 50) status.textContent = 'Recognizing... ' + Math.round(pct) + '%';
-        else if (pct < 75) status.textContent = 'Verifying face... ' + Math.round(pct) + '%';
-        else if (pct < 100) status.textContent = 'Almost done... ' + Math.round(pct) + '%';
+        if (pct < 20) status.textContent = '😊 Face detected — hold still';
+        else if (pct < 40) status.textContent = '📸 Scanning... ' + Math.round(pct) + '%';
+        else if (pct < 60) status.textContent = '🔍 Verifying... ' + Math.round(pct) + '%';
+        else if (pct < 80) status.textContent = '✨ Almost there... ' + Math.round(pct) + '%';
+        else if (pct < 100) status.textContent = '📷 Capturing... ' + Math.round(pct) + '%';
 
         if (stableCount >= stableRequired && !captured) {
           captured = true;
-          status.textContent = '✅ Face recognized — captured!';
+          guide.style.borderColor = '#34C759';
+          status.textContent = '✅ Face verified — captured!';
           updateProgress(100);
-          setTimeout(() => captureSelfie(), 500);
+          setTimeout(() => captureSelfie(), 400);
         }
-      } else {
-        stableCount = Math.max(0, stableCount - 3);
-        facePresent = false;
+      } else if (skinRatio > 0.10 && ratioChange >= 0.08) {
+        // Face detected but moving too much
+        stableCount = Math.max(0, stableCount - 1);
         updateProgress(Math.max(0, (stableCount / stableRequired) * 100));
-        guide.style.borderColor = 'rgba(255,255,255,0.5)'; guide.style.borderStyle = 'dashed';
-        
-        checkCount++;
-        if (checkCount > 50 && !facePresent) {
-          // After 10 seconds with no face detected — show prompt
-          status.textContent = '⚠️ No face detected. Please position your face within the oval.';
-          guide.style.borderColor = '#FF453A'; guide.style.borderStyle = 'dashed';
+        guide.style.borderColor = '#FFB800'; guide.style.borderStyle = 'solid';
+        status.textContent = '🖐️ Hold still — stop moving';
+      } else if (skinRatio > 0.05 && skinRatio <= 0.15) {
+        // Partial face / too far
+        stableCount = Math.max(0, stableCount - 2);
+        updateProgress(Math.max(0, (stableCount / stableRequired) * 100));
+        guide.style.borderColor = '#FF9500'; guide.style.borderStyle = 'dashed';
+        status.textContent = '↗️ Move closer to the camera';
+      } else {
+        // No face
+        stableCount = Math.max(0, stableCount - 3);
+        updateProgress(Math.max(0, (stableCount / stableRequired) * 100));
+        guide.style.borderColor = 'rgba(255,255,255,0.4)'; guide.style.borderStyle = 'dashed';
+
+        if (checkCount > 40) {
+          status.textContent = '⚠️ No face detected — look at the camera';
+          guide.style.borderColor = '#FF453A';
         } else {
-          status.textContent = 'Position your face within the oval';
+          status.textContent = 'Position your face in the oval';
         }
       }
-    }, 200);
+    }, 150); // Faster interval for responsiveness
   }
 }
 
