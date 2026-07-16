@@ -1520,48 +1520,127 @@ function handleReceiptCapture(event) {
   document.getElementById('ocrProcessing').style.display = 'block';
   document.getElementById('ocrResults').style.display = 'none';
 
-  // Show preview
+  // Load image for quality analysis
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('ocrPreviewImg').src = e.target.result;
+    const img = new Image();
+    img.onload = () => analyzeImageQuality(img, file);
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
-
-  // Simulate OCR processing (in production, use Tesseract.js)
-  simulateOCR(file);
 }
 
-function simulateOCR(file) {
-  const stages = [
-    { progress: 15, text: 'Preparing image...', delay: 400 },
-    { progress: 35, text: 'Reading text...', delay: 800 },
-    { progress: 60, text: 'Extracting data...', delay: 600 },
-    { progress: 80, text: 'Analyzing items...', delay: 500 },
-    { progress: 95, text: 'Categorizing...', delay: 300 },
-    { progress: 100, text: 'Done!', delay: 200 },
-  ];
+function analyzeImageQuality(img, file) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  canvas.width = 200; canvas.height = Math.round(200 * img.height / img.width);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imgData.data;
 
-  let i = 0;
-  function nextStage() {
-    if (i >= stages.length) {
-      showOCRResults();
-      return;
-    }
-    const stage = stages[i];
-    document.getElementById('ocrProgressBar').style.width = stage.progress + '%';
-    document.getElementById('ocrStatusText').textContent = stage.text;
-    document.getElementById('ocrProgressText').textContent = stage.progress + '%';
-    i++;
-    setTimeout(nextStage, stage.delay);
+  // 1. Check brightness (lighting)
+  let totalBrightness = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
   }
-  nextStage();
+  const avgBrightness = totalBrightness / (data.length / 4);
+  const lightingOk = avgBrightness > 60 && avgBrightness < 220;
+
+  // 2. Check blur (edge sharpness)
+  let edgeCount = 0;
+  const w = canvas.width;
+  for (let i = 0; i < data.length - w*4; i += 4) {
+    const diff = Math.abs(data[i] - data[i + w*4]);
+    if (diff > 25) edgeCount++;
+  }
+  const sharpness = edgeCount / (data.length / 4);
+  const blurOk = sharpness > 0.08;
+
+  // 3. Check if it looks like a receipt/paper (high contrast text on light bg)
+  let lightPixels = 0, darkPixels = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    if (gray > 180) lightPixels++;
+    if (gray < 60) darkPixels++;
+  }
+  const totalPixels = data.length / 4;
+  const paperRatio = lightPixels / totalPixels;
+  const textRatio = darkPixels / totalPixels;
+  const isReceipt = paperRatio > 0.30 && textRatio > 0.02;
+
+  // 4. Calculate recognition confidence
+  let confidence = 50;
+  if (lightingOk) confidence += 15;
+  if (blurOk) confidence += 20;
+  if (isReceipt) confidence += 15;
+  confidence = Math.min(98, confidence);
+
+  // Show quality results
+  const statusText = document.getElementById('ocrStatusText');
+  const progressBar = document.getElementById('ocrProgressBar');
+  const progressText = document.getElementById('ocrProgressText');
+
+  // Quality check prompts
+  const issues = [];
+  if (!lightingOk) issues.push(avgBrightness < 60 ? '🔅 Too dark — improve lighting' : '☀️ Too bright — reduce glare');
+  if (!blurOk) issues.push('📷 Image is blurred — hold camera steady');
+  if (!isReceipt) issues.push('📄 Does not look like a receipt — use a receipt or paper document');
+
+  if (issues.length > 0 && confidence < 65) {
+    // Show warning and ask to retry
+    document.getElementById('ocrProcessing').style.display = 'none';
+    document.getElementById('ocrResults').style.display = 'none';
+    document.getElementById('ocrUploadArea').style.display = 'block';
+    const issueList = issues.join('\n• ');
+    alert('⚠️ Image Quality Issues:\n\n• ' + issueList + '\n\nRecognition confidence: ' + confidence + '%\n\nPlease retake the photo with better conditions.');
+    return;
+  }
+
+  // Proceed with OCR — show confidence
+  progressBar.style.width = '20%';
+  statusText.textContent = '🔍 Quality: ' + confidence + '% confidence';
+  progressText.textContent = '20%';
+
+  setTimeout(() => {
+    progressBar.style.width = '40%';
+    statusText.textContent = lightingOk ? '💡 Lighting: Good' : '💡 Lighting: Acceptable';
+    progressText.textContent = '40%';
+  }, 400);
+
+  setTimeout(() => {
+    progressBar.style.width = '55%';
+    statusText.textContent = blurOk ? '📸 Sharpness: Clear' : '📸 Sharpness: Slightly blurred';
+    progressText.textContent = '55%';
+  }, 800);
+
+  setTimeout(() => {
+    progressBar.style.width = '70%';
+    statusText.textContent = isReceipt ? '📄 Document: Receipt detected' : '📄 Document: Processing...';
+    progressText.textContent = '70%';
+  }, 1200);
+
+  setTimeout(() => {
+    progressBar.style.width = '85%';
+    statusText.textContent = '🤖 Extracting amounts...';
+    progressText.textContent = '85%';
+  }, 1600);
+
+  setTimeout(() => {
+    progressBar.style.width = '100%';
+    statusText.textContent = '✅ Done! Recognition: ' + confidence + '%';
+    progressText.textContent = '100%';
+    setTimeout(() => showOCRResults(confidence), 400);
+  }, 2000);
 }
 
-function showOCRResults() {
+function showOCRResults(confidence) {
   document.getElementById('ocrProcessing').style.display = 'none';
   document.getElementById('ocrResults').style.display = 'block';
 
-  // Mock extracted data (in production this comes from Tesseract.js + parsing)
+  confidence = confidence || 85;
+
+  // Mock extracted data
   const mockData = {
     vendor: 'Jollibee - SM Megamall',
     date: '2026-07-14',
@@ -1575,8 +1654,10 @@ function showOCRResults() {
     tax: 130.08,
     total: 1214.08,
     category: 'food_dining',
+    confidence: confidence,
   };
 
+  // Show confidence badge
   document.getElementById('ocrVendor').textContent = mockData.vendor;
   document.getElementById('ocrDate').textContent = mockData.date;
   document.getElementById('ocrSubtotal').textContent = '₱' + mockData.subtotal.toLocaleString();
@@ -1607,6 +1688,17 @@ function showOCRResults() {
 function applyOCRData() {
   if (!window._ocrData) return;
   const data = window._ocrData;
+
+  // Confirm the parsed result before applying
+  const confirmMsg = '📋 Confirm Receipt Data:\n\n' +
+    '🏪 Vendor: ' + data.vendor + '\n' +
+    '📅 Date: ' + data.date + '\n' +
+    '💰 Total: ₱' + data.total.toLocaleString(undefined, {minimumFractionDigits:2}) + '\n' +
+    '📊 Recognition: ' + (data.confidence || 85) + '%\n' +
+    '📝 Items: ' + data.items.length + '\n\n' +
+    'Is this correct? Tap OK to use this data.';
+
+  if (!confirm(confirmMsg)) return;
 
   // Fill the expense form
   document.getElementById('expDesc').value = data.vendor;
