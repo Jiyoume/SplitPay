@@ -11,7 +11,7 @@
 <meta name="format-detection" content="telephone=no">
 <meta name="msapplication-tap-highlight" content="no">
 <link rel="manifest" href="./manifest.json">
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%23000'/%3E%3Ctext x='90' y='115' font-family='system-ui' font-size='68' font-weight='800' fill='%2334C759' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="./logo.png">
 <title>MyShare - Split Expenses</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -869,8 +869,8 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 <div class="auth-screen active" id="loginScreen">
   <div class="auth-header">
     <div class="logo">
-      <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-      <span>My<span style="color:var(--text-primary)">Share</span></span>
+      <img src="./logo.png" alt="MyShare Logo" class="logo-icon" style="object-fit:cover; background:none; box-shadow:none; border-radius:14px;">
+      <span>My<span style="color:#00D1FF">Share</span></span>
     </div>
     <p>Track, Split, Settle — Effortlessly</p>
   </div>
@@ -899,8 +899,8 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
 <div class="auth-screen" id="signupScreen">
   <div class="auth-header">
     <div class="logo">
-      <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
-      <span>My<span style="color:var(--text-primary)">Share</span></span>
+      <img src="./logo.png" alt="MyShare Logo" class="logo-icon" style="object-fit:cover; background:none; box-shadow:none; border-radius:14px;">
+      <span>My<span style="color:#00D1FF">Share</span></span>
     </div>
     <p>Create your account to get started</p>
   </div>
@@ -955,7 +955,12 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
   <div class="screen-content" id="homeContent">
     <div style="height:44px;"></div>
     <div class="home-header">
-      <h2>Home</h2>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <img src="./logo.png" alt="MyShare" style="width:36px;height:36px;border-radius:10px;object-fit:cover;">
+        <h2 style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin:0;display:flex;align-items:center;">
+          <span style="color:var(--text-primary);">My</span><span style="color:#00D1FF;">Share</span>
+        </h2>
+      </div>
       <div class="notification-bell" onclick="shakebell(this)">
         🔔
         <div class="badge"></div>
