@@ -1060,62 +1060,10 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
     </div>
 
     <div id="groupsList">
-      <div class="group-card" data-category="active food">
-        <div class="group-top">
-          <div class="group-name">🍕 Barkada Food Trip</div>
-          <div class="group-amount">₱2,450</div>
-        </div>
-        <div class="group-members">
-          <div class="member-avatar">JD</div>
-          <div class="member-avatar">MA</div>
-          <div class="member-avatar">CL</div>
-          <div class="member-avatar">+2</div>
-          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
-        </div>
-        <div class="group-meta">Last activity: 2 hours ago</div>
-      </div>
-
-      <div class="group-card" data-category="active rent">
-        <div class="group-top">
-          <div class="group-name">🏠 Apartment Rent</div>
-          <div class="group-amount">₱15,000</div>
-        </div>
-        <div class="group-members">
-          <div class="member-avatar">JD</div>
-          <div class="member-avatar">RK</div>
-          <div class="member-avatar">AL</div>
-          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
-        </div>
-        <div class="group-meta">Last activity: 1 day ago</div>
-      </div>
-
-      <div class="group-card" data-category="active travel">
-        <div class="group-top">
-          <div class="group-name">✈️ Boracay Trip 2026</div>
-          <div class="group-amount">₱8,750</div>
-        </div>
-        <div class="group-members">
-          <div class="member-avatar">JD</div>
-          <div class="member-avatar">MA</div>
-          <div class="member-avatar">CL</div>
-          <div class="member-avatar">RK</div>
-          <div class="member-avatar">+3</div>
-          <span class="verified-badge" style="margin-left:8px;display:none;">✓ Verified</span>
-        </div>
-        <div class="group-meta">Last activity: 3 days ago</div>
-      </div>
-
-      <div class="group-card" data-category="settled food">
-        <div class="group-top">
-          <div class="group-name">🎂 Birthday Dinner</div>
-          <div class="group-amount">Settled ✓</div>
-        </div>
-        <div class="group-members">
-          <div class="member-avatar">JD</div>
-          <div class="member-avatar">AN</div>
-          <div class="member-avatar">BL</div>
-        </div>
-        <div class="group-meta">Settled on Jul 5</div>
+      <div style="text-align:center;padding:40px 16px;color:var(--text-secondary);font-size:14px;">
+        <div style="font-size:36px;margin-bottom:10px;">👥</div>
+        <div style="font-weight:600;margin-bottom:4px;">No groups yet</div>
+        Create your first group to start splitting expenses.
       </div>
     </div>
   </div>
@@ -1249,119 +1197,20 @@ button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell
       </div>
     </div>
 
-    <!-- Spending Tracker with Budget Progress -->
-    <div class="section-header">
-      <h3>Budget Tracker</h3>
-    </div>
-    <div style="padding:0 20px 16px;">
-      <div class="budget-item">
-        <div class="budget-icon">🍔</div>
-        <div class="budget-info">
-          <div class="budget-label">Food & Drinks</div>
-          <div class="budget-bar"><div class="budget-fill" style="width:72%;background:var(--accent);"></div></div>
-        </div>
-        <div class="budget-meta">₱4,200/₱6,000</div>
-      </div>
-      <div class="budget-item">
-        <div class="budget-icon">🚗</div>
-        <div class="budget-info">
-          <div class="budget-label">Transportation</div>
-          <div class="budget-bar"><div class="budget-fill" style="width:56%;background:var(--blue);"></div></div>
-        </div>
-        <div class="budget-meta">₱2,800/₱5,000</div>
-      </div>
-      <div class="budget-item">
-        <div class="budget-icon">🏠</div>
-        <div class="budget-info">
-          <div class="budget-label">Rent & Bills</div>
-          <div class="budget-bar"><div class="budget-fill" style="width:88%;background:var(--warning);"></div></div>
-        </div>
-        <div class="budget-meta">₱3,500/₱4,000</div>
-      </div>
-      <div class="budget-item">
-        <div class="budget-icon">🎮</div>
-        <div class="budget-info">
-          <div class="budget-label">Entertainment</div>
-          <div class="budget-bar"><div class="budget-fill" style="width:38%;background:var(--purple);"></div></div>
-        </div>
-        <div class="budget-meta">₱1,900/₱5,000</div>
-      </div>
-      <div class="budget-item">
-        <div class="budget-icon">🛒</div>
-        <div class="budget-info">
-          <div class="budget-label">Shopping</div>
-          <div class="budget-bar"><div class="budget-fill" style="width:25%;background:var(--danger);"></div></div>
-        </div>
-        <div class="budget-meta">₱750/₱3,000</div>
-      </div>
-    </div>
-
-    <div class="section-header">
-      <h3>Spending by Category</h3>
-    </div>
-    <div class="progress-section">
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-label">🍔 Food & Drinks</span>
-          <span class="progress-value">₱4,200 (34%)</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill green" style="width:0%" data-width="72%"></div></div>
-      </div>
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-label">🚗 Transportation</span>
-          <span class="progress-value">₱2,800 (23%)</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill blue" style="width:0%" data-width="48%"></div></div>
-      </div>
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-label">🏠 Rent & Bills</span>
-          <span class="progress-value">₱3,500 (28%)</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill orange" style="width:0%" data-width="60%"></div></div>
-      </div>
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-label">🎮 Entertainment</span>
-          <span class="progress-value">₱1,900 (15%)</span>
-        </div>
-        <div class="progress-bar"><div class="progress-fill purple" style="width:0%" data-width="32%"></div></div>
-      </div>
+    <!-- Empty state - data appears from user actions -->
+    <div style="text-align:center;padding:40px 16px;color:var(--text-secondary);font-size:14px;">
+      <div style="font-size:36px;margin-bottom:10px;">??</div>
+      <div style="font-weight:600;margin-bottom:4px;">No data yet</div>
+      Your budget tracker, spending categories, and monthly summary will appear here once you start adding expenses.
     </div>
 
     <!-- Export CSV Button -->
     <div class="export-btn" onclick="exportCSV()">
-      📥 Export Monthly Report (CSV)
-    </div>
-
-    <div class="section-header">
-      <h3>Monthly Summary</h3>
-    </div>
-    <div class="monthly-list">
-      <div class="monthly-item">
-        <span class="month">July 2026</span>
-        <span class="month-amount">₱12,400</span>
-      </div>
-      <div class="monthly-item">
-        <span class="month">June 2026</span>
-        <span class="month-amount">₱11,500</span>
-      </div>
-      <div class="monthly-item">
-        <span class="month">May 2026</span>
-        <span class="month-amount">₱9,800</span>
-      </div>
-      <div class="monthly-item">
-        <span class="month">April 2026</span>
-        <span class="month-amount">₱10,200</span>
-      </div>
-      <div class="monthly-item">
-        <span class="month">March 2026</span>
-        <span class="month-amount">₱8,750</span>
-      </div>
+      ?? Export Monthly Report (CSV)
     </div>
   </div>
 </div>
+
 
 
 <!-- ===== PROFILE SCREEN ===== -->
