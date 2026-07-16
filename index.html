@@ -2506,6 +2506,7 @@ async function loadCities() {
   const sel = document.getElementById('kycCity');
   sel.innerHTML = '<option value="">Select City...</option>';
   document.getElementById('kycBarangay').innerHTML = '<option value="">Select Barangay...</option>';
+  document.getElementById('kycZipCode').value = '';
   if (!provinceCode) return;
   try {
     const res = await fetch(PSGC_API + '/provinces/' + provinceCode + '/cities-municipalities/');
@@ -2526,6 +2527,50 @@ async function loadBarangays() {
     data.sort((a,b) => a.name.localeCompare(b.name));
     data.forEach(b => { const opt = document.createElement('option'); opt.value = b.code; opt.textContent = b.name; sel.appendChild(opt); });
   } catch(e) { console.error('Failed to load barangays:', e); }
+  // Auto-fill zip code based on city
+  autoFillZipCode();
+}
+
+// Philippine zip code lookup by city name
+const PH_ZIP_CODES = {
+  'manila':1000,'quezon city':1100,'makati':1200,'pasig':1600,'taguig':1630,'paranaque':1700,
+  'las pinas':1740,'muntinlupa':1770,'caloocan':1400,'malabon':1470,'navotas':1485,
+  'valenzuela':1440,'marikina':1800,'san juan':1500,'mandaluyong':1550,'pasay':1300,
+  'cebu city':6000,'davao city':8000,'zamboanga city':7000,'cagayan de oro':9000,
+  'antipolo':1870,'bacoor':4102,'imus':4103,'dasmarinas':4114,'general trias':4107,
+  'san pedro':4023,'binan':4024,'santa rosa':4026,'cabuyao':4025,'calamba':4027,
+  'angeles':2009,'san fernando':2000,'olongapo':2200,'baguio':2600,'laoag':2900,
+  'vigan':2700,'dagupan':2400,'cabanatuan':3100,'tarlac':2300,'batangas':4200,
+  'lipa':4217,'lucena':4301,'naga':4400,'legazpi':4500,'iloilo city':5000,
+  'bacolod':6100,'dumaguete':6200,'tagbilaran':6300,'tacloban':6500,
+  'butuan':8600,'surigao':8400,'general santos':9500,'cotabato':9600,
+  'iligan':9200,'marawi':9700,'pagadian':7016,'dipolog':7100,'ozamiz':7200,
+};
+
+function autoFillZipCode() {
+  const citySelect = document.getElementById('kycCity');
+  const cityName = citySelect.options[citySelect.selectedIndex]?.textContent?.toLowerCase() || '';
+  const zipInput = document.getElementById('kycZipCode');
+  
+  // Try exact match first
+  for (const [name, zip] of Object.entries(PH_ZIP_CODES)) {
+    if (cityName.includes(name) || name.includes(cityName.replace(' city','').replace('city of ',''))) {
+      zipInput.value = zip;
+      return;
+    }
+  }
+  
+  // Try partial match
+  const cityBase = cityName.replace(' city','').replace('city of ','').trim();
+  for (const [name, zip] of Object.entries(PH_ZIP_CODES)) {
+    if (name.includes(cityBase) || cityBase.includes(name)) {
+      zipInput.value = zip;
+      return;
+    }
+  }
+  
+  // No match — leave empty for manual entry
+  zipInput.value = '';
 }
 
 function handleKYCUpload(event, type) {
