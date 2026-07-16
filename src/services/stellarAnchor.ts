@@ -9,7 +9,7 @@
  *   npm install @stellar/typescript-wallet-sdk @stellar/stellar-sdk
  */
 
-import { Wallet, IssuedAssetId } from "@stellar/typescript-wallet-sdk";
+import { Wallet, IssuedAssetId, SigningKeypair } from "@stellar/typescript-wallet-sdk";
 import { Keypair, Memo, MemoText } from "@stellar/stellar-sdk";
 
 // ===== CONFIGURATION =====
@@ -53,10 +53,11 @@ export interface WithdrawalResult {
  * This generates a JWT token that authorizes subsequent operations.
  */
 export async function authenticateWithAnchor(keypair: Keypair) {
-  const authToken = await anchor
-    .sep10()
-    .authenticate({ accountKp: keypair });
-  
+  const sep10 = await anchor.sep10();
+  const authToken = await sep10.authenticate({
+    accountKp: new SigningKeypair(keypair),
+  });
+
   return authToken;
 }
 
@@ -117,6 +118,10 @@ export async function initiateDeposit(
 
   const deposit = await sep24.deposit(depositParams);
 
+  if (!deposit.url || !deposit.id) {
+    throw new Error("Anchor did not return an interactive deposit URL");
+  }
+
   return {
     url: deposit.url,    // Open this in webview/iframe for user to complete
     id: deposit.id,      // Track this transaction
@@ -145,6 +150,10 @@ export async function initiateWithdrawal(
     authToken,
   });
 
+  if (!withdrawal.url || !withdrawal.id) {
+    throw new Error("Anchor did not return an interactive withdrawal URL");
+  }
+
   return {
     url: withdrawal.url,
     id: withdrawal.id,
@@ -167,23 +176,19 @@ export function watchTransaction(
     onError: (error: any) => void;
   }
 ) {
-  const sep24Sync = anchor.sep24();
+  const sep24 = anchor.sep24();
+  const watcher = sep24.watcher();
 
-  // We need to resolve the promise first
-  sep24Sync.then((sep24) => {
-    const watcher = sep24.watcher();
-
-    const { stop, refresh } = watcher.watchOneTransaction({
-      authToken,
-      assetCode,
-      id: transactionId,
-      onMessage: callbacks.onMessage,
-      onSuccess: callbacks.onSuccess,
-      onError: callbacks.onError,
-    });
-
-    return { stop, refresh };
+  const { stop, refresh } = watcher.watchOneTransaction({
+    authToken,
+    assetCode,
+    id: transactionId,
+    onMessage: callbacks.onMessage,
+    onSuccess: callbacks.onSuccess,
+    onError: callbacks.onError,
   });
+
+  return { stop, refresh };
 }
 
 /**
@@ -232,8 +237,9 @@ export async function submitWithdrawalTransfer(
   const asset = await getSupportedAsset(assetCode);
 
   // Build the transfer transaction
+  const signingKeypair = new SigningKeypair(keypair);
   const txBuilder = await stellar.transaction({
-    sourceAddress: keypair,
+    sourceAddress: signingKeypair,
     baseFee: 10000,    // 0.001 XLM
     timebounds: 180,   // 3 minutes
   });
@@ -245,12 +251,12 @@ export async function submitWithdrawalTransfer(
   // Sign with user's keypair
   transferTransaction.sign(keypair);
 
-  // Submit to Stellar network
-  const response = await stellar.submitTransaction(transferTransaction);
-  
+  // Submit to Stellar network (returns true on success)
+  const success = await stellar.submitTransaction(transferTransaction);
+
   return {
-    stellarTransactionId: response.id,
-    success: true,
+    stellarTransactionId: transferTransaction.hash().toString("hex"),
+    success,
   };
 }
 

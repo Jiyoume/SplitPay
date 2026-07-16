@@ -305,6 +305,10 @@ export async function topUpViaStellarAnchor(
     },
   });
 
+  if (!deposit.url || !deposit.id) {
+    throw new Error('Anchor did not return an interactive deposit URL');
+  }
+
   return {
     interactiveUrl: deposit.url,
     transactionId: deposit.id,

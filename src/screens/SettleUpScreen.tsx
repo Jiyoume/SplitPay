@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Colors } from '../constants/colors';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import MemberAvatar from '../components/MemberAvatar';
+import GradientButton from '../components/GradientButton';
+import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 
 type SettleUpRouteProp = RouteProp<RootStackParamList, 'SettleUp'>;
+
+const METHODS = ['Cash', 'Bank Transfer', 'GCash'];
 
 export default function SettleUpScreen() {
   const navigation = useNavigation();
@@ -20,85 +17,92 @@ export default function SettleUpScreen() {
   const { amount } = route.params;
   const [payAmount, setPayAmount] = useState(amount.toFixed(2));
   const [note, setNote] = useState('');
+  const [method, setMethod] = useState(METHODS[0]);
 
   const handleSettle = () => {
-    Alert.alert('Payment Recorded', `You settled $${payAmount}`, [
+    Alert.alert('Payment Recorded', `You settled ${peso(Number(payAmount) || 0)}`, [
       { text: 'OK', onPress: () => navigation.goBack() },
     ]);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatarRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>M</Text>
+    <ScrollView style={s.container}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={s.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="close" size={24} color={Palette.textPrimary} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Settle Up</Text>
+        <View style={{ width: 44 }} />
+      </View>
+
+      <View style={{ paddingHorizontal: Spacing.lg }}>
+        <View style={s.avatarSection}>
+          <View style={s.avatarRow}>
+            <MemberAvatar name="Mike" size={56} backgroundColor={Palette.gradientEnd} />
+            <Ionicons name="arrow-forward" size={20} color={Palette.textMuted} />
+            <MemberAvatar name="You" size={56} backgroundColor={Palette.accent} />
           </View>
-          <Ionicons name="arrow-forward" size={24} color={Colors.textSecondary} />
-          <View style={[styles.avatar, { backgroundColor: Colors.primary }]}>
-            <Text style={styles.avatarText}>Y</Text>
+          <Text style={s.settleLabel}>Mike pays You</Text>
+        </View>
+
+        <View style={s.amountCard}>
+          <Text style={s.currency}>₱</Text>
+          <TextInput
+            style={s.amountInput}
+            value={payAmount}
+            onChangeText={setPayAmount}
+            keyboardType="decimal-pad"
+          />
+        </View>
+
+        <View style={s.field}>
+          <Text style={s.label}>Note (optional)</Text>
+          <TextInput
+            style={s.input}
+            value={note}
+            onChangeText={setNote}
+            placeholder="Add a note..."
+            placeholderTextColor={Palette.textMuted}
+          />
+        </View>
+
+        <View style={s.field}>
+          <Text style={s.label}>Payment Method</Text>
+          <View style={s.methods}>
+            {METHODS.map((m) => (
+              <TouchableOpacity key={m} style={[s.methodChip, method === m && s.methodChipActive]} onPress={() => setMethod(m)}>
+                <Text style={[s.methodText, method === m && s.methodTextActive]}>{m}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-        <Text style={styles.settleLabel}>Mike pays You</Text>
-      </View>
 
-      <View style={styles.amountSection}>
-        <Text style={styles.currencySymbol}>$</Text>
-        <TextInput
-          style={styles.amountInput}
-          value={payAmount}
-          onChangeText={setPayAmount}
-          keyboardType="decimal-pad"
-        />
+        <GradientButton title="Record Payment" onPress={handleSettle} style={{ marginTop: Spacing.sm, marginBottom: Spacing.xl }} />
       </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Note (optional)</Text>
-        <TextInput
-          style={styles.input}
-          value={note}
-          onChangeText={setNote}
-          placeholder="Add a note..."
-          placeholderTextColor={Colors.textLight}
-        />
-      </View>
-
-      <View style={styles.methodSection}>
-        <Text style={styles.label}>Payment Method</Text>
-        <View style={styles.methods}>
-          {['Cash', 'Bank Transfer', 'PayPal'].map((method) => (
-            <TouchableOpacity key={method} style={styles.methodChip}>
-              <Text style={styles.methodText}>{method}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.settleButton} onPress={handleSettle}>
-        <Ionicons name="checkmark-circle" size={22} color={Colors.white} />
-        <Text style={styles.settleButtonText}>Record Payment</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-  header: { alignItems: 'center', paddingVertical: 24 },
-  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.secondary, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { fontSize: 22, fontWeight: '700', color: Colors.white },
-  settleLabel: { fontSize: 16, color: Colors.textSecondary, marginTop: 12 },
-  amountSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 24, backgroundColor: Colors.surface, borderRadius: 16, marginBottom: 20 },
-  currencySymbol: { fontSize: 28, fontWeight: '700', color: Colors.primary },
-  amountInput: { fontSize: 42, fontWeight: '700', color: Colors.text, textAlign: 'center', minWidth: 80 },
-  inputGroup: { marginBottom: 20 },
-  label: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, fontSize: 16, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
-  methodSection: { marginBottom: 24 },
-  methods: { flexDirection: 'row', gap: 8 },
-  methodChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
-  methodText: { fontSize: 14, color: Colors.text },
-  settleButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.primary, padding: 18, borderRadius: 14, gap: 8 },
-  settleButtonText: { color: Colors.white, fontSize: 18, fontWeight: '700' },
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Palette.background },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, minHeight: 52 },
+  closeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -Spacing.sm },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: Palette.textPrimary, textAlign: 'center' },
+
+  avatarSection: { alignItems: 'center', paddingVertical: Spacing.lg },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.lg },
+  settleLabel: { fontSize: 15, color: Palette.textSecondary, marginTop: Spacing.md, fontWeight: '500' },
+
+  amountCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: Palette.card, borderRadius: Radii.card, paddingVertical: Spacing.xl, marginBottom: Spacing.lg, ...CardShadow },
+  currency: { fontSize: 26, fontWeight: '700', color: Palette.accent, marginRight: Spacing.xs },
+  amountInput: { fontSize: 40, fontWeight: '700', color: Palette.textPrimary, textAlign: 'center', minWidth: 100 },
+
+  field: { marginBottom: Spacing.lg },
+  label: { fontSize: 13, fontWeight: '600', color: Palette.textSecondary, marginBottom: Spacing.sm },
+  input: { backgroundColor: Palette.card, borderRadius: Radii.input, minHeight: 48, paddingHorizontal: Spacing.md, fontSize: 15, color: Palette.textPrimary, borderWidth: 1, borderColor: Palette.border },
+  methods: { flexDirection: 'row', gap: Spacing.sm },
+  methodChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radii.pill, backgroundColor: Palette.card, borderWidth: 1, borderColor: Palette.border },
+  methodChipActive: { backgroundColor: Palette.accent, borderColor: Palette.accent },
+  methodText: { fontSize: 13, color: Palette.textSecondary, fontWeight: '600' },
+  methodTextActive: { color: Palette.white },
 });

@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Colors } from '../constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Palette, Radii, Spacing } from '../constants/theme';
+import { GradientButton } from '../components';
 
 const GROUP_TYPES = [
   { id: 'family', label: 'Family', icon: 'heart' as const },
@@ -22,6 +24,7 @@ const GROUP_TYPES = [
 
 export default function CreateGroupScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedType, setSelectedType] = useState('friends');
@@ -50,102 +53,154 @@ export default function CreateGroupScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Group Name</Text>
-        <TextInput
-          style={styles.input}
-          value={groupName}
-          onChangeText={setGroupName}
-          placeholder="e.g., Apartment 4B"
-          placeholderTextColor={Colors.textLight}
-        />
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: Spacing.xxl }}>
+      <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Ionicons name="arrow-back" size={22} color={Palette.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Create Group</Text>
+        <Text style={styles.logo}>
+          <Text style={styles.logoNavy}>My</Text>
+          <Text style={styles.logoTeal}>Share</Text>
+        </Text>
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Description (optional)</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={description}
-          onChangeText={setDescription}
-          placeholder="What's this group for?"
-          placeholderTextColor={Colors.textLight}
-          multiline
-          numberOfLines={3}
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Group Type</Text>
-        <View style={styles.typeGrid}>
-          {GROUP_TYPES.map((type) => (
-            <TouchableOpacity
-              key={type.id}
-              style={[styles.typeItem, selectedType === type.id && styles.typeSelected]}
-              onPress={() => setSelectedType(type.id)}
-            >
-              <Ionicons
-                name={type.icon}
-                size={24}
-                color={selectedType === type.id ? Colors.white : Colors.textSecondary}
-              />
-              <Text style={[styles.typeLabel, selectedType === type.id && styles.typeLabelSelected]}>
-                {type.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Add Members</Text>
-        <View style={styles.memberInputRow}>
+      <View style={styles.body}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Group Name</Text>
           <TextInput
-            style={[styles.input, { flex: 1 }]}
-            value={memberEmail}
-            onChangeText={setMemberEmail}
-            placeholder="Enter email address"
-            placeholderTextColor={Colors.textLight}
-            keyboardType="email-address"
-            autoCapitalize="none"
+            style={styles.input}
+            value={groupName}
+            onChangeText={setGroupName}
+            placeholder="e.g., Apartment 4B"
+            placeholderTextColor={Palette.textMuted}
           />
-          <TouchableOpacity style={styles.addBtn} onPress={addMember}>
-            <Ionicons name="add" size={24} color={Colors.white} />
-          </TouchableOpacity>
         </View>
-        {members.map((email) => (
-          <View key={email} style={styles.memberChip}>
-            <Ionicons name="person" size={16} color={Colors.primary} />
-            <Text style={styles.memberText}>{email}</Text>
-            <TouchableOpacity onPress={() => removeMember(email)}>
-              <Ionicons name="close-circle" size={20} color={Colors.textLight} />
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Description (optional)</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={description}
+            onChangeText={setDescription}
+            placeholder="What's this group for?"
+            placeholderTextColor={Palette.textMuted}
+            multiline
+            numberOfLines={3}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Group Type</Text>
+          <View style={styles.typeGrid}>
+            {GROUP_TYPES.map((type) => (
+              <TouchableOpacity
+                key={type.id}
+                style={[styles.typeItem, selectedType === type.id && styles.typeSelected]}
+                onPress={() => setSelectedType(type.id)}
+              >
+                <Ionicons
+                  name={type.icon}
+                  size={24}
+                  color={selectedType === type.id ? Palette.accent : Palette.textSecondary}
+                />
+                <Text style={[styles.typeLabel, selectedType === type.id && styles.typeLabelSelected]}>
+                  {type.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Add Members</Text>
+          <View style={styles.memberInputRow}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={memberEmail}
+              onChangeText={setMemberEmail}
+              placeholder="Enter email address"
+              placeholderTextColor={Palette.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <TouchableOpacity style={styles.addBtn} onPress={addMember}>
+              <Ionicons name="add" size={24} color={Palette.white} />
             </TouchableOpacity>
           </View>
-        ))}
-      </View>
+          {members.map((email) => (
+            <View key={email} style={styles.memberChip}>
+              <Ionicons name="person" size={16} color={Palette.accent} />
+              <Text style={styles.memberText}>{email}</Text>
+              <TouchableOpacity onPress={() => removeMember(email)}>
+                <Ionicons name="close-circle" size={20} color={Palette.textMuted} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
 
-      <TouchableOpacity style={styles.createButton} onPress={handleCreate}>
-        <Text style={styles.createButtonText}>Create Group</Text>
-      </TouchableOpacity>
+        <GradientButton title="Create Group" onPress={handleCreate} style={styles.createButton} />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background, padding: 16 },
-  inputGroup: { marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '600', color: Colors.textSecondary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: Colors.surface, borderRadius: 12, padding: 16, fontSize: 16, color: Colors.text, borderWidth: 1, borderColor: Colors.border },
+  container: { flex: 1, backgroundColor: Palette.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: Spacing.md,
+  },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: Palette.textPrimary },
+  logo: { fontSize: 14, fontWeight: '700' },
+  logoNavy: { color: Palette.navy },
+  logoTeal: { color: Palette.gradientEnd },
+  body: { paddingHorizontal: Spacing.lg },
+  inputGroup: { marginBottom: Spacing.xl },
+  label: { fontSize: 13, fontWeight: '600', color: Palette.textSecondary, marginBottom: Spacing.sm },
+  input: {
+    backgroundColor: Palette.card,
+    borderRadius: Radii.input,
+    padding: Spacing.md,
+    fontSize: 16,
+    color: Palette.textPrimary,
+    borderWidth: 1,
+    borderColor: Palette.border,
+    minHeight: 48,
+  },
   textArea: { minHeight: 80, textAlignVertical: 'top' },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  typeItem: { alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, width: '30%' },
-  typeSelected: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  typeLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 6 },
-  typeLabelSelected: { color: Colors.white },
-  memberInputRow: { flexDirection: 'row', gap: 8 },
-  addBtn: { width: 52, height: 52, borderRadius: 12, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
-  memberChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 10, paddingHorizontal: 14, borderRadius: 20, marginTop: 8, gap: 8 },
-  memberText: { flex: 1, fontSize: 14, color: Colors.text },
-  createButton: { backgroundColor: Colors.primary, padding: 18, borderRadius: 14, alignItems: 'center', marginBottom: 32 },
-  createButtonText: { color: Colors.white, fontSize: 18, fontWeight: '700' },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
+  typeItem: {
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: Radii.input,
+    backgroundColor: Palette.card,
+    borderWidth: 1,
+    borderColor: Palette.border,
+    width: '30%',
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  typeSelected: { backgroundColor: '#EAF0FF', borderColor: Palette.accent },
+  typeLabel: { fontSize: 12, color: Palette.textSecondary, marginTop: Spacing.xs },
+  typeLabelSelected: { color: Palette.accent, fontWeight: '600' },
+  memberInputRow: { flexDirection: 'row', gap: Spacing.sm },
+  addBtn: { width: 48, height: 48, borderRadius: Radii.input, backgroundColor: Palette.accent, justifyContent: 'center', alignItems: 'center' },
+  memberChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Palette.card,
+    padding: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Palette.border,
+  },
+  memberText: { flex: 1, fontSize: 14, color: Palette.textPrimary },
+  createButton: { marginBottom: Spacing.lg },
 });

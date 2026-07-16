@@ -70,8 +70,8 @@ export function createNativeSupabaseClient(storage?: any) {
 }
 
 // ===== SINGLETON INSTANCES =====
-let browserClient: ReturnType<typeof createBrowserClient> | null = null;
-let nativeClient: ReturnType<typeof createClient> | null = null;
+let browserClient: ReturnType<typeof createBrowserSupabaseClient> | null = null;
+let nativeClient: ReturnType<typeof createNativeSupabaseClient> | null = null;
 
 /**
  * Get or create the browser Supabase client (singleton).

@@ -1,198 +1,212 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import MemberAvatar from '../components/MemberAvatar';
+import { Palette, Radii, Spacing, CardShadow } from '../constants/theme';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import { getCurrentUser } from '../services/session';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Mock fallback when no backend session exists (see getCurrentUser below)
+
+interface MenuRow {
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  subtitle?: string;
+  onPress?: () => void;
+}
+
+interface MenuSection {
+  title: string;
+  rows: MenuRow[];
+}
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const sessionUser = getCurrentUser();
   const user = {
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    phone: '+1 234 567 890',
-    memberSince: 'January 2026',
+    name: sessionUser?.name ?? 'Alex Reyes',
+    email: sessionUser?.email ?? 'alex.reyes@email.com',
   };
 
-  const menuItems = [
-    { id: '1', icon: 'settings-outline' as const, label: 'Settings', badge: null },
-    { id: '2', icon: 'notifications-outline' as const, label: 'Notifications', badge: '3' },
-    { id: '3', icon: 'card-outline' as const, label: 'Payment Methods', badge: null },
-    { id: '4', icon: 'shield-checkmark-outline' as const, label: 'Privacy & Security', badge: null },
-    { id: '5', icon: 'help-circle-outline' as const, label: 'Help & Support', badge: null },
-    { id: '6', icon: 'information-circle-outline' as const, label: 'About', badge: null },
+  const sections: MenuSection[] = [
+    {
+      title: 'Payment & Wallet',
+      rows: [
+        { id: 'wallet', icon: 'card-outline', label: 'Linked Payment Methods', subtitle: '2 cards · 1 e-wallet', onPress: () => navigation.navigate('Wallet') },
+      ],
+    },
+    {
+      title: 'Preferences',
+      rows: [
+        { id: 'notifications', icon: 'notifications-outline', label: 'Notification Settings' },
+      ],
+    },
+    {
+      title: 'Security',
+      rows: [
+        { id: 'security', icon: 'shield-checkmark-outline', label: 'Security & Privacy', subtitle: 'Identity verification (KYC)', onPress: () => navigation.navigate('KYC') },
+        { id: 'mfa', icon: 'key-outline', label: 'Two-Factor Authentication' },
+      ],
+    },
+    {
+      title: 'Support & Information',
+      rows: [
+        { id: 'help', icon: 'help-circle-outline', label: 'Help & Support' },
+        { id: 'about', icon: 'information-circle-outline', label: 'About MyShare', subtitle: 'App version 1.0.0' },
+      ],
+    },
   ];
 
+  const handleSignOut = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Profile Header */}
-      <View style={styles.profileHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {user.name.split(' ').map(n => n[0]).join('')}
-          </Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* User Card */}
+        <View style={styles.userCard}>
+          <MemberAvatar name={user.name} size={64} backgroundColor={Palette.accent} />
+          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userEmail}>{user.email}</Text>
+          <View style={styles.premiumChip}>
+            <Text style={styles.premiumChipText}>⭐ Premium Member</Text>
+          </View>
         </View>
-        <Text style={styles.userName}>{user.name}</Text>
-        <Text style={styles.userEmail}>{user.email}</Text>
-        <Text style={styles.memberSince}>Member since {user.memberSince}</Text>
-      </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>4</Text>
-          <Text style={styles.statLabel}>Groups</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>23</Text>
-          <Text style={styles.statLabel}>Expenses</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>$1,250</Text>
-          <Text style={styles.statLabel}>Total Split</Text>
-        </View>
-      </View>
-
-      {/* Menu Items */}
-      <View style={styles.menu}>
-        {menuItems.map((item) => (
-          <TouchableOpacity key={item.id} style={styles.menuItem}>
-            <Ionicons name={item.icon} size={22} color={Colors.text} />
-            <Text style={styles.menuLabel}>{item.label}</Text>
-            <View style={styles.menuRight}>
-              {item.badge && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>{item.badge}</Text>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={18} color={Colors.textLight} />
+        {sections.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <View style={styles.sectionCard}>
+              {section.rows.map((row, index) => (
+                <TouchableOpacity
+                  key={row.id}
+                  style={[styles.row, index < section.rows.length - 1 && styles.rowDivider]}
+                  onPress={row.onPress}
+                  disabled={!row.onPress}
+                  activeOpacity={row.onPress ? 0.7 : 1}
+                >
+                  <Ionicons name={row.icon} size={20} color={Palette.textPrimary} />
+                  <View style={styles.rowLabelWrap}>
+                    <Text style={styles.rowLabel}>{row.label}</Text>
+                    {row.subtitle && <Text style={styles.rowSubtitle}>{row.subtitle}</Text>}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Palette.textMuted} />
+                </TouchableOpacity>
+              ))}
             </View>
-          </TouchableOpacity>
+          </View>
         ))}
-      </View>
 
-      {/* Logout */}
-      <TouchableOpacity style={styles.logoutButton}>
-        <Ionicons name="log-out-outline" size={20} color={Colors.error} />
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={20} color={Palette.negative} />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Palette.background,
   },
-  profileHeader: {
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+  },
+  userCard: {
     alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: Colors.surface,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  avatarText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.white,
+    backgroundColor: Palette.card,
+    borderRadius: Radii.card,
+    paddingVertical: Spacing.xl,
+    marginBottom: Spacing.xl,
+    ...CardShadow,
   },
   userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.text,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  memberSince: {
-    fontSize: 12,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: Colors.surface,
-    margin: 16,
-    padding: 20,
-    borderRadius: 12,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.primary,
+    color: Palette.textPrimary,
+    marginTop: Spacing.md,
   },
-  statLabel: {
+  userEmail: {
+    fontSize: 13,
+    color: Palette.textSecondary,
+    marginTop: 2,
+  },
+  premiumChip: {
+    backgroundColor: Palette.pendingBg,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    marginTop: Spacing.md,
+  },
+  premiumChipText: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  menu: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  menuLabel: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.text,
-    marginLeft: 12,
-  },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  badge: {
-    backgroundColor: Colors.error,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  badgeText: {
-    color: Colors.white,
-    fontSize: 11,
     fontWeight: '600',
+    color: Palette.pending,
   },
-  logoutButton: {
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.textMuted,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+  },
+  sectionCard: {
+    backgroundColor: Palette.card,
+    borderRadius: Radii.card,
+    overflow: 'hidden',
+    ...CardShadow,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    minHeight: 56,
+  },
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: Palette.border,
+  },
+  rowLabelWrap: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  rowLabel: {
+    fontSize: 15,
+    color: Palette.textPrimary,
+    fontWeight: '500',
+  },
+  rowSubtitle: {
+    fontSize: 12,
+    color: Palette.textSecondary,
+    marginTop: 2,
+  },
+  signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 16,
-    padding: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: Palette.negativeBg,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    minHeight: 52,
   },
-  logoutText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: Colors.error,
-    fontWeight: '500',
+  signOutText: {
+    marginLeft: Spacing.sm,
+    fontSize: 15,
+    fontWeight: '600',
+    color: Palette.negative,
   },
 });

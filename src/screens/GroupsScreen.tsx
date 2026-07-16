@@ -1,165 +1,129 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
+  TextInput,
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Colors } from '../constants/colors';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Palette, Radii, Spacing } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { GroupCard } from '../components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface GroupItem {
   id: string;
   name: string;
-  type: string;
-  memberCount: number;
+  emoji: string;
+  members: string[];
   balance: number;
-  lastActivity: string;
+  unpaidCount: number;
 }
+
+const GROUPS: GroupItem[] = [
+  { id: '1', name: 'Apartment 4B', emoji: '🏠', members: ['You', 'Sarah Cruz', 'Mike Tan'], balance: 2250.0, unpaidCount: 1 },
+  { id: '2', name: 'Family Expenses', emoji: '👨‍👩‍👧', members: ['You', 'Mom', 'Dad', 'Ana Reyes', 'Ben Reyes'], balance: -1500.0, unpaidCount: 2 },
+  { id: '3', name: 'Weekend Trip', emoji: '✈️', members: ['You', 'Alex Reyes', 'Sarah Cruz', 'Mike Tan'], balance: 4025.0, unpaidCount: 3 },
+  { id: '4', name: 'Office Lunch', emoji: '🍜', members: ['You', 'Alex Reyes', 'Sarah Cruz', 'Mike Tan', 'Ben Reyes', 'Ana Reyes'], balance: 0, unpaidCount: 0 },
+];
 
 export default function GroupsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
+  const [search, setSearch] = useState('');
 
-  const groups: GroupItem[] = [
-    { id: '1', name: 'Apartment 4B', type: 'roommates', memberCount: 3, balance: 45.0, lastActivity: '2 hours ago' },
-    { id: '2', name: 'Family Expenses', type: 'family', memberCount: 5, balance: -30.0, lastActivity: 'Yesterday' },
-    { id: '3', name: 'Weekend Trip', type: 'trip', memberCount: 4, balance: 80.5, lastActivity: '3 days ago' },
-    { id: '4', name: 'Office Lunch', type: 'friends', memberCount: 6, balance: 0, lastActivity: '1 week ago' },
-  ];
-
-  const getGroupIcon = (type: string): keyof typeof Ionicons.glyphMap => {
-    switch (type) {
-      case 'family': return 'heart';
-      case 'roommates': return 'home';
-      case 'trip': return 'airplane';
-      case 'friends': return 'people';
-      default: return 'people';
-    }
-  };
-
-  const renderGroup = ({ item }: { item: GroupItem }) => (
-    <TouchableOpacity
-      style={styles.groupCard}
-      onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
-    >
-      <View style={styles.groupIcon}>
-        <Ionicons name={getGroupIcon(item.type)} size={24} color={Colors.primary} />
-      </View>
-      <View style={styles.groupInfo}>
-        <Text style={styles.groupName}>{item.name}</Text>
-        <Text style={styles.groupMeta}>
-          {item.memberCount} members • {item.lastActivity}
-        </Text>
-      </View>
-      <View style={styles.groupBalance}>
-        {item.balance !== 0 ? (
-          <Text style={[styles.balanceText, { color: item.balance > 0 ? Colors.positive : Colors.negative }]}>
-            {item.balance > 0 ? '+' : ''}{item.balance > 0 ? '$' : '-$'}{Math.abs(item.balance).toFixed(2)}
-          </Text>
-        ) : (
-          <Text style={styles.settledText}>Settled</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+  const filteredGroups = GROUPS.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={groups}
-        renderItem={renderGroup}
+        data={filteredGroups}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        renderItem={({ item }) => (
+          <GroupCard
+            name={item.name}
+            emoji={item.emoji}
+            members={item.members}
+            balance={item.balance}
+            unpaidCount={item.unpaidCount}
+            onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
+          />
+        )}
         ListHeaderComponent={
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => navigation.navigate('CreateGroup')}
-          >
-            <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-            <Text style={styles.createButtonText}>Create New Group</Text>
-          </TouchableOpacity>
+          <View style={[styles.header, { paddingTop: insets.top + Spacing.md }]}>
+            <Text style={styles.title}>Groups</Text>
+            <Text style={styles.subCopy}>Track shared expenses with friends and family</Text>
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={18} color={Palette.textMuted} />
+              <TextInput
+                style={styles.searchInput}
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search groups"
+                placeholderTextColor={Palette.textMuted}
+              />
+            </View>
+          </View>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="people-outline" size={48} color={Palette.textMuted} />
+            <Text style={styles.emptyText}>No groups match "{search}"</Text>
+          </View>
         }
       />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('CreateGroup')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={28} color={Palette.white} />
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  list: {
-    padding: 16,
-  },
-  createButton: {
+  container: { flex: 1, backgroundColor: Palette.background },
+  list: { padding: Spacing.lg, paddingBottom: 96 },
+  header: { marginBottom: Spacing.lg },
+  title: { fontSize: 28, fontWeight: '700', color: Palette.textPrimary },
+  subCopy: { fontSize: 14, color: Palette.textSecondary, marginTop: Spacing.xs, marginBottom: Spacing.lg },
+  searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: Palette.card,
+    borderRadius: Radii.input,
     borderWidth: 1,
-    borderColor: Colors.primary,
-    borderStyle: 'dashed',
-  },
-  createButtonText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  groupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
-    elevation: 1,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  groupIcon: {
-    width: 48,
+    borderColor: Palette.border,
+    paddingHorizontal: Spacing.md,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryLight,
+    gap: Spacing.sm,
+  },
+  searchInput: { flex: 1, fontSize: 15, color: Palette.textPrimary, height: '100%' },
+  emptyState: { alignItems: 'center', paddingTop: 64, gap: Spacing.sm },
+  emptyText: { fontSize: 14, color: Palette.textSecondary },
+  fab: {
+    position: 'absolute',
+    right: Spacing.xl,
+    bottom: Spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Palette.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
-  },
-  groupInfo: {
-    flex: 1,
-  },
-  groupName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  groupMeta: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-  groupBalance: {
-    alignItems: 'flex-end',
-  },
-  balanceText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  settledText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    shadowColor: '#101828',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
 });

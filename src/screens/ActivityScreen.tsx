@@ -1,144 +1,233 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-} from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import StatusPill, { PillStatus } from '../components/StatusPill';
+import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+
+type ActivityType = 'sent' | 'received' | 'pending';
 
 interface ActivityItem {
   id: string;
-  type: 'expense_added' | 'payment_made' | 'group_created' | 'member_added';
-  description: string;
-  userName: string;
-  groupName: string;
-  amount?: number;
-  date: string;
+  type: ActivityType;
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  caption: string;
+  splitCount: number;
+  time: string;
+  amount: number;
+  statusLabel: string;
+  status: PillStatus;
 }
 
+interface ActivitySection {
+  date: string;
+  items: ActivityItem[];
+}
+
+// Mock data for demonstration
+const SECTIONS: ActivitySection[] = [
+  {
+    date: 'Today',
+    items: [
+      { id: '1', type: 'sent', icon: 'restaurant-outline', title: 'Dinner at restaurant', caption: 'You paid Mike', splitCount: 4, time: '7:30 PM', amount: -850.0, statusLabel: 'Paid', status: 'negative' },
+      { id: '2', type: 'pending', icon: 'cash-outline', title: 'Weekend trip fund', caption: 'Owed by Sarah', splitCount: 3, time: '3:15 PM', amount: 500.0, statusLabel: 'Pending', status: 'pending' },
+    ],
+  },
+  {
+    date: 'Yesterday',
+    items: [
+      { id: '3', type: 'received', icon: 'cart-outline', title: 'Groceries', caption: 'Received from Sarah', splitCount: 3, time: '11:05 AM', amount: 620.0, statusLabel: 'Received', status: 'positive' },
+    ],
+  },
+  {
+    date: '3 days ago',
+    items: [
+      { id: '4', type: 'sent', icon: 'film-outline', title: 'Movie tickets', caption: 'You paid Alex', splitCount: 5, time: '9:00 PM', amount: -350.0, statusLabel: 'Paid', status: 'negative' },
+      { id: '5', type: 'pending', icon: 'people-outline', title: 'Office lunch', caption: 'Owed by Mike', splitCount: 6, time: '12:30 PM', amount: 210.0, statusLabel: 'Pending', status: 'pending' },
+    ],
+  },
+];
+
+const FILTERS: { label: string; value: 'All' | ActivityType }[] = [
+  { label: 'All', value: 'All' },
+  { label: 'Sent', value: 'sent' },
+  { label: 'Received', value: 'received' },
+  { label: 'Pending', value: 'pending' },
+];
+
 export default function ActivityScreen() {
-  const activities: ActivityItem[] = [
-    { id: '1', type: 'expense_added', description: 'added "Dinner at restaurant"', userName: 'You', groupName: 'Apartment 4B', amount: 85.0, date: 'Today, 7:30 PM' },
-    { id: '2', type: 'payment_made', description: 'paid Sarah', userName: 'Mike', groupName: 'Apartment 4B', amount: 25.0, date: 'Today, 3:15 PM' },
-    { id: '3', type: 'expense_added', description: 'added "Groceries"', userName: 'Sarah', groupName: 'Family Expenses', amount: 42.5, date: 'Yesterday' },
-    { id: '4', type: 'group_created', description: 'created "Weekend Trip"', userName: 'You', groupName: 'Weekend Trip', date: '3 days ago' },
-    { id: '5', type: 'member_added', description: 'added Alex to the group', userName: 'You', groupName: 'Weekend Trip', date: '3 days ago' },
-    { id: '6', type: 'expense_added', description: 'added "Movie tickets"', userName: 'Alex', groupName: 'Weekend Trip', amount: 30.0, date: '3 days ago' },
-  ];
+  const [filter, setFilter] = useState<'All' | ActivityType>('All');
 
-  const getActivityIcon = (type: string): { name: keyof typeof Ionicons.glyphMap; color: string } => {
-    switch (type) {
-      case 'expense_added': return { name: 'receipt', color: Colors.primary };
-      case 'payment_made': return { name: 'card', color: Colors.accent };
-      case 'group_created': return { name: 'people', color: Colors.secondary };
-      case 'member_added': return { name: 'person-add', color: Colors.secondary };
-      default: return { name: 'ellipse', color: Colors.textSecondary };
-    }
-  };
-
-  const renderActivity = ({ item }: { item: ActivityItem }) => {
-    const icon = getActivityIcon(item.type);
-
-    return (
-      <View style={styles.activityItem}>
-        <View style={[styles.iconContainer, { backgroundColor: `${icon.color}20` }]}>
-          <Ionicons name={icon.name} size={20} color={icon.color} />
-        </View>
-        <View style={styles.activityContent}>
-          <Text style={styles.activityText}>
-            <Text style={styles.userName}>{item.userName}</Text> {item.description}
-          </Text>
-          <Text style={styles.activityMeta}>
-            {item.groupName} • {item.date}
-          </Text>
-        </View>
-        {item.amount && (
-          <Text style={styles.amount}>${item.amount.toFixed(2)}</Text>
-        )}
-      </View>
-    );
-  };
+  const sections = SECTIONS.map((section) => ({
+    date: section.date,
+    items: filter === 'All' ? section.items : section.items.filter((item) => item.type === filter),
+  })).filter((section) => section.items.length > 0);
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={activities}
-        renderItem={renderActivity}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Activity</Text>
+        <Text style={styles.subCopy}>All your expenses and payments in one place</Text>
+
+        <View style={styles.chipsRow}>
+          {FILTERS.map((f) => {
+            const active = filter === f.value;
+            return (
+              <TouchableOpacity
+                key={f.value}
+                style={[styles.chip, active && styles.chipActive]}
+                onPress={() => setFilter(f.value)}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {sections.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={64} color={Colors.textLight} />
-            <Text style={styles.emptyText}>No activity yet</Text>
-            <Text style={styles.emptySubtext}>
-              Your expense history will appear here
-            </Text>
+            <Ionicons name="document-text-outline" size={48} color={Palette.textMuted} />
+            <Text style={styles.emptyText}>No activity here</Text>
           </View>
-        }
-      />
-    </View>
+        ) : (
+          sections.map((section) => (
+            <View key={section.date} style={styles.section}>
+              <Text style={styles.sectionDate}>{section.date}</Text>
+              {section.items.map((item) => (
+                <View key={item.id} style={styles.row}>
+                  <View style={styles.iconBubble}>
+                    <Ionicons name={item.icon} size={20} color={Palette.accent} />
+                  </View>
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowTitle}>{item.title}</Text>
+                    <Text style={styles.rowCaption}>{item.caption} · Split {item.splitCount} ways</Text>
+                    <Text style={styles.rowTime}>{item.time}</Text>
+                  </View>
+                  <View style={styles.rowRight}>
+                    <Text style={[styles.rowAmount, { color: item.amount >= 0 ? Palette.positive : Palette.negative }]}>
+                      {peso(item.amount, { sign: true })}
+                    </Text>
+                    <StatusPill label={item.statusLabel} status={item.status} />
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Palette.background,
   },
-  list: {
-    padding: 16,
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xxl,
   },
-  activityItem: {
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Palette.textPrimary,
+  },
+  subCopy: {
+    fontSize: 14,
+    color: Palette.textSecondary,
+    marginTop: 2,
+    marginBottom: Spacing.lg,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  chip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radii.pill,
+    backgroundColor: Palette.card,
+    borderWidth: 1,
+    borderColor: Palette.border,
+  },
+  chipActive: {
+    backgroundColor: Palette.accent,
+    borderColor: Palette.accent,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Palette.textSecondary,
+  },
+  chipTextActive: {
+    color: Palette.white,
+  },
+  section: {
+    marginBottom: Spacing.md,
+  },
+  sectionDate: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Palette.textMuted,
+    marginBottom: Spacing.sm,
+  },
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: Palette.card,
+    padding: Spacing.md,
+    borderRadius: Radii.card,
+    marginBottom: Spacing.sm,
+    ...CardShadow,
   },
-  iconContainer: {
+  iconBubble: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: Palette.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
-  activityContent: {
+  rowInfo: {
     flex: 1,
   },
-  activityText: {
+  rowTitle: {
     fontSize: 14,
-    color: Colors.text,
-  },
-  userName: {
     fontWeight: '600',
+    color: Palette.textPrimary,
   },
-  activityMeta: {
+  rowCaption: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 3,
+    color: Palette.textSecondary,
+    marginTop: 2,
   },
-  amount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
+  rowTime: {
+    fontSize: 11,
+    color: Palette.textMuted,
+    marginTop: 2,
+  },
+  rowRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  rowAmount: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   emptyState: {
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 60,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
-    color: Colors.text,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginTop: 8,
+    color: Palette.textSecondary,
+    marginTop: Spacing.md,
   },
 });

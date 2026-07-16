@@ -235,8 +235,8 @@ export async function startKYCRegistration(
     proofOfResidence?: File | Blob;
   }
 ): Promise<{ customerId: string; status: string }> {
-  // Step 1: Authenticate
-  const authToken = await authenticateWithAnchor(userKeypair);
+  // Step 1: Authenticate (SEP-12 helpers below need the raw JWT string)
+  const authToken = (await authenticateWithAnchor(userKeypair)).token;
 
   // Step 2: Check required fields
   const currentStatus = await getCustomer(authToken, { type: "sep6-deposit" });

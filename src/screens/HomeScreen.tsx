@@ -1,210 +1,249 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Colors } from '../constants/colors';
+import Logo from '../components/Logo';
+import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { getCurrentUser } from '../services/session';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Mock data for demonstration
+const totalBalance = 24850.0;
+const balanceChangePct = 12.5;
+
+const recentActivity = [
+  { id: '1', icon: 'restaurant-outline' as const, title: 'Dinner at Marina Bay', splitCount: 4, date: 'Today', amount: -850.0 },
+  { id: '2', icon: 'cart-outline' as const, title: 'Groceries at SM', splitCount: 3, date: 'Yesterday', amount: 620.0 },
+  { id: '3', icon: 'film-outline' as const, title: 'Movie Night', splitCount: 5, date: '2 days ago', amount: -350.0 },
+];
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
 
-  // Mock data for demonstration
-  const totalBalance = 125.5;
-  const youOwe = 45.0;
-  const youAreOwed = 170.5;
-
-  const recentActivity = [
-    { id: '1', description: 'Dinner at restaurant', amount: 85.0, group: 'Roommates', date: 'Today' },
-    { id: '2', description: 'Groceries', amount: 42.5, group: 'Family', date: 'Yesterday' },
-    { id: '3', description: 'Movie tickets', amount: 30.0, group: 'Friends', date: '2 days ago' },
+  const quickActions = [
+    { id: 'add', label: 'Add Expense', icon: 'add-circle-outline' as const, onPress: () => navigation.navigate('AddExpense', {}) },
+    { id: 'split', label: 'Split Bill', icon: 'people-outline' as const, onPress: () => navigation.navigate('AddExpense', {}) },
+    { id: 'request', label: 'Request', icon: 'cash-outline' as const, onPress: () => navigation.navigate('SettleUp', { groupId: '1', fromUserId: 'me', toUserId: '1', amount: 0 }) },
+    { id: 'scan', label: 'Scan', icon: 'camera-outline' as const, onPress: () => navigation.navigate('ScanReceipt', {}) },
   ];
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Balance Summary Card */}
-      <View style={styles.balanceCard}>
-        <Text style={styles.balanceTitle}>Total Balance</Text>
-        <Text style={[styles.balanceAmount, { color: totalBalance >= 0 ? Colors.positive : Colors.negative }]}>
-          {totalBalance >= 0 ? '+' : ''}{totalBalance >= 0 ? '$' : '-$'}{Math.abs(totalBalance).toFixed(2)}
-        </Text>
-        <View style={styles.balanceRow}>
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>You owe</Text>
-            <Text style={[styles.balanceValue, { color: Colors.negative }]}>
-              ${youOwe.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.balanceDivider} />
-          <View style={styles.balanceItem}>
-            <Text style={styles.balanceLabel}>You are owed</Text>
-            <Text style={[styles.balanceValue, { color: Colors.positive }]}>
-              ${youAreOwed.toFixed(2)}
-            </Text>
-          </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Logo size={18} />
+          <Ionicons name="notifications-outline" size={24} color={Palette.textPrimary} />
         </View>
-      </View>
 
-      {/* Quick Actions */}
-      <View style={styles.quickActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('AddExpense', {})}
-        >
-          <Ionicons name="add-circle" size={32} color={Colors.primary} />
-          <Text style={styles.actionLabel}>Add Expense</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => navigation.navigate('CreateGroup')}
-        >
-          <Ionicons name="people-circle" size={32} color={Colors.secondary} />
-          <Text style={styles.actionLabel}>New Group</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="wallet" size={32} color={Colors.accent} />
-          <Text style={styles.actionLabel}>Settle Up</Text>
-        </TouchableOpacity>
-      </View>
+        <Text style={styles.greeting}>Hello, {getCurrentUser()?.name.split(' ')[0] ?? 'Alex'} 👋</Text>
+        <Text style={styles.tagline}>Share smarter. Live better.</Text>
 
-      {/* Recent Activity */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recent Activity</Text>
-        {recentActivity.map((item) => (
-          <View key={item.id} style={styles.activityItem}>
-            <View style={styles.activityIcon}>
-              <Ionicons name="receipt-outline" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.activityInfo}>
-              <Text style={styles.activityDescription}>{item.description}</Text>
-              <Text style={styles.activityMeta}>{item.group} • {item.date}</Text>
-            </View>
-            <Text style={styles.activityAmount}>${item.amount.toFixed(2)}</Text>
+        {/* Total Balance Card */}
+        <TouchableOpacity style={styles.balanceCard} onPress={() => navigation.navigate('Reports')} activeOpacity={0.9}>
+          <View style={styles.balanceHeaderRow}>
+            <Text style={styles.balanceLabel}>Total Balance</Text>
+            <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
           </View>
-        ))}
-      </View>
-    </ScrollView>
+          <Text style={styles.balanceAmount}>{peso(totalBalance)}</Text>
+          <View style={styles.changePill}>
+            <Ionicons name="trending-up" size={12} color={Palette.positive} />
+            <Text style={styles.changePillText}>+{balanceChangePct}% vs last month</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsGrid}>
+          {quickActions.map((action) => (
+            <TouchableOpacity key={action.id} style={styles.actionCard} onPress={action.onPress} activeOpacity={0.8}>
+              <View style={styles.actionIconWrap}>
+                <Ionicons name={action.icon} size={22} color={Palette.accent} />
+              </View>
+              <Text style={styles.actionLabel}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          {recentActivity.map((item) => (
+            <View key={item.id} style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Ionicons name={item.icon} size={20} color={Palette.accent} />
+              </View>
+              <View style={styles.activityInfo}>
+                <Text style={styles.activityTitle}>{item.title}</Text>
+                <Text style={styles.activityMeta}>Split {item.splitCount} ways · {item.date}</Text>
+              </View>
+              <Text style={[styles.activityAmount, { color: item.amount >= 0 ? Palette.positive : Palette.negative }]}>
+                {peso(item.amount, { sign: true })}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Promo Banner */}
+        <View style={styles.promoBanner}>
+          <Text style={styles.promoText}>Smart sharing, made simple</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Palette.background,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xxl,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+  },
+  greeting: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Palette.textPrimary,
+    marginTop: Spacing.sm,
+  },
+  tagline: {
+    fontSize: 14,
+    color: Palette.textSecondary,
+    marginTop: 2,
+    marginBottom: Spacing.lg,
   },
   balanceCard: {
-    backgroundColor: Colors.surface,
-    margin: 16,
-    padding: 24,
-    borderRadius: 16,
-    elevation: 2,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    alignItems: 'center',
+    backgroundColor: Palette.gradientStart,
+    borderRadius: Radii.card,
+    padding: Spacing.xl,
+    ...CardShadow,
   },
-  balanceTitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 8,
-  },
-  balanceAmount: {
-    fontSize: 36,
-    fontWeight: '700',
-    marginBottom: 16,
-  },
-  balanceRow: {
+  balanceHeaderRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
-  },
-  balanceItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  balanceDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: Colors.border,
   },
   balanceLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: 4,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
   },
-  balanceValue: {
-    fontSize: 18,
-    fontWeight: '600',
+  balanceAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: Palette.white,
+    marginTop: Spacing.xs,
   },
-  quickActions: {
+  changePill: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  actionButton: {
     alignItems: 'center',
-    padding: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: Palette.positiveBg,
+    borderRadius: Radii.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    marginTop: Spacing.md,
+    gap: 4,
+  },
+  changePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Palette.positive,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+  },
+  actionCard: {
+    width: '48%',
+    backgroundColor: Palette.card,
+    borderRadius: Radii.card,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+    ...CardShadow,
+  },
+  actionIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Palette.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
   actionLabel: {
-    marginTop: 6,
-    fontSize: 12,
-    color: Colors.text,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
+    color: Palette.textPrimary,
   },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    marginTop: Spacing.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Palette.textPrimary,
+    marginBottom: Spacing.md,
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    backgroundColor: Palette.card,
+    padding: Spacing.md,
+    borderRadius: Radii.card,
+    marginBottom: Spacing.sm,
+    ...CardShadow,
   },
   activityIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Palette.background,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: Spacing.md,
   },
   activityInfo: {
     flex: 1,
   },
-  activityDescription: {
+  activityTitle: {
     fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
+    fontWeight: '600',
+    color: Palette.textPrimary,
   },
   activityMeta: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: Palette.textSecondary,
     marginTop: 2,
   },
   activityAmount: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  promoBanner: {
+    backgroundColor: Palette.navy,
+    borderRadius: Radii.card,
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  promoText: {
+    color: Palette.white,
+    fontSize: 15,
     fontWeight: '600',
-    color: Colors.text,
   },
 });

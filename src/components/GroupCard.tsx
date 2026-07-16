@@ -1,56 +1,101 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+import MemberAvatar from './MemberAvatar';
+
+const MAX_VISIBLE_AVATARS = 3;
 
 interface GroupCardProps {
   name: string;
-  type: string;
-  memberCount: number;
+  emoji?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  members: string[];
   balance: number;
-  lastActivity: string;
+  unpaidCount: number;
   onPress?: () => void;
 }
 
-export default function GroupCard({ name, type, memberCount, balance, lastActivity, onPress }: GroupCardProps) {
-  const getIcon = (): keyof typeof Ionicons.glyphMap => {
-    switch (type) {
-      case 'family': return 'heart';
-      case 'roommates': return 'home';
-      case 'trip': return 'airplane';
-      default: return 'people';
-    }
-  };
+export default function GroupCard({ name, emoji, icon = 'people', members, balance, unpaidCount, onPress }: GroupCardProps) {
+  const visibleMembers = members.slice(0, MAX_VISIBLE_AVATARS);
+  const overflow = members.length - visibleMembers.length;
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-      <View style={styles.iconContainer}>
-        <Ionicons name={getIcon()} size={24} color={Colors.primary} />
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+      <View style={styles.coverBlock}>
+        {emoji ? (
+          <Text style={styles.emoji}>{emoji}</Text>
+        ) : (
+          <Ionicons name={icon} size={24} color={Palette.accent} />
+        )}
       </View>
       <View style={styles.info}>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.meta}>{memberCount} members • {lastActivity}</Text>
+        <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        <View style={styles.avatarRow}>
+          {visibleMembers.map((member, i) => (
+            <View key={member} style={[styles.avatarWrap, i > 0 && styles.avatarOverlap]}>
+              <MemberAvatar name={member} size={24} />
+            </View>
+          ))}
+          {overflow > 0 && (
+            <View style={[styles.avatarWrap, styles.avatarOverlap, styles.overflowBadge]}>
+              <Text style={styles.overflowText}>+{overflow}</Text>
+            </View>
+          )}
+        </View>
       </View>
       <View style={styles.balanceContainer}>
-        {balance !== 0 ? (
-          <Text style={[styles.balance, { color: balance > 0 ? Colors.positive : Colors.negative }]}>
-            {balance > 0 ? '+' : ''}{balance > 0 ? '$' : '-$'}{Math.abs(balance).toFixed(2)}
-          </Text>
-        ) : (
-          <Text style={styles.settled}>Settled</Text>
-        )}
+        <Text
+          style={[
+            styles.balance,
+            { color: balance > 0 ? Palette.positive : balance < 0 ? Palette.negative : Palette.textSecondary },
+          ]}
+        >
+          {peso(balance, { sign: true })}
+        </Text>
+        <Text style={styles.caption}>{unpaidCount > 0 ? `${unpaidCount} unpaid` : 'All settled'}</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.surface, padding: 16, borderRadius: 12, marginBottom: 10, elevation: 1, shadowColor: Colors.black, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 },
-  iconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.primaryLight, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '600', color: Colors.text },
-  meta: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Palette.card,
+    padding: Spacing.lg,
+    borderRadius: Radii.card,
+    marginBottom: Spacing.md,
+    ...CardShadow,
+  },
+  coverBlock: {
+    width: 48,
+    height: 48,
+    borderRadius: Radii.input,
+    backgroundColor: Palette.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  emoji: { fontSize: 22 },
+  info: { flex: 1, marginRight: Spacing.sm },
+  name: { fontSize: 16, fontWeight: '600', color: Palette.textPrimary },
+  avatarRow: { flexDirection: 'row', marginTop: Spacing.sm },
+  avatarWrap: { borderRadius: 12 },
+  avatarOverlap: { marginLeft: -8 },
+  overflowBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Palette.textMuted,
+    borderWidth: 2,
+    borderColor: Palette.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overflowText: { fontSize: 10, fontWeight: '700', color: Palette.white },
   balanceContainer: { alignItems: 'flex-end' },
-  balance: { fontSize: 16, fontWeight: '600' },
-  settled: { fontSize: 14, color: Colors.textSecondary },
+  balance: { fontSize: 15, fontWeight: '700' },
+  caption: { fontSize: 11, color: Palette.textMuted, marginTop: 4 },
 });
