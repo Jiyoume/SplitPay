@@ -416,6 +416,13 @@ export async function getGroupPayments(groupId: string): Promise<Payment[]> {
   return db.getAllAsync<any>('SELECT * FROM payments WHERE groupId = ? ORDER BY date DESC', [groupId]);
 }
 
+export async function getUserPayments(userId: string, count: number = 20): Promise<Payment[]> {
+  return db.getAllAsync<any>(
+    'SELECT * FROM payments WHERE fromUserId = ? OR toUserId = ? ORDER BY date DESC LIMIT ?',
+    [userId, userId, count]
+  );
+}
+
 // ===== TRANSACTIONS (TOP-UPS, HISTORY) =====
 
 export async function saveTransaction(tx: PaymentRecord): Promise<void> {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import MemberAvatar from '../components/MemberAvatar';
 import GradientButton from '../components/GradientButton';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+import { getGroup, savePayment } from '../services/localDatabase';
 
 type SettleUpRouteProp = RouteProp<RootStackParamList, 'SettleUp'>;
 
@@ -14,15 +15,58 @@ const METHODS = ['Cash', 'Bank Transfer', 'GCash'];
 export default function SettleUpScreen() {
   const navigation = useNavigation();
   const route = useRoute<SettleUpRouteProp>();
-  const { amount } = route.params;
+  const { groupId, fromUserId, toUserId, amount } = route.params;
   const [payAmount, setPayAmount] = useState(amount.toFixed(2));
   const [note, setNote] = useState('');
   const [method, setMethod] = useState(METHODS[0]);
+  const [fromName, setFromName] = useState('Someone');
+  const [toName, setToName] = useState('Someone');
 
-  const handleSettle = () => {
-    Alert.alert('Payment Recorded', `You settled ${peso(Number(payAmount) || 0)}`, [
-      { text: 'OK', onPress: () => navigation.goBack() },
-    ]);
+  useEffect(() => {
+    async function loadMembers() {
+      try {
+        const g = await getGroup(groupId);
+        if (g) {
+          const fromUser = g.members.find(m => m.id === fromUserId);
+          const toUser = g.members.find(m => m.id === toUserId);
+          setFromName(fromUserId === 'me' ? 'You' : (fromUser?.name || 'Someone'));
+          setToName(toUserId === 'me' ? 'You' : (toUser?.name || 'Someone'));
+        }
+      } catch (err) {
+        console.error('Failed to load group members in SettleUpScreen:', err);
+      }
+    }
+    loadMembers();
+  }, [groupId, fromUserId, toUserId]);
+
+  const handleSettle = async () => {
+    const numericAmount = parseFloat(payAmount);
+    if (!numericAmount || numericAmount <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+
+    try {
+      const newPayment = {
+        id: Math.random().toString(36).substring(2, 9),
+        groupId,
+        fromUserId,
+        toUserId,
+        amount: numericAmount,
+        date: new Date(),
+        note: note || undefined,
+        settled: true,
+      };
+
+      await savePayment(newPayment);
+
+      Alert.alert('Payment Recorded', `${fromName} settled ${peso(numericAmount)} with ${toName}`, [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.error('Failed to save payment:', err);
+      Alert.alert('Error', 'Failed to record payment');
+    }
   };
 
   return (
@@ -38,11 +82,11 @@ export default function SettleUpScreen() {
       <View style={{ paddingHorizontal: Spacing.lg }}>
         <View style={s.avatarSection}>
           <View style={s.avatarRow}>
-            <MemberAvatar name="Mike" size={56} backgroundColor={Palette.gradientEnd} />
+            <MemberAvatar name={fromName} size={56} backgroundColor={Palette.gradientEnd} />
             <Ionicons name="arrow-forward" size={20} color={Palette.textMuted} />
-            <MemberAvatar name="You" size={56} backgroundColor={Palette.accent} />
+            <MemberAvatar name={toName} size={56} backgroundColor={Palette.accent} />
           </View>
-          <Text style={s.settleLabel}>Mike pays You</Text>
+          <Text style={s.settleLabel}>{fromName} pays {toName}</Text>
         </View>
 
         <View style={s.amountCard}>

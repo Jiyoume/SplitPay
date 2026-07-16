@@ -180,7 +180,7 @@ export default function GroupDetailScreen() {
             navigation.navigate('SettleUp', {
               groupId,
               fromUserId: pendingMember?.id ?? group.members[1].id,
-              toUserId: '1',
+              toUserId: 'me',
               amount: Math.abs(pendingMember?.balance ?? equalShare),
             })
           }

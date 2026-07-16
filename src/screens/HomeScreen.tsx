@@ -8,24 +8,33 @@ import Logo from '../components/Logo';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
-import { getUserNetBalance, getRecentExpenses } from '../services/localDatabase';
-import { Expense } from '../models/types';
+import { getUserNetBalance, getRecentExpenses, getUserPayments } from '../services/localDatabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [balance, setBalance] = useState(0);
-  const [activities, setActivities] = useState<Expense[]>([]);
+  const [activities, setActivities] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       async function loadData() {
         try {
           const userBalance = await getUserNetBalance('me');
-          const recent = await getRecentExpenses('me', 5);
+          const recentExps = await getRecentExpenses('me', 5);
+          const recentPays = await getUserPayments('me', 5);
+          
+          // Merge and sort by date descending
+          const combined = [
+            ...recentExps.map(e => ({ ...e, activityType: 'expense' as const })),
+            ...recentPays.map(p => ({ ...p, activityType: 'payment' as const })),
+          ]
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5);
+
           setBalance(userBalance);
-          setActivities(recent);
+          setActivities(combined);
         } catch (err) {
           console.error('Failed to load local DB data in HomeScreen:', err);
         }
@@ -93,16 +102,37 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
           {activities.length === 0 ? (
-            <Text style={{ color: Palette.textSecondary, fontSize: 13, textAlign: 'center', marginVertical: 20 }}>No recent expenses.</Text>
+            <Text style={{ color: Palette.textSecondary, fontSize: 13, textAlign: 'center', marginVertical: 20 }}>No recent activity.</Text>
           ) : (
             activities.map((item) => {
+              const relativeDate = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              
+              if (item.activityType === 'payment') {
+                const isSentByMe = item.fromUserId === 'me';
+                const displayAmount = isSentByMe ? -item.amount : item.amount;
+                const paymentLabel = isSentByMe ? 'Settle Payment' : 'Payment Received';
+
+                return (
+                  <View key={item.id} style={styles.activityItem}>
+                    <View style={styles.activityIcon}>
+                      <Ionicons name="cash-outline" size={20} color={Palette.accent} />
+                    </View>
+                    <View style={styles.activityInfo}>
+                      <Text style={styles.activityTitle}>{paymentLabel}</Text>
+                      <Text style={styles.activityMeta}>{item.note || 'No note'} · {relativeDate}</Text>
+                    </View>
+                    <Text style={[styles.activityAmount, { color: displayAmount >= 0 ? Palette.positive : Palette.negative }]}>
+                      {peso(displayAmount, { sign: true })}
+                    </Text>
+                  </View>
+                );
+              }
+
               const isPaidByMe = item.paidBy === 'me';
               const displayAmount = isPaidByMe 
-                ? item.amount - (item.splits?.find(s => s.userId === 'me')?.amount || 0) // what others owe me
-                : -(item.splits?.find(s => s.userId === 'me')?.amount || 0); // what I owe
+                ? item.amount - (item.splits?.find((s: any) => s.userId === 'me')?.amount || 0) // what others owe me
+                : -(item.splits?.find((s: any) => s.userId === 'me')?.amount || 0); // what I owe
               
-              const relativeDate = new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
               return (
                 <View key={item.id} style={styles.activityItem}>
                   <View style={styles.activityIcon}>
