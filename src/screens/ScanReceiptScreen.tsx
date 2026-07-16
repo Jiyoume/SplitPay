@@ -17,7 +17,7 @@ export default function ScanReceiptScreen() {
     
     // 1. Try to find vendor name
     let vendor = 'Unknown Vendor';
-    const commonVendors = ['jollibee', 'starbucks', 'mcdonald', 'kfc', 'sm supermarket', 'savemore', '7-eleven', 'grab', 'foodpanda', 'mercalco', 'pldt'];
+    const commonVendors = ['jollibee', 'starbucks', 'mcdonald', 'kfc', 'sm supermarket', 'savemore', 'puregold', '7-eleven', 'grab', 'foodpanda', 'mercalco', 'pldt'];
     for (const line of lines.slice(0, 5)) {
       const lowerLine = line.toLowerCase();
       const match = commonVendors.find(v => lowerLine.includes(v));
