@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "guiding-users": {
+      "source": "ancoleman/ai-design-components",
+      "sourceType": "github",
+      "skillPath": "skills/guiding-users/SKILL.md",
+      "computedHash": "9ade7c338d49e874defe7cc6c7e4d5f5b1838c1578fe2a142a66e507cc23f1cf"
+    },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",

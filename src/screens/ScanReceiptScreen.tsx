@@ -3,20 +3,23 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } fr
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
+import TourTooltipContent from '../components/TourTooltipContent';
 import GradientButton from '../components/GradientButton';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { parseRawOCRText } from '../services/ocrService';
+
+const TOUR_TOTAL = 2;
 
 export default function ScanReceiptScreen() {
   const navigation = useNavigation();
   const [status, setStatus] = useState<'idle' | 'scanning' | 'done'>('idle');
   const [progress, setProgress] = useState(0);
   const [extractedData, setExtractedData] = useState<any>(null);
+  const [tourStep, setTourStep] = useState(1);
 
   const performOCR = async (base64Data: string) => {
     setStatus('scanning');
     setProgress(15);
-    
     try {
       setProgress(40);
       const formData = new FormData();
@@ -28,9 +31,7 @@ export default function ScanReceiptScreen() {
       const response = await fetch('https://api.ocr.space/parse/image', {
         method: 'POST',
         body: formData,
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: { 'Accept': 'application/json' },
       });
 
       setProgress(75);
@@ -38,13 +39,11 @@ export default function ScanReceiptScreen() {
       setProgress(90);
 
       if (result.IsErroredOnProcessing || !result.ParsedResults || result.ParsedResults.length === 0) {
-        const errorMsg = result.ErrorMessage?.[0] || 'OCR API error';
-        throw new Error(errorMsg);
+        throw new Error(result.ErrorMessage?.[0] || 'OCR API error');
       }
 
       const text = result.ParsedResults[0].ParsedText;
       console.log('Extracted OCR Text:', text);
-      
       const parsed = parseRawOCRText(text);
       setExtractedData({
         vendor: parsed.vendor.name,
@@ -63,40 +62,24 @@ export default function ScanReceiptScreen() {
 
   const pickImage = async (useCamera: boolean) => {
     try {
-      let permissionResult;
-      if (useCamera) {
-        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-      } else {
-        permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      }
+      const permissionResult = useCamera
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
         Alert.alert('Permission Denied', `We need ${useCamera ? 'camera' : 'gallery'} permissions to scan receipts.`);
         return;
       }
 
-      const pickerResult = useCamera 
-        ? await ImagePicker.launchCameraAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.8,
-            base64: true,
-          })
-        : await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.8,
-            base64: true,
-          });
+      const pickerResult = useCamera
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8, base64: true })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.8, base64: true });
 
-      if (pickerResult.canceled) {
-        return;
-      }
+      if (pickerResult.canceled) return;
 
       const asset = pickerResult.assets[0];
       if (asset.base64) {
-        const base64Data = `data:image/jpeg;base64,${asset.base64}`;
-        await performOCR(base64Data);
+        await performOCR(`data:image/jpeg;base64,${asset.base64}`);
       } else {
         Alert.alert('Error', 'Could not load image data.');
       }
@@ -108,38 +91,73 @@ export default function ScanReceiptScreen() {
 
   const handleUseData = () => {
     if (!extractedData) return;
-    Alert.alert('Applied!', 'Receipt data applied to expense form.', [
-      {
-        text: 'OK',
-        onPress: () => {
-          (navigation as any).navigate('AddExpense', {
-            title: extractedData.vendor,
-            amount: extractedData.total.toString(),
-            category: extractedData.category,
-          });
-        }
-      }
-    ]);
+    Alert.alert('Applied!', 'Receipt data applied to expense form.', [{
+      text: 'OK',
+      onPress: () => (navigation as any).navigate('AddExpense', {
+        title: extractedData.vendor,
+        amount: extractedData.total.toString(),
+        category: extractedData.category,
+      }),
+    }]);
   };
 
+  // Tour config with per-step panel positioning
+  const isTourActive = tourStep >= 1 && tourStep <= TOUR_TOTAL;
+  const tourConfig = [
+    null,
+    { icon: 'camera-outline', title: 'Take a Photo', body: "Point your camera at any physical receipt. Our AI will automatically read the vendor, items, and total!", onNext: () => setTourStep(2), panelTop: 460 },
+    { icon: 'images-outline', title: 'Upload from Gallery', body: "Already have a screenshot or saved receipt? Pick it from your gallery and we'll handle the rest.", onNext: () => setTourStep(0), panelTop: 530 },
+  ];
+  const activeTour = tourConfig[tourStep] ?? null;
+
+  // ─── Idle screen ────────────────────────────────────────────────────
   if (status === 'idle') {
     return (
       <View style={s.container}>
         <Header onBack={() => navigation.goBack()} />
+
         <View style={s.center}>
-          <View style={s.iconCircle}><Ionicons name="camera-outline" size={44} color={Palette.accent} /></View>
+          <View style={s.iconCircle}>
+            <Ionicons name="camera-outline" size={44} color={Palette.accent} />
+          </View>
           <Text style={s.title}>Scan a Receipt</Text>
           <Text style={s.desc}>Take a photo or upload from gallery.{'\n'}AI will extract vendor, items, and total.</Text>
-          <GradientButton title="Open Camera" onPress={() => pickImage(true)} style={{ width: '100%', marginBottom: Spacing.md }} />
-          <TouchableOpacity style={s.galleryBtn} onPress={() => pickImage(false)}>
+
+          {/* Camera button — highlighted on step 1 */}
+          <View style={[{ width: '100%', marginBottom: Spacing.md }, tourStep === 1 && s.tourHighlightWrapper]}>
+            <GradientButton title="Open Camera" onPress={() => pickImage(true)} style={{ width: '100%' }} />
+          </View>
+
+          {/* Gallery button — highlighted on step 2 */}
+          <TouchableOpacity
+            style={[s.galleryBtn, tourStep === 2 && s.tourHighlight]}
+            onPress={() => pickImage(false)}
+          >
             <Ionicons name="images-outline" size={20} color={Palette.textPrimary} />
             <Text style={s.galleryBtnText}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Floating tour panel — positioned just below the highlighted button */}
+        {activeTour && (
+          <View style={[s.tourPanel, { top: activeTour.panelTop }]}>
+            <TourTooltipContent
+              icon={activeTour.icon}
+              title={activeTour.title}
+              body={activeTour.body}
+              step={tourStep}
+              totalSteps={TOUR_TOTAL}
+              onNext={activeTour.onNext}
+              onSkip={() => setTourStep(0)}
+              isLast={tourStep === TOUR_TOTAL}
+            />
+          </View>
+        )}
       </View>
     );
   }
 
+  // ─── Scanning screen ────────────────────────────────────────────────
   if (status === 'scanning') {
     return (
       <View style={s.container}>
@@ -147,13 +165,16 @@ export default function ScanReceiptScreen() {
         <View style={s.center}>
           <ActivityIndicator size="large" color={Palette.accent} style={{ marginBottom: Spacing.xl }} />
           <Text style={s.title}>Scanning receipt...</Text>
-          <View style={s.progressBar}><View style={[s.progressFill, { width: `${progress}%` }]} /></View>
+          <View style={s.progressBar}>
+            <View style={[s.progressFill, { width: `${progress}%` }]} />
+          </View>
           <Text style={s.progressText}>{progress}%</Text>
         </View>
       </View>
     );
   }
 
+  // ─── Done screen ────────────────────────────────────────────────────
   return (
     <View style={s.container}>
       <Header onBack={() => navigation.goBack()} />
@@ -234,4 +255,9 @@ const s = StyleSheet.create({
   actions: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.md },
   retryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.xs, paddingVertical: Spacing.md, marginBottom: Spacing.xl },
   retryText: { color: Palette.textSecondary, fontSize: 14, fontWeight: '600' },
+
+  // Tour highlight styles
+  tourHighlight: { borderWidth: 2, borderColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
+  tourHighlightWrapper: { borderRadius: Radii.card, borderWidth: 2, borderColor: '#6366f1', shadowColor: '#6366f1', shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 0 }, elevation: 8, padding: 4 },
+  tourPanel: { position: 'absolute', left: 16, right: 16, backgroundColor: '#fff', borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 12 },
 });

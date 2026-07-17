@@ -6,6 +6,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Logo, Skeleton } from '../components';
+import TourTooltipContent from '../components/TourTooltipContent';
 import { Palette, Radii, Spacing, CardShadow, peso, Gradient } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
@@ -13,23 +14,33 @@ import { getUserNetBalance, getRecentExpenses, getUserPayments } from '../servic
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-// Helper component for animated quick actions
-function AnimatedActionCard({ action }: { action: any }) {
+const TOUR_HIGHLIGHT = '#6366f1';
+const TOUR_TOTAL = 4;
+
+// Helper component for animated quick action cards
+function AnimatedActionCard({ action, isHighlighted }: { action: any, isHighlighted?: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
+
   return (
-    <Pressable
-      onPress={action.onPress}
-      onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 20 }).start()}
-      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20 }).start()}
-      style={{ width: '48%', marginBottom: Spacing.md }}
-    >
-      <Animated.View style={[styles.actionCard, { transform: [{ scale }] }]}>
-        <View style={styles.actionIconWrap}>
-          <Ionicons name={action.icon} size={22} color={Palette.accent} />
-        </View>
-        <Text style={styles.actionLabel}>{action.label}</Text>
-      </Animated.View>
-    </Pressable>
+    <View style={{ width: '48%', marginBottom: Spacing.md }}>
+      <Pressable
+        onPress={action.onPress}
+        onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 20 }).start()}
+        onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20 }).start()}
+        style={{ flex: 1 }}
+      >
+        <Animated.View style={[
+          styles.actionCard,
+          { flex: 1, transform: [{ scale }] },
+          isHighlighted && styles.tourHighlight,
+        ]}>
+          <View style={styles.actionIconWrap}>
+            <Ionicons name={action.icon} size={22} color={Palette.accent} />
+          </View>
+          <Text style={styles.actionLabel}>{action.label}</Text>
+        </Animated.View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -39,6 +50,7 @@ export default function HomeScreen() {
   const [activities, setActivities] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [tourStep, setTourStep] = useState(1);
 
   const loadData = useCallback(async () => {
     try {
@@ -46,7 +58,6 @@ export default function HomeScreen() {
       const recentExps = await getRecentExpenses('me', 5);
       const recentPays = await getUserPayments('me', 5);
       
-      // Merge and sort by date descending
       const combined = [
         ...recentExps.map(e => ({ ...e, activityType: 'expense' as const })),
         ...recentPays.map(p => ({ ...p, activityType: 'payment' as const })),
@@ -72,7 +83,6 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     setInitialLoading(true);
-    // Artificial delay to simulate network request since data is local
     await new Promise(resolve => setTimeout(resolve, 1000));
     await loadData();
     setRefreshing(false);
@@ -96,10 +106,21 @@ export default function HomeScreen() {
     { id: 'scan', label: 'Scan', icon: 'camera-outline' as const, onPress: () => navigation.navigate('ScanReceipt', {}) },
   ];
 
+  // Tour step configs — panel position (top) places it just below each highlighted element
+  const tourSteps = [
+    null, // 0 = tour off
+    { icon: 'wallet-outline', title: 'Your Balance', body: "This card shows your total net balance across all groups and friends — positive means you're owed money!", onNext: () => setTourStep(2), panelTop: 310 },
+    { icon: 'grid-outline', title: 'Quick Actions', body: 'Quickly split a bill, request money back, scan a receipt, or add an expense — all from here.', onNext: () => setTourStep(3), panelTop: 490 },
+    { icon: 'time-outline', title: 'Recent Activity', body: 'Keep track of all your recent expenses, payments, and settlements in one place.', onNext: () => setTourStep(4), panelTop: 580 },
+    { icon: 'grid-outline', title: 'Navigation Bar', body: "🏠 Home — Dashboard\n👥 Groups — Shared groups\n💰 Pay — Settle up fast\n⏱ Activity — Transaction history\n👤 Profile — Account & settings", onNext: () => setTourStep(0), panelTop: undefined },
+  ];
+  const activeTourStep = tourSteps[tourStep];
+  const isTourActive = tourStep > 0;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
       >
@@ -112,16 +133,20 @@ export default function HomeScreen() {
         <Text style={styles.greeting}>Hello, {getCurrentUser()?.name.split(' ')[0] ?? 'Alex'} 👋</Text>
         <Text style={styles.tagline}>Share smarter. Live better.</Text>
 
-        {/* Total Balance Card */}
+        {/* Total Balance Card — highlighted on step 1 */}
         {initialLoading ? (
           <Skeleton width="100%" height={140} borderRadius={Radii.card} style={{ marginBottom: Spacing.md }} />
         ) : (
-          <TouchableOpacity onPress={() => navigation.navigate('Reports')} activeOpacity={0.9} style={{ marginBottom: Spacing.md }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Reports')}
+            activeOpacity={0.9}
+            style={[{ marginBottom: Spacing.md }, tourStep === 1 && styles.tourHighlightWrapper]}
+          >
             <LinearGradient
               colors={Gradient.primary}
               start={Gradient.start}
               end={Gradient.end}
-              style={styles.balanceCard}
+              style={[styles.balanceCard, tourStep === 1 && styles.tourHighlight]}
             >
               <View style={styles.balanceHeaderRow}>
                 <Text style={styles.balanceLabel}>Total Balance</Text>
@@ -136,15 +161,22 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.quickActionsGrid}>
+        {/* Quick Actions — all 4 cards highlighted on step 2 */}
+        <View style={[styles.quickActionsGrid, tourStep === 2 && styles.tourHighlightWrapper]}>
           {quickActions.map((action) => (
-            <AnimatedActionCard key={action.id} action={action} />
+            <AnimatedActionCard
+              key={action.id}
+              action={action}
+              isHighlighted={tourStep === 2}
+            />
           ))}
         </View>
-        {/* Recent Activity */}
+
+        {/* Recent Activity — section title highlighted on step 3 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Text style={[styles.sectionTitle, tourStep === 3 && styles.tourHighlightText]}>
+            Recent Activity
+          </Text>
           {initialLoading ? (
             <View>
               {[1, 2, 3].map((i) => (
@@ -170,7 +202,7 @@ export default function HomeScreen() {
                 const paymentLabel = isSentByMe ? 'Settle Payment' : 'Payment Received';
 
                 return (
-                  <View key={item.id} style={styles.activityItem}>
+                  <View key={item.id} style={[styles.activityItem, tourStep === 3 && styles.tourHighlight]}>
                     <View style={styles.activityIcon}>
                       <Ionicons name="cash-outline" size={20} color={Palette.accent} />
                     </View>
@@ -187,11 +219,11 @@ export default function HomeScreen() {
 
               const isPaidByMe = item.paidBy === 'me';
               const displayAmount = isPaidByMe 
-                ? item.amount - (item.splits?.find((s: any) => s.userId === 'me')?.amount || 0) // what others owe me
-                : -(item.splits?.find((s: any) => s.userId === 'me')?.amount || 0); // what I owe
+                ? item.amount - (item.splits?.find((s: any) => s.userId === 'me')?.amount || 0)
+                : -(item.splits?.find((s: any) => s.userId === 'me')?.amount || 0);
               
               return (
-                <View key={item.id} style={styles.activityItem}>
+                <View key={item.id} style={[styles.activityItem, tourStep === 3 && styles.tourHighlight]}>
                   <View style={styles.activityIcon}>
                     <Ionicons name={getCategoryIcon(item.category)} size={20} color={Palette.accent} />
                   </View>
@@ -213,9 +245,32 @@ export default function HomeScreen() {
           <Text style={styles.promoText}>Smart sharing, made simple</Text>
         </View>
       </ScrollView>
+
+      {/* Tour panel — positioned near the highlighted element */}
+      {activeTourStep && (
+        <View style={[
+          styles.tourPanel,
+          activeTourStep.panelTop !== undefined
+            ? { top: activeTourStep.panelTop, bottom: undefined }
+            : { bottom: 72, top: undefined },
+        ]}>
+          <TourTooltipContent
+            icon={activeTourStep.icon}
+            title={activeTourStep.title}
+            body={activeTourStep.body}
+            step={tourStep}
+            totalSteps={TOUR_TOTAL}
+            onNext={activeTourStep.onNext}
+            onSkip={() => setTourStep(0)}
+            isLast={tourStep === TOUR_TOTAL}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -365,5 +420,42 @@ const styles = StyleSheet.create({
     color: Palette.white,
     fontSize: 15,
     fontWeight: '600',
+  },
+  // Tour highlight styles
+  tourHighlight: {
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+  },
+  tourHighlightWrapper: {
+    borderRadius: Radii.card,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 8,
+    padding: 4,
+  },
+  tourHighlightText: {
+    color: '#6366f1',
+  },
+  tourPanel: {
+    position: 'absolute',
+    bottom: 72,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 12,
   },
 });
