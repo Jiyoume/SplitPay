@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import StatusPill, { PillStatus } from '../components/StatusPill';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+import { Skeleton } from '../components';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -62,6 +63,16 @@ const FILTERS: { label: string; value: 'All' | ActivityType }[] = [
 
 export default function ActivityScreen() {
   const [filter, setFilter] = useState<'All' | ActivityType>('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false); // we default to false but use it during refresh
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+    setInitialLoading(false);
+  }, []);
 
   const handleFilterChange = (newFilter: 'All' | ActivityType) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -73,9 +84,32 @@ export default function ActivityScreen() {
     items: filter === 'All' ? section.items : section.items.filter((item) => item.type === filter),
   })).filter((section) => section.items.length > 0);
 
+  // Render skeleton loaders for ActivityItems
+  const renderSkeletons = () => (
+    <View style={{ paddingTop: Spacing.md }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Palette.card, padding: Spacing.md, borderRadius: Radii.card, marginBottom: Spacing.sm }}>
+          <Skeleton width={40} height={40} borderRadius={20} style={{ marginRight: Spacing.md }} />
+          <View style={{ flex: 1 }}>
+            <Skeleton width={120} height={16} style={{ marginBottom: Spacing.xs }} />
+            <Skeleton width={80} height={14} />
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Skeleton width={60} height={18} style={{ marginBottom: Spacing.xs }} />
+            <Skeleton width={40} height={20} borderRadius={Radii.pill} />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+      >
         <Text style={styles.title}>Activity</Text>
         <Text style={styles.subCopy}>All your expenses and payments in one place</Text>
 
@@ -95,7 +129,9 @@ export default function ActivityScreen() {
           })}
         </View>
 
-        {sections.length === 0 ? (
+        {initialLoading ? (
+          renderSkeletons()
+        ) : sections.length === 0 ? (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconCircle}>
               <Ionicons name="receipt-outline" size={48} color={Palette.accent} />

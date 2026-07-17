@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import GradientButton from '../components/GradientButton';
+import { Skeleton } from '../components';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 
 const BUDGET_ITEMS = [
@@ -16,11 +17,25 @@ const BUDGET_ITEMS = [
 export default function ReportsScreen() {
   const navigation = useNavigation();
   const [month] = useState('July 2026');
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
 
   const insets = useSafeAreaInsets();
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+    setInitialLoading(false);
+  }, []);
+
   return (
-    <ScrollView style={s.container} contentContainerStyle={{ paddingTop: insets.top }}>
+    <ScrollView 
+      style={s.container} 
+      contentContainerStyle={{ paddingTop: insets.top }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+    >
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color={Palette.textPrimary} />
@@ -36,18 +51,26 @@ export default function ReportsScreen() {
           <TouchableOpacity style={s.monthNav}><Ionicons name="chevron-forward" size={18} color={Palette.textPrimary} /></TouchableOpacity>
         </View>
 
-        <View style={s.card}>
-          <Text style={s.cardTitle}>Monthly Statement</Text>
-          <View style={s.row}><Text style={s.label}>Opening Balance</Text><Text style={s.value}>{peso(3200)}</Text></View>
-          <View style={s.divider} />
-          <View style={s.row}><Text style={s.label}>Total Inflows</Text><Text style={[s.value, { color: Palette.positive }]}>{peso(8750, { sign: true })}</Text></View>
-          <View style={s.row}><Text style={s.label}>Total Outflows</Text><Text style={[s.value, { color: Palette.negative }]}>{peso(-7699.5, { sign: true })}</Text></View>
-          <View style={s.divider} />
-          <View style={s.row}><Text style={s.label}>Closing Balance</Text><Text style={[s.value, { fontSize: 18 }]}>{peso(4250.5)}</Text></View>
-        </View>
+        {initialLoading ? (
+          <View>
+            <Skeleton width="100%" height={200} borderRadius={Radii.card} style={{ marginBottom: Spacing.lg }} />
+            <Skeleton width="100%" height={100} borderRadius={Radii.card} style={{ marginBottom: Spacing.lg }} />
+            <Skeleton width="100%" height={250} borderRadius={Radii.card} />
+          </View>
+        ) : (
+          <View>
+            <View style={s.card}>
+              <Text style={s.cardTitle}>Monthly Statement</Text>
+              <View style={s.row}><Text style={s.label}>Opening Balance</Text><Text style={s.value}>{peso(3200)}</Text></View>
+              <View style={s.divider} />
+              <View style={s.row}><Text style={s.label}>Total Inflows</Text><Text style={[s.value, { color: Palette.positive }]}>{peso(8750, { sign: true })}</Text></View>
+              <View style={s.row}><Text style={s.label}>Total Outflows</Text><Text style={[s.value, { color: Palette.negative }]}>{peso(-7699.5, { sign: true })}</Text></View>
+              <View style={s.divider} />
+              <View style={s.row}><Text style={s.label}>Closing Balance</Text><Text style={[s.value, { fontSize: 18 }]}>{peso(4250.5)}</Text></View>
+            </View>
 
-        <View style={s.statsGrid}>
-          <View style={s.stat}><Text style={s.statLabel}>Total Spent</Text><Text style={s.statVal}>₱12.4K</Text><Text style={s.statChangePos}>↑ 8%</Text></View>
+            <View style={s.statsGrid}>
+              <View style={s.stat}><Text style={s.statLabel}>Total Spent</Text><Text style={s.statVal}>₱12.4K</Text><Text style={s.statChangePos}>↑ 8%</Text></View>
           <View style={s.stat}><Text style={s.statLabel}>Owed to You</Text><Text style={s.statVal}>₱3.2K</Text><Text style={s.statChangeNeutral}>2 pending</Text></View>
           <View style={s.stat}><Text style={s.statLabel}>Groups</Text><Text style={s.statVal}>4</Text><Text style={s.statChangeNeutral}>1 new</Text></View>
           <View style={s.stat}><Text style={s.statLabel}>Transactions</Text><Text style={s.statVal}>28</Text><Text style={s.statChangePos}>↑ 12%</Text></View>
@@ -74,6 +97,8 @@ export default function ReportsScreen() {
           onPress={() => Alert.alert('Export', 'Statement exported to CSV!')}
           style={{ marginBottom: Spacing.xl }}
         />
+        </View>
+        )}
       </View>
     </ScrollView>
   );

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
@@ -13,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { GradientButton, StatusPill, BalanceSummary, ExpenseCard, MemberAvatar } from '../components';
+import { GradientButton, StatusPill, BalanceSummary, ExpenseCard, MemberAvatar, Skeleton } from '../components';
 import { getGroup, getGroupExpenses, getGroupBalanceForUser } from '../services/localDatabase';
 import { Group, Expense } from '../models/types';
 
@@ -32,44 +33,82 @@ export default function GroupDetailScreen() {
   const [group, setGroup] = useState<any>(null);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadGroupDetails = useCallback(async () => {
+    try {
+      const g = await getGroup(groupId);
+      if (g) {
+        const exps = await getGroupExpenses(groupId);
+        
+        // Calculate balances for each member
+        const membersWithBalances = await Promise.all(
+          g.members.map(async (m: any) => ({
+            id: m.id,
+            name: m.id === 'me' ? 'You' : m.name,
+            balance: await getGroupBalanceForUser(groupId, m.id),
+          }))
+        );
+
+        setGroup({
+          ...g,
+          members: membersWithBalances,
+        });
+        setExpenses(exps);
+      }
+    } catch (err) {
+      console.error('Failed to load group details:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
 
   useFocusEffect(
     useCallback(() => {
-      async function loadGroupDetails() {
-        try {
-          const g = await getGroup(groupId);
-          if (g) {
-            const exps = await getGroupExpenses(groupId);
-            
-            // Calculate balances for each member
-            const membersWithBalances = await Promise.all(
-              g.members.map(async (m: any) => ({
-                id: m.id,
-                name: m.id === 'me' ? 'You' : m.name,
-                balance: await getGroupBalanceForUser(groupId, m.id),
-              }))
-            );
-
-            setGroup({
-              ...g,
-              members: membersWithBalances,
-            });
-            setExpenses(exps);
-          }
-        } catch (err) {
-          console.error('Failed to load group details:', err);
-        } finally {
-          setLoading(false);
-        }
-      }
       loadGroupDetails();
-    }, [groupId])
+    }, [loadGroupDetails])
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadGroupDetails();
+    setRefreshing(false);
+  }, [loadGroupDetails]);
 
   if (loading || !group) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Palette.background }}>
-        <ActivityIndicator size="large" color="#2F6BFF" />
+      <View style={{ flex: 1, backgroundColor: Palette.background }}>
+        <View style={[styles.cover, { paddingTop: insets.top + Spacing.xl, height: 200 }]} />
+        
+        <View style={{ paddingHorizontal: Spacing.xl, marginTop: -40 }}>
+          <View style={{ backgroundColor: Palette.card, borderRadius: Radii.card, padding: Spacing.xl, ...CardShadow }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg }}>
+              <View>
+                <Skeleton width={100} height={16} style={{ marginBottom: Spacing.sm }} />
+                <Skeleton width={150} height={32} />
+              </View>
+              <Skeleton width={50} height={50} borderRadius={25} />
+            </View>
+            <Skeleton width="100%" height={1} style={{ marginBottom: Spacing.lg }} />
+            <Skeleton width={120} height={20} />
+          </View>
+
+          <View style={{ marginTop: Spacing.xxl }}>
+            <Skeleton width={150} height={24} style={{ marginBottom: Spacing.xl }} />
+            {[1, 2, 3].map((i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg }}>
+                <Skeleton width={48} height={48} borderRadius={24} style={{ marginRight: Spacing.md }} />
+                <View style={{ flex: 1 }}>
+                  <Skeleton width={120} height={16} style={{ marginBottom: Spacing.xs }} />
+                  <Skeleton width={80} height={14} />
+                </View>
+                <Skeleton width={60} height={20} />
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
     );
   }
@@ -93,7 +132,10 @@ export default function GroupDetailScreen() {
   const pendingMember = group.members.find((m: any) => m.balance < 0);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+    >
       <View style={[styles.cover, { paddingTop: insets.top + Spacing.xl }]}>
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + Spacing.lg }]}

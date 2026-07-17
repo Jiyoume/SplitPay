@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Animated, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import Logo from '../components/Logo';
+import { Logo, Skeleton } from '../components';
 import { Palette, Radii, Spacing, CardShadow, peso, Gradient } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
@@ -37,32 +37,46 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [balance, setBalance] = useState(0);
   const [activities, setActivities] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    try {
+      const userBalance = await getUserNetBalance('me');
+      const recentExps = await getRecentExpenses('me', 5);
+      const recentPays = await getUserPayments('me', 5);
+      
+      // Merge and sort by date descending
+      const combined = [
+        ...recentExps.map(e => ({ ...e, activityType: 'expense' as const })),
+        ...recentPays.map(p => ({ ...p, activityType: 'payment' as const })),
+      ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
+      setBalance(userBalance);
+      setActivities(combined);
+    } catch (err) {
+      console.error('Failed to load local DB data in HomeScreen:', err);
+    } finally {
+      setInitialLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      async function loadData() {
-        try {
-          const userBalance = await getUserNetBalance('me');
-          const recentExps = await getRecentExpenses('me', 5);
-          const recentPays = await getUserPayments('me', 5);
-          
-          // Merge and sort by date descending
-          const combined = [
-            ...recentExps.map(e => ({ ...e, activityType: 'expense' as const })),
-            ...recentPays.map(p => ({ ...p, activityType: 'payment' as const })),
-          ]
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .slice(0, 5);
-
-          setBalance(userBalance);
-          setActivities(combined);
-        } catch (err) {
-          console.error('Failed to load local DB data in HomeScreen:', err);
-        }
-      }
       loadData();
-    }, [])
+    }, [loadData])
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    // Artificial delay to simulate network request since data is local
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadData();
+    setRefreshing(false);
+  }, [loadData]);
 
   const getCategoryIcon = (category?: string) => {
     switch (category?.toLowerCase()) {
@@ -84,7 +98,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Logo size={18} />
@@ -95,24 +113,28 @@ export default function HomeScreen() {
         <Text style={styles.tagline}>Share smarter. Live better.</Text>
 
         {/* Total Balance Card */}
-        <TouchableOpacity onPress={() => navigation.navigate('Reports')} activeOpacity={0.9} style={{ marginBottom: Spacing.md }}>
-          <LinearGradient
-            colors={Gradient.primary}
-            start={Gradient.start}
-            end={Gradient.end}
-            style={styles.balanceCard}
-          >
-            <View style={styles.balanceHeaderRow}>
-              <Text style={styles.balanceLabel}>Total Balance</Text>
-              <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
-            </View>
-            <Text style={styles.balanceAmount}>{peso(balance)}</Text>
-            <View style={styles.changePill}>
-              <Ionicons name="trending-up" size={12} color={Palette.positive} />
-              <Text style={styles.changePillText}>+12.5% vs last month</Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+        {initialLoading ? (
+          <Skeleton width="100%" height={140} borderRadius={Radii.card} style={{ marginBottom: Spacing.md }} />
+        ) : (
+          <TouchableOpacity onPress={() => navigation.navigate('Reports')} activeOpacity={0.9} style={{ marginBottom: Spacing.md }}>
+            <LinearGradient
+              colors={Gradient.primary}
+              start={Gradient.start}
+              end={Gradient.end}
+              style={styles.balanceCard}
+            >
+              <View style={styles.balanceHeaderRow}>
+                <Text style={styles.balanceLabel}>Total Balance</Text>
+                <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
+              </View>
+              <Text style={styles.balanceAmount}>{peso(balance)}</Text>
+              <View style={styles.changePill}>
+                <Ionicons name="trending-up" size={12} color={Palette.positive} />
+                <Text style={styles.changePillText}>+12.5% vs last month</Text>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.quickActionsGrid}>
@@ -123,7 +145,20 @@ export default function HomeScreen() {
         {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          {activities.length === 0 ? (
+          {initialLoading ? (
+            <View>
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: Palette.card, padding: Spacing.md, borderRadius: Radii.card, marginBottom: Spacing.sm }}>
+                  <Skeleton width={40} height={40} borderRadius={20} style={{ marginRight: Spacing.md }} />
+                  <View style={{ flex: 1 }}>
+                    <Skeleton width={100} height={16} style={{ marginBottom: Spacing.xs }} />
+                    <Skeleton width={60} height={12} />
+                  </View>
+                  <Skeleton width={50} height={16} />
+                </View>
+              ))}
+            </View>
+          ) : activities.length === 0 ? (
             <Text style={{ color: Palette.textSecondary, fontSize: 13, textAlign: 'center', marginVertical: 20 }}>No recent activity.</Text>
           ) : (
             activities.map((item) => {

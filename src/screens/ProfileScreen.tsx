@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import MemberAvatar from '../components/MemberAvatar';
+import { Skeleton } from '../components';
 import { Palette, Radii, Spacing, CardShadow } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
@@ -28,6 +29,8 @@ interface MenuSection {
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const sessionUser = getCurrentUser();
   const user = {
     name: sessionUser?.name ?? 'Alex Reyes',
@@ -67,18 +70,38 @@ export default function ProfileScreen() {
     navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
   };
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+    setInitialLoading(false);
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* User Card */}
-        <View style={styles.userCard}>
-          <MemberAvatar name={user.name} size={64} backgroundColor={Palette.accent} />
-          <Text style={styles.userName}>{user.name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          <View style={styles.premiumChip}>
-            <Text style={styles.premiumChipText}>⭐ Premium Member</Text>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+      >
+        {initialLoading ? (
+          <View style={styles.userCard}>
+            <Skeleton width={64} height={64} borderRadius={32} style={{ marginBottom: Spacing.md }} />
+            <Skeleton width={150} height={24} style={{ marginBottom: Spacing.sm }} />
+            <Skeleton width={180} height={16} style={{ marginBottom: Spacing.lg }} />
+            <Skeleton width={140} height={24} borderRadius={Radii.pill} />
           </View>
-        </View>
+        ) : (
+          <View style={styles.userCard}>
+            <MemberAvatar name={user.name} size={64} backgroundColor={Palette.accent} />
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+            <View style={styles.premiumChip}>
+              <Text style={styles.premiumChipText}>⭐ Premium Member</Text>
+            </View>
+          </View>
+        )}
 
         {sections.map((section) => (
           <View key={section.title} style={styles.section}>

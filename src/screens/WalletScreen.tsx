@@ -1,11 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import GradientButton from '../components/GradientButton';
+import { Skeleton } from '../components';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -20,6 +21,8 @@ const METHODS = [
 
 export default function WalletScreen() {
   const navigation = useNavigation<Nav>();
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const srtBalance = 2500.0; // 1 SRT ≈ ₱1 (testnet peg)
   const xlmBalance = '124.50';
   const address = 'GBKX...Q4F7...STELLAR';
@@ -33,8 +36,20 @@ export default function WalletScreen() {
 
   const insets = useSafeAreaInsets();
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    setRefreshing(false);
+    setInitialLoading(false);
+  }, []);
+
   return (
-    <ScrollView style={s.container} contentContainerStyle={{ paddingTop: insets.top }}>
+    <ScrollView 
+      style={s.container} 
+      contentContainerStyle={{ paddingTop: insets.top }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
+    >
       <View style={s.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={s.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Ionicons name="chevron-back" size={24} color={Palette.textPrimary} />
@@ -44,10 +59,13 @@ export default function WalletScreen() {
       </View>
 
       <View style={{ paddingHorizontal: Spacing.lg }}>
-        <View style={s.balanceCard}>
-          <Text style={s.balanceLabel}>Available Balance</Text>
-          <Text style={s.balanceValue}>{peso(srtBalance)}</Text>
-          <View style={s.xlmRow}>
+        {initialLoading ? (
+          <Skeleton width="100%" height={160} borderRadius={Radii.card} style={{ marginBottom: Spacing.xl }} />
+        ) : (
+          <View style={s.balanceCard}>
+            <Text style={s.balanceLabel}>Available Balance</Text>
+            <Text style={s.balanceValue}>{peso(srtBalance)}</Text>
+            <View style={s.xlmRow}>
             <Ionicons name="star" size={14} color={Palette.textMuted} />
             <Text style={s.xlmText}>{xlmBalance} XLM (network gas)</Text>
           </View>
@@ -58,6 +76,7 @@ export default function WalletScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        )}
 
         <GradientButton title="Top Up Wallet" onPress={() => navigation.navigate('TopUp')} style={{ marginBottom: Spacing.lg }} />
 

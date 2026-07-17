@@ -6,6 +6,7 @@ import {
   FlatList,
   TextInput,
   TouchableOpacity,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -13,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Palette, Radii, Spacing } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { GroupCard } from '../components';
+import { GroupCard, Skeleton } from '../components';
 import { getUserGroupsWithBalances } from '../services/localDatabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -23,20 +24,33 @@ export default function GroupsScreen() {
   const insets = useSafeAreaInsets();
   const [search, setSearch] = useState('');
   const [groups, setGroups] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const loadGroups = useCallback(async () => {
+    try {
+      const list = await getUserGroupsWithBalances('me');
+      setGroups(list);
+    } catch (err) {
+      console.error('Failed to load groups in GroupsScreen:', err);
+    } finally {
+      setInitialLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      async function loadGroups() {
-        try {
-          const list = await getUserGroupsWithBalances('me');
-          setGroups(list);
-        } catch (err) {
-          console.error('Failed to load groups in GroupsScreen:', err);
-        }
-      }
       loadGroups();
-    }, [])
+    }, [loadGroups])
   );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setInitialLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await loadGroups();
+    setRefreshing(false);
+  }, [loadGroups]);
 
   const getGroupEmoji = (type: string) => {
     switch (type?.toLowerCase()) {
@@ -50,12 +64,29 @@ export default function GroupsScreen() {
 
   const filteredGroups = groups.filter((g) => g.name.toLowerCase().includes(search.toLowerCase()));
 
+  // Render skeleton loaders for GroupCards
+  const renderSkeletons = () => (
+    <View style={{ paddingTop: Spacing.md }}>
+      {[1, 2, 3].map((i) => (
+        <View key={i} style={{ backgroundColor: Palette.card, padding: Spacing.md, borderRadius: Radii.card, marginBottom: Spacing.md, flexDirection: 'row', alignItems: 'center' }}>
+          <Skeleton width={48} height={48} borderRadius={24} style={{ marginRight: Spacing.md }} />
+          <View style={{ flex: 1 }}>
+            <Skeleton width={120} height={18} style={{ marginBottom: Spacing.xs }} />
+            <Skeleton width={80} height={14} />
+          </View>
+          <Skeleton width={60} height={24} borderRadius={Radii.pill} />
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <FlatList
-        data={filteredGroups}
+        data={initialLoading ? [] : filteredGroups}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Palette.accent} />}
         renderItem={({ item }) => {
           const memberNames = item.members.map((m: any) => m.id === 'me' ? 'You' : m.name);
           return (
@@ -86,10 +117,12 @@ export default function GroupsScreen() {
           </View>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="people-outline" size={48} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>No groups match "{search}"</Text>
-          </View>
+          initialLoading ? renderSkeletons() : (
+            <View style={styles.emptyState}>
+              <Ionicons name="people-outline" size={48} color={Palette.textMuted} />
+              <Text style={styles.emptyText}>No groups match "{search}"</Text>
+            </View>
+          )
         }
       />
       <TouchableOpacity

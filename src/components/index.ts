@@ -4,3 +4,5 @@ export { default as ExpenseCard } from './ExpenseCard';
 export { default as BalanceSummary } from './BalanceSummary';
 export { default as GradientButton } from './GradientButton';
 export { default as StatusPill } from './StatusPill';
+export { default as Logo } from './Logo';
+export { default as Skeleton } from './Skeleton';
