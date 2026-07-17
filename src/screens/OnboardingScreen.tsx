@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,6 +9,7 @@ import { Palette, Spacing } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
+const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -18,7 +19,11 @@ export default function OnboardingScreen() {
       <Logo size={22} />
 
       <View style={styles.hero}>
-        <Text style={styles.heroEmoji}>💸🧾➗</Text>
+        <Image 
+          source={require('../../assets/get_started_hero_enhanced.png')} 
+          style={styles.heroImage} 
+          resizeMode="contain" 
+        />
       </View>
 
       <Text style={styles.headline}>
@@ -53,10 +58,12 @@ const styles = StyleSheet.create({
   hero: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    width: '100%',
   },
-  heroEmoji: {
-    fontSize: 64,
+  heroImage: {
+    width: width * 1.1,
+    height: width * 1.1,
   },
   headline: {
     fontSize: 26,
