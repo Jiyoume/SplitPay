@@ -1,16 +1,37 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import Logo from '../components/Logo';
-import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+import { Palette, Radii, Spacing, CardShadow, peso, Gradient } from '../constants/theme';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { getCurrentUser } from '../services/session';
 import { getUserNetBalance, getRecentExpenses, getUserPayments } from '../services/localDatabase';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// Helper component for animated quick actions
+function AnimatedActionCard({ action }: { action: any }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  return (
+    <Pressable
+      onPress={action.onPress}
+      onPressIn={() => Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 20 }).start()}
+      onPressOut={() => Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20 }).start()}
+      style={{ width: '48%', marginBottom: Spacing.md }}
+    >
+      <Animated.View style={[styles.actionCard, { transform: [{ scale }] }]}>
+        <View style={styles.actionIconWrap}>
+          <Ionicons name={action.icon} size={22} color={Palette.accent} />
+        </View>
+        <Text style={styles.actionLabel}>{action.label}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -74,30 +95,31 @@ export default function HomeScreen() {
         <Text style={styles.tagline}>Share smarter. Live better.</Text>
 
         {/* Total Balance Card */}
-        <TouchableOpacity style={styles.balanceCard} onPress={() => navigation.navigate('Reports')} activeOpacity={0.9}>
-          <View style={styles.balanceHeaderRow}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
-          </View>
-          <Text style={styles.balanceAmount}>{peso(balance)}</Text>
-          <View style={styles.changePill}>
-            <Ionicons name="trending-up" size={12} color={Palette.positive} />
-            <Text style={styles.changePillText}>+12.5% vs last month</Text>
-          </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Reports')} activeOpacity={0.9} style={{ marginBottom: Spacing.md }}>
+          <LinearGradient
+            colors={Gradient.primary}
+            start={Gradient.start}
+            end={Gradient.end}
+            style={styles.balanceCard}
+          >
+            <View style={styles.balanceHeaderRow}>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
+              <Ionicons name="bar-chart-outline" size={20} color={Palette.white} />
+            </View>
+            <Text style={styles.balanceAmount}>{peso(balance)}</Text>
+            <View style={styles.changePill}>
+              <Ionicons name="trending-up" size={12} color={Palette.positive} />
+              <Text style={styles.changePillText}>+12.5% vs last month</Text>
+            </View>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Quick Actions */}
         <View style={styles.quickActionsGrid}>
           {quickActions.map((action) => (
-            <TouchableOpacity key={action.id} style={styles.actionCard} onPress={action.onPress} activeOpacity={0.8}>
-              <View style={styles.actionIconWrap}>
-                <Ionicons name={action.icon} size={22} color={Palette.accent} />
-              </View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-            </TouchableOpacity>
+            <AnimatedActionCard key={action.id} action={action} />
           ))}
         </View>
-
         {/* Recent Activity */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
@@ -231,12 +253,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   actionCard: {
-    width: '48%',
+    width: '100%',
     backgroundColor: Palette.card,
     borderRadius: Radii.card,
     paddingVertical: Spacing.lg,
     alignItems: 'center',
-    marginBottom: Spacing.md,
     ...CardShadow,
   },
   actionIconWrap: {

@@ -112,7 +112,7 @@ export default function ScanReceiptScreen() {
       {
         text: 'OK',
         onPress: () => {
-          navigation.navigate('AddExpense' as any, {
+          (navigation as any).navigate('AddExpense', {
             title: extractedData.vendor,
             amount: extractedData.total.toString(),
             category: extractedData.category,

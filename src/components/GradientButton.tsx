@@ -1,5 +1,5 @@
-import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import React, { useRef } from 'react';
+import { Text, StyleSheet, ViewStyle, Animated, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gradient, Radii } from '../constants/theme';
 
@@ -11,17 +11,43 @@ interface GradientButtonProps {
 }
 
 export default function GradientButton({ title, onPress, disabled, style }: GradientButtonProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: 0.96,
+      useNativeDriver: true,
+      speed: 20,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 20,
+    }).start();
+  };
+
   return (
-    <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.85} style={style}>
-      <LinearGradient
-        colors={Gradient.primary}
-        start={Gradient.start}
-        end={Gradient.end}
-        style={[styles.button, disabled && styles.disabled]}
-      >
-        <Text style={styles.title}>{title}</Text>
-      </LinearGradient>
-    </TouchableOpacity>
+    <Pressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      disabled={disabled}
+      style={style}
+    >
+      <Animated.View style={{ transform: [{ scale }] }}>
+        <LinearGradient
+          colors={Gradient.primary}
+          start={Gradient.start}
+          end={Gradient.end}
+          style={[styles.button, disabled && styles.disabled]}
+        >
+          <Text style={styles.title}>{title}</Text>
+        </LinearGradient>
+      </Animated.View>
+    </Pressable>
   );
 }
 

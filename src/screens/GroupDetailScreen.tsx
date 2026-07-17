@@ -106,7 +106,7 @@ export default function GroupDetailScreen() {
         <Text style={styles.groupName}>{group.name}</Text>
         <Text style={styles.dateRange}>Created on {new Date(group.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
         <View style={styles.avatarRow}>
-          {visibleAvatars.map((member, i) => (
+          {visibleAvatars.map((member: any, i: number) => (
             <View key={member.id} style={[styles.avatarWrap, i > 0 && styles.avatarOverlap]}>
               <MemberAvatar name={member.name} size={32} />
             </View>
@@ -156,7 +156,7 @@ export default function GroupDetailScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Member Balances</Text>
-        {group.members.map((member) => (
+        {group.members.map((member: any) => (
           <View key={member.id} style={styles.memberRow}>
             <MemberAvatar name={member.name} size={36} />
             <View style={styles.memberInfo}>

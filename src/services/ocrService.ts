@@ -404,6 +404,7 @@ export function parseRawOCRText(text: string): ReceiptOCRResult {
   return {
     id: `rcpt_${Date.now()}`,
     scannedAt: new Date().toISOString(),
+    imageUrl: '', // default empty string as this is just parsed from text
     confidence: (vendor.confidence + date.confidence) / 2,
     rawText: text,
     vendor,

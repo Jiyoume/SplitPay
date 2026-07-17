@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import StatusPill, { PillStatus } from '../components/StatusPill';
 import { Palette, Radii, Spacing, CardShadow, peso } from '../constants/theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 type ActivityType = 'sent' | 'received' | 'pending';
 
@@ -59,6 +63,11 @@ const FILTERS: { label: string; value: 'All' | ActivityType }[] = [
 export default function ActivityScreen() {
   const [filter, setFilter] = useState<'All' | ActivityType>('All');
 
+  const handleFilterChange = (newFilter: 'All' | ActivityType) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setFilter(newFilter);
+  };
+
   const sections = SECTIONS.map((section) => ({
     date: section.date,
     items: filter === 'All' ? section.items : section.items.filter((item) => item.type === filter),
@@ -77,7 +86,8 @@ export default function ActivityScreen() {
               <TouchableOpacity
                 key={f.value}
                 style={[styles.chip, active && styles.chipActive]}
-                onPress={() => setFilter(f.value)}
+                onPress={() => handleFilterChange(f.value)}
+                activeOpacity={0.7}
               >
                 <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
               </TouchableOpacity>
@@ -87,8 +97,11 @@ export default function ActivityScreen() {
 
         {sections.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="document-text-outline" size={48} color={Palette.textMuted} />
-            <Text style={styles.emptyText}>No activity here</Text>
+            <View style={styles.emptyIconCircle}>
+              <Ionicons name="receipt-outline" size={48} color={Palette.accent} />
+            </View>
+            <Text style={styles.emptyText}>No activity found</Text>
+            <Text style={styles.emptySubText}>Try changing your filter or start a new expense.</Text>
           </View>
         ) : (
           sections.map((section) => (
@@ -222,12 +235,29 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 80,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Palette.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    ...CardShadow,
   },
   emptyText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
+    color: Palette.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  emptySubText: {
+    fontSize: 14,
     color: Palette.textSecondary,
-    marginTop: Spacing.md,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

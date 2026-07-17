@@ -41,10 +41,10 @@ export const Spacing = {
 
 export const CardShadow = {
   shadowColor: '#101828',
-  shadowOpacity: 0.06,
-  shadowRadius: 12,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 2,
+  shadowOpacity: 0.08,
+  shadowRadius: 20,
+  shadowOffset: { width: 0, height: 8 },
+  elevation: 4,
 } as const;
 
 export const Gradient = {
