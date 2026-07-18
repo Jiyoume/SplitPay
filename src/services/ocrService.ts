@@ -35,30 +35,89 @@ async function preprocessImage(imageFile: File | Blob): Promise<string> {
     const img = new Image();
     
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
+      // Scale down large images for faster processing (max 1500px width)
+      const maxWidth = 1500;
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
       
-      // Draw original
-      ctx.drawImage(img, 0, 0);
-      
-      // Get image data
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Convert to grayscale and enhance contrast
+      // Step 1: Convert to grayscale
       for (let i = 0; i < data.length; i += 4) {
-        // Grayscale
         const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        
-        // Contrast enhancement (1.5x)
-        const enhanced = ((gray - 128) * 1.5) + 128;
-        
-        // Threshold for cleaner text
-        const final = enhanced > 140 ? 255 : enhanced < 80 ? 0 : enhanced;
-        
-        data[i] = final;
-        data[i + 1] = final;
-        data[i + 2] = final;
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+      
+      // Step 2: Auto-level (normalize brightness range)
+      let minVal = 255, maxVal = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i] < minVal) minVal = data[i];
+        if (data[i] > maxVal) maxVal = data[i];
+      }
+      const range = maxVal - minVal || 1;
+      for (let i = 0; i < data.length; i += 4) {
+        const normalized = ((data[i] - minVal) / range) * 255;
+        data[i] = data[i + 1] = data[i + 2] = normalized;
+      }
+      
+      // Step 3: Adaptive contrast enhancement
+      for (let i = 0; i < data.length; i += 4) {
+        const val = data[i];
+        // Sigmoid-based contrast (preserves mid-tones better than linear)
+        const contrast = 255 / (1 + Math.exp(-(val - 128) / 30));
+        data[i] = data[i + 1] = data[i + 2] = contrast;
+      }
+      
+      // Step 4: Otsu's threshold for binarization (text becomes pure black, bg pure white)
+      const histogram = new Array(256).fill(0);
+      for (let i = 0; i < data.length; i += 4) histogram[Math.round(data[i])]++;
+      const totalPixels = data.length / 4;
+      
+      let sum = 0;
+      for (let i = 0; i < 256; i++) sum += i * histogram[i];
+      let sumB = 0, wB = 0, maxVariance = 0, threshold = 128;
+      
+      for (let t = 0; t < 256; t++) {
+        wB += histogram[t];
+        if (wB === 0) continue;
+        const wF = totalPixels - wB;
+        if (wF === 0) break;
+        sumB += t * histogram[t];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const variance = wB * wF * (mB - mF) * (mB - mF);
+        if (variance > maxVariance) { maxVariance = variance; threshold = t; }
+      }
+      
+      // Apply threshold with slight bias toward keeping text
+      const adjustedThreshold = threshold * 0.9;
+      for (let i = 0; i < data.length; i += 4) {
+        const final = data[i] > adjustedThreshold ? 255 : 0;
+        data[i] = data[i + 1] = data[i + 2] = final;
+      }
+      
+      // Step 5: Noise removal (remove isolated black pixels)
+      const w = canvas.width;
+      for (let y = 1; y < canvas.height - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const i = (y * w + x) * 4;
+          if (data[i] === 0) {
+            // Count black neighbors
+            let blackNeighbors = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const ni = ((y + dy) * w + (x + dx)) * 4;
+                if (data[ni] === 0) blackNeighbors++;
+              }
+            }
+            // Isolated pixel (< 2 neighbors) — remove it
+            if (blackNeighbors < 2) data[i] = data[i + 1] = data[i + 2] = 255;
+          }
+        }
       }
       
       ctx.putImageData(imageData, 0, 0);
@@ -177,70 +236,86 @@ function parseDate(text: string): { value: string; time?: string; confidence: nu
 
 /**
  * Parse line items from OCR text.
- * Looks for patterns like: "Item Name    qty x price    total"
+ * Handles various PH receipt formats: thermal printers, handwritten, POS systems.
  */
 function parseLineItems(lines: string[]): ReceiptLineItem[] {
   const items: ReceiptLineItem[] = [];
   
-  // Pattern: text followed by numbers (price)
+  // Extended patterns for Philippine receipts
   const itemPatterns = [
-    /^(.+?)\s+(\d+)\s*[xX×]\s*(\d+[.,]\d{2})\s+(\d+[.,]\d{2})$/,  // name qty x price total
-    /^(.+?)\s{2,}(\d+[.,]\d{2})$/,                                    // name    price
-    /^(\d+)\s+(.+?)\s+(\d+[.,]\d{2})$/,                               // qty name price
-    /^(.+?)\s+@\s*(\d+[.,]\d{2})\s*[xX×]\s*(\d+)\s+(\d+[.,]\d{2})$/, // name @price x qty total
+    /^(.+?)\s+(\d+)\s*[xX×]\s*(\d+[.,]\d{2})\s+(\d+[.,]\d{2})$/,       // name qty x price total
+    /^(.+?)\s+(\d+)\s*[xX×]\s*(\d+[.,]\d{2})$/,                          // name qty x price (no total)
+    /^(.+?)\s{2,}(\d+[.,]\d{2})$/,                                         // name    price (2+ spaces)
+    /^(\d+)\s+(.+?)\s+(\d+[.,]\d{2})$/,                                    // qty name price
+    /^(.+?)\s+@\s*(\d+[.,]\d{2})\s*[xX×]\s*(\d+)\s+(\d+[.,]\d{2})$/,     // name @price x qty total
+    /^(.+?)\s+P(\d+[.,]\d{2})$/,                                           // name P123.00 (peso prefix)
+    /^(.+?)\s+₱(\d+[.,]\d{2})$/,                                           // name ₱123.00
+    /^(.+?)\.{2,}\s*(\d+[.,]\d{2})$/,                                      // name.....price (dot leaders)
+    /^(.+?)\s+(\d{2,5})$/,                                                  // name  price (whole number, 2-5 digits)
+    /^(.+?)\s+-?\s*(\d+[.,]\d{2})\s*[A-Z]?$/,                             // name  price + tax code letter
+    /^(\d+)\s*[xX×]\s*(.+?)\s+(\d+[.,]\d{2})$/,                           // qty x name price
+    /^(.+?)\t+(\d+[.,]?\d*)$/,                                             // name\tprice (tab separated)
   ];
 
-  // Skip header/footer zones
-  const bodyLines = lines.slice(3, -5);
+  // Skip header (first 3 lines) and footer (last 5 lines)
+  const bodyLines = lines.slice(3, Math.max(lines.length - 5, 4));
+  
+  // Words that indicate non-item lines
+  const skipPatterns = /^(subtotal|sub-total|total|tax|vat|discount|change|cash|card|gcash|maya|amount|tender|thank|welcome|come|again|receipt|invoice|tin|official|cashier|date|time|terminal|-----|\*\*\*\*|====)/i;
   
   for (const line of bodyLines) {
     const trimmed = line.trim();
-    if (trimmed.length < 3) continue;
+    if (trimmed.length < 4) continue;
+    if (skipPatterns.test(trimmed)) continue;
+    if (/^[-=*_~]{3,}$/.test(trimmed)) continue; // Separator lines
+    if (/^\d{2}[\/\-]\d{2}[\/\-]\d{2,4}/.test(trimmed)) continue; // Date lines
     
-    // Skip non-item lines
-    if (/^(subtotal|total|tax|vat|discount|change|cash|card|gcash|amount|tender)/i.test(trimmed)) continue;
-    if (/^[-=*_]{3,}/.test(trimmed)) continue;
-    
+    let matched = false;
     for (const pattern of itemPatterns) {
       const match = trimmed.match(pattern);
       if (match) {
         const parseNum = (s: string) => parseFloat(s.replace(',', '.'));
         
         if (match.length === 5) {
-          // Full: name, qty, unitPrice, total
-          items.push({
-            name: match[1].trim(),
-            quantity: parseInt(match[2]),
-            unitPrice: parseNum(match[3]),
-            totalPrice: parseNum(match[4]),
-          });
+          items.push({ name: match[1].trim(), quantity: parseInt(match[2]), unitPrice: parseNum(match[3]), totalPrice: parseNum(match[4]) });
+        } else if (match.length === 4 && /^\d+$/.test(match[1])) {
+          // qty name price
+          items.push({ name: match[2].trim(), quantity: parseInt(match[1]), unitPrice: parseNum(match[3]), totalPrice: parseNum(match[3]) * parseInt(match[1]) });
+        } else if (match.length === 4) {
+          // name qty x price (no total)
+          items.push({ name: match[1].trim(), quantity: parseInt(match[2]), unitPrice: parseNum(match[3]), totalPrice: parseNum(match[3]) * parseInt(match[2]) });
         } else if (match.length === 3) {
-          // Simple: name, price
-          items.push({
-            name: match[1].trim(),
-            quantity: 1,
-            unitPrice: parseNum(match[2]),
-            totalPrice: parseNum(match[2]),
-          });
+          const price = parseNum(match[2]);
+          if (price > 0 && price < 100000) {
+            items.push({ name: match[1].trim(), quantity: 1, unitPrice: price, totalPrice: price });
+          }
         }
+        matched = true;
         break;
       }
     }
     
-    // Fallback: any line with a number at the end that looks like a price
-    if (items.length === 0 || items[items.length - 1]?.name !== trimmed) {
-      const priceMatch = trimmed.match(/^(.{3,}?)\s+P?(\d{1,6}[.,]\d{2})$/);
+    // Fallback: any line with a number that looks like a price at the end
+    if (!matched) {
+      const priceMatch = trimmed.match(/^(.{3,}?)\s+P?₱?(\d{1,6}[.,]?\d{0,2})$/);
       if (priceMatch) {
-        const name = priceMatch[1].replace(/[._]{2,}/g, '').trim();
+        const name = priceMatch[1].replace(/[._]{2,}/g, ' ').replace(/\s{2,}/g, ' ').trim();
         const price = parseFloat(priceMatch[2].replace(',', '.'));
-        if (name.length > 2 && price > 0 && price < 100000) {
+        if (name.length > 2 && price > 0 && price < 100000 && !/total|sub|vat|tax|disc/i.test(name)) {
           items.push({ name, quantity: 1, unitPrice: price, totalPrice: price });
         }
       }
     }
   }
 
-  return items;
+  // De-duplicate items (same name + price appearing twice)
+  const unique: ReceiptLineItem[] = [];
+  for (const item of items) {
+    const exists = unique.find(u => u.name === item.name && u.totalPrice === item.totalPrice);
+    if (!exists) unique.push(item);
+  }
+
+  return unique;
 }
 
 /**
