@@ -858,15 +858,152 @@ button, .btn, .tab-item, .chip, .quick-action, .menu-item, .fab, .tab-bar, .moda
 button, a, .tab-item, .chip, .quick-action, .menu-item, .fab, .notification-bell {
   touch-action: manipulation;
 }
+
+/* ===== ONBOARDING SCREEN ===== */
+.onboarding-screen {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F0F4FF 50%, #E8FFF4 100%);
+  z-index: 2000;
+  padding: 40px 24px;
+  padding-top: calc(40px + var(--safe-top));
+  padding-bottom: calc(40px + var(--safe-bottom));
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.onboarding-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-20px);
+}
+.onboarding-logo {
+  font-size: 28px; font-weight: 800; color: #0066FF;
+  margin-bottom: 12px; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 10px;
+}
+.onboarding-logo .ob-logo-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, #0066FF, #00CC99);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 102, 255, 0.3);
+}
+.onboarding-logo .ob-logo-icon svg { width: 22px; height: 22px; }
+.onboarding-slides-wrapper {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  width: 100%; max-width: 340px;
+  position: relative; overflow: hidden;
+}
+.onboarding-slide {
+  display: none; flex-direction: column;
+  align-items: center; text-align: center;
+  animation: fadeIn 0.4s ease;
+  width: 100%;
+}
+.onboarding-slide.active { display: flex; }
+.onboarding-icon {
+  font-size: 72px; margin-bottom: 32px;
+  line-height: 1.2;
+  animation: float 3s ease-in-out infinite;
+}
+.onboarding-title {
+  font-size: 24px; font-weight: 800; color: #1A1A2E;
+  margin-bottom: 12px; letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+.onboarding-subtitle {
+  font-size: 15px; color: #6B7280; line-height: 1.5;
+  max-width: 300px;
+}
+.onboarding-dots {
+  display: flex; gap: 8px; margin: 32px 0 28px;
+}
+.onboarding-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #D1D5DB; transition: all 0.3s ease;
+  cursor: pointer;
+}
+.onboarding-dot.active {
+  background: linear-gradient(135deg, #0066FF, #00CC99);
+  width: 28px; border-radius: 5px;
+}
+.onboarding-actions {
+  width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.onboarding-btn-primary {
+  width: 100%; padding: 16px 24px; border: none;
+  border-radius: 14px; font-size: 16px; font-weight: 700;
+  font-family: var(--font); color: #FFFFFF; cursor: pointer;
+  background: linear-gradient(135deg, #0066FF, #00CC99);
+  box-shadow: 0 4px 16px rgba(0, 102, 255, 0.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s ease;
+  min-height: 52px;
+}
+.onboarding-btn-primary:active { transform: scale(0.97); }
+.onboarding-btn-secondary {
+  width: 100%; padding: 14px 24px; border-radius: 14px;
+  font-size: 15px; font-weight: 600; font-family: var(--font);
+  color: #0066FF; background: transparent; cursor: pointer;
+  border: 2px solid #0066FF;
+  transition: all 0.2s ease;
+  min-height: 48px;
+}
+.onboarding-btn-secondary:active { transform: scale(0.97); background: rgba(0,102,255,0.05); }
 </style>
 
 </head>
 <body class="dark">
 <div class="app-container">
 
+<!-- ===== ONBOARDING SCREEN (first-time users only) ===== -->
+<div class="onboarding-screen" id="onboardingScreen">
+  <div class="onboarding-logo">
+    <span class="ob-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
+    <span>My<span style="color:#1A1A2E">Share</span></span>
+  </div>
+
+  <div class="onboarding-slides-wrapper">
+    <div class="onboarding-slide active" data-slide="0">
+      <div class="onboarding-icon">💸👥₱</div>
+      <div class="onboarding-title">Split expenses the smart way</div>
+      <div class="onboarding-subtitle">Track, split, and settle shared bills in pesos—quickly and easily.</div>
+    </div>
+    <div class="onboarding-slide" data-slide="1">
+      <div class="onboarding-icon">📸🧾✨</div>
+      <div class="onboarding-title">Scan receipts instantly</div>
+      <div class="onboarding-subtitle">Take a photo of any receipt. AI extracts vendor, items, and total automatically.</div>
+    </div>
+    <div class="onboarding-slide" data-slide="2">
+      <div class="onboarding-icon">🔒⭐💎</div>
+      <div class="onboarding-title">Secure blockchain wallet</div>
+      <div class="onboarding-subtitle">Your funds are protected by Stellar blockchain with 2FA security.</div>
+    </div>
+    <div class="onboarding-slide" data-slide="3">
+      <div class="onboarding-icon">🛡️✅🪪</div>
+      <div class="onboarding-title">Verify once, pay anyone</div>
+      <div class="onboarding-subtitle">Complete KYC verification to unlock all features and higher limits.</div>
+    </div>
+  </div>
+
+  <div class="onboarding-dots">
+    <div class="onboarding-dot active" data-dot="0" onclick="goToSlide(0)"></div>
+    <div class="onboarding-dot" data-dot="1" onclick="goToSlide(1)"></div>
+    <div class="onboarding-dot" data-dot="2" onclick="goToSlide(2)"></div>
+    <div class="onboarding-dot" data-dot="3" onclick="goToSlide(3)"></div>
+  </div>
+
+  <div class="onboarding-actions">
+    <button class="onboarding-btn-primary" onclick="finishOnboarding('signup')">Get Started →</button>
+    <button class="onboarding-btn-secondary" onclick="finishOnboarding('login')">Sign In</button>
+  </div>
+</div>
+
 
 <!-- ===== LOGIN SCREEN ===== -->
-<div class="auth-screen active" id="loginScreen">
+<div class="auth-screen" id="loginScreen">
   <div class="auth-header">
     <div class="logo">
       <span class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
@@ -2035,6 +2172,88 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ===== ONBOARDING LOGIC =====
+let onboardingSlide = 0;
+const totalSlides = 4;
+
+function initOnboarding() {
+  const onboarded = localStorage.getItem('myshare_onboarded');
+  const onboardingScreen = document.getElementById('onboardingScreen');
+  const loginScreen = document.getElementById('loginScreen');
+
+  if (onboarded) {
+    // Already onboarded — hide onboarding, show login
+    onboardingScreen.style.display = 'none';
+    loginScreen.classList.add('active');
+  } else {
+    // First-time user — show onboarding, hide login
+    onboardingScreen.style.display = 'flex';
+    loginScreen.classList.remove('active');
+    setupSwipeGestures();
+  }
+}
+
+function goToSlide(index) {
+  if (index < 0 || index >= totalSlides) return;
+  onboardingSlide = index;
+
+  // Update slides
+  document.querySelectorAll('.onboarding-slide').forEach(s => s.classList.remove('active'));
+  document.querySelector('.onboarding-slide[data-slide="' + index + '"]').classList.add('active');
+
+  // Update dots
+  document.querySelectorAll('.onboarding-dot').forEach(d => d.classList.remove('active'));
+  document.querySelector('.onboarding-dot[data-dot="' + index + '"]').classList.add('active');
+}
+
+function nextSlide() {
+  if (onboardingSlide < totalSlides - 1) {
+    goToSlide(onboardingSlide + 1);
+  }
+}
+
+function prevSlide() {
+  if (onboardingSlide > 0) {
+    goToSlide(onboardingSlide - 1);
+  }
+}
+
+function finishOnboarding(target) {
+  localStorage.setItem('myshare_onboarded', 'true');
+  const onboardingScreen = document.getElementById('onboardingScreen');
+  onboardingScreen.classList.add('hidden');
+
+  setTimeout(() => {
+    onboardingScreen.style.display = 'none';
+    if (target === 'signup') {
+      document.getElementById('signupScreen').classList.add('active');
+      document.getElementById('loginScreen').classList.remove('active');
+    } else {
+      document.getElementById('loginScreen').classList.add('active');
+      document.getElementById('signupScreen').classList.remove('active');
+    }
+  }, 400);
+}
+
+function setupSwipeGestures() {
+  const wrapper = document.getElementById('onboardingScreen');
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  wrapper.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  wrapper.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) { nextSlide(); }
+      else { prevSlide(); }
+    }
+  }, { passive: true });
+}
+
 // ===== THEME MANAGEMENT =====
 function initTheme() {
   const saved = localStorage.getItem('MyShare-theme');
@@ -2305,6 +2524,7 @@ function showSignup() {
 function showMainApp(name, userData) {
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('signupScreen').classList.remove('active');
+  document.getElementById('onboardingScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'block';
   
   if (name) {
@@ -2571,6 +2791,7 @@ function isStandalone() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
+  initOnboarding();
   initTheme();
   updateTime();
   setInterval(updateTime, 1000);
